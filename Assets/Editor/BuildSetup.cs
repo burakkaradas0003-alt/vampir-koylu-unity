@@ -106,6 +106,8 @@ public static class BuildSetup
         MakeMat("Grass", "Zu/Grass", m => m.enableInstancing = true);
         MakeMat("Flame", "Zu/Flame", null);
         MakeMat("Glow", "Zu/Glow", null);
+        MakeMat("Cloud", "Zu/Cloud", m => m.enableInstancing = true);
+        MakeMat("Sky", "Skybox/Procedural", m => { m.SetFloat("_SunDisk", 2f); m.EnableKeyword("_SUNDISK_HIGH_QUALITY"); });
         MakeMat("Ghost", "Universal Render Pipeline/Lit", m =>
         {
             m.SetFloat("_Surface", 1f);

@@ -62,6 +62,8 @@ namespace VK
             }
 
             BuildSky();
+            env = new Env(this); env.Build(transform, cam);
+            if (RenderSettings.skybox != null && skySphere != null) skySphere.SetActive(false);
             BuildGround();
             BuildStones();
             BuildVillage();
@@ -112,12 +114,13 @@ namespace VK
 
         // ---------------------------------------------------------------- gökyüzü
         GameObject moon; Matrix4x4[] starM; Vector4[] starC; MaterialPropertyBlock starMpb;
+        Env env; GameObject skySphere;
         void BuildSky()
         {
             skyTex = new Texture2D(1, 64, TextureFormat.RGBA32, false) { wrapMode = TextureWrapMode.Clamp };
             skyMat = new Material(Resources.Load<Material>("Mats/Unlit"));
             skyMat.SetTexture("_BaseMap", skyTex); skyMat.SetFloat("_Cull", 1f); // içten görünsün
-            var sky = Prim(PrimitiveType.Sphere, skyMat, Vector3.zero, Vector3.one * 900, transform);
+            var sky = Prim(PrimitiveType.Sphere, skyMat, Vector3.zero, Vector3.one * 900, transform); skySphere = sky;
             sky.GetComponent<MeshRenderer>().shadowCastingMode = ShadowCastingMode.Off;
             moon = Prim(PrimitiveType.Sphere, Resources.Load<Material>("Mats/Unlit"), new Vector3(-120, 150, 180), Vector3.one * 14, transform);
             moon.GetComponent<MeshRenderer>().material.SetColor("_BaseColor", new Color(1.6f, 1.55f, 1.3f));
@@ -152,7 +155,7 @@ namespace VK
             {
                 float x = -size / 2 + size * i / n, z = -size / 2 + size * j / n, d = Mathf.Sqrt(x * x + z * z);
                 float y = R(-0.03f, 0.03f);
-                if (d > 34) y += Mathf.Pow((d - 34) / 30f, 2) * 9 * (0.6f + 0.4f * Mathf.Sin(x * 0.07f + z * 0.05f));
+                if (d > 34) y += Mathf.Min(Mathf.Pow((d - 34) / 30f, 2) * 3.5f, 7f) * (0.6f + 0.4f * Mathf.Sin(x * 0.07f + z * 0.05f));
                 verts.Add(new Vector3(x, y, z)); uvs.Add(new Vector2(x * 0.45f, z * 0.9f));
             }
             for (int j = 0; j < n; j++) for (int i = 0; i < n; i++)
@@ -266,10 +269,10 @@ namespace VK
             var pines = new[] { Lit(new Color(0.18f, 0.36f, 0.22f)), Lit(new Color(0.22f, 0.42f, 0.25f)) };
             var oaks = new[] { Lit(new Color(0.3f, 0.54f, 0.2f)), Lit(new Color(0.36f, 0.6f, 0.23f)), Lit(new Color(0.27f, 0.49f, 0.18f)) };
             var ico = Ico(1);
-            for (int i = 0; i < (low ? 40 : 70); i++)
+            for (int i = 0; i < (low ? 60 : 130); i++)
             {
-                float a = R(0, 6.283f), d = R(23, 60);
-                var t = new GameObject("Ağaç").transform; t.SetParent(root, false); t.localPosition = new Vector3(Mathf.Cos(a) * d, d > 34 ? Mathf.Pow((d - 34) / 30f, 2) * 6 : 0, Mathf.Sin(a) * d);
+                float a = R(0, 6.283f), d = i < 40 ? R(22, 34) : R(34, 75);
+                var t = new GameObject("Ağaç").transform; t.SetParent(root, false); t.localPosition = new Vector3(Mathf.Cos(a) * d, GroundY(Mathf.Cos(a) * d, Mathf.Sin(a) * d) - 0.1f, Mathf.Sin(a) * d);
                 float s = R(0.8f, 1.5f); t.localScale = Vector3.one * s;
                 if (i % 3 != 0)
                 {
@@ -447,7 +450,7 @@ namespace VK
         }
 
         static float Mirror(float u) { u = Mathf.Abs(u) % 2f; return u > 1 ? 2 - u : u; }
-        float GroundY(float x, float z) { float d = Mathf.Sqrt(x * x + z * z); return d > 34 ? Mathf.Pow((d - 34) / 30f, 2) * 9 * (0.6f + 0.4f * Mathf.Sin(x * 0.07f + z * 0.05f)) : 0; }
+        float GroundY(float x, float z) { float d = Mathf.Sqrt(x * x + z * z); return d > 34 ? Mathf.Min(Mathf.Pow((d - 34) / 30f, 2) * 3.5f, 7f) * (0.6f + 0.4f * Mathf.Sin(x * 0.07f + z * 0.05f)) : 0; }
 
         void AddBatch(Mesh mesh, List<Matrix4x4> mats, List<Vector4> tints)
         {
@@ -514,10 +517,10 @@ namespace VK
         void ApplyTOD(float k)
         {
             tod = k;
-            sun.color = Color.Lerp(new Color(1f, 0.95f, 0.85f), new Color(0.45f, 0.55f, 0.95f), k);
-            sun.intensity = Mathf.Lerp(1.6f, 0.18f, k);
-            sun.transform.rotation = Quaternion.Euler(Mathf.Lerp(42, 30, k), Mathf.Lerp(-35, 140, k), 0);
-            RenderSettings.ambientSkyColor = Color.Lerp(new Color(0.62f, 0.7f, 0.82f), new Color(0.07f, 0.08f, 0.17f), k);
+            sun.color = Color.Lerp(new Color(1f, 0.9f, 0.76f), new Color(0.5f, 0.6f, 0.95f), k);
+            sun.intensity = Mathf.Lerp(1.45f, 0.22f, k);
+            sun.transform.rotation = Quaternion.Euler(Mathf.Lerp(34, 38, k), Mathf.Lerp(-40, 150, k), 0);
+            RenderSettings.ambientSkyColor = Color.Lerp(new Color(0.55f, 0.66f, 0.82f), new Color(0.07f, 0.08f, 0.17f), k);
             RenderSettings.ambientEquatorColor = Color.Lerp(new Color(0.6f, 0.58f, 0.5f), new Color(0.06f, 0.06f, 0.12f), k);
             RenderSettings.ambientGroundColor = Color.Lerp(new Color(0.36f, 0.33f, 0.26f), new Color(0.03f, 0.03f, 0.05f), k);
             RenderSettings.fogColor = Color.Lerp(new Color(0.86f, 0.82f, 0.74f), new Color(0.05f, 0.05f, 0.12f), k);
@@ -525,7 +528,8 @@ namespace VK
             fireBase = Mathf.Lerp(0.6f, 5.5f, k * k); fireLight.range = Mathf.Lerp(4, 18, k);
             fireLight.shadows = !low && fireShadowAllowed && k > 0.5f ? LightShadows.Hard : LightShadows.None;
             foreach (var m in windowMats) m.SetColor("_EmissionColor", new Color(1f, 0.75f, 0.4f) * (k * 2.2f));
-            moon.SetActive(k > 0.3f);
+            moon.SetActive(false);
+            env?.ApplyTOD(k, sun);
         }
         float fireBase = 0.6f;
 
@@ -568,6 +572,7 @@ namespace VK
             chimAcc += dt * chimneys.Count * 0.9f;
             while (chimAcc > 1 && chimneys.Count > 0) { chimAcc--; var cp = chimneys[Random.Range(0, chimneys.Count)]; Emit(cp, new Vector3(0.15f + Random.value * 0.1f, 0.5f + Random.value * 0.3f, (Random.value - 0.5f) * 0.1f), 4f, 0.4f, 2.2f, new Color(0.45f, 0.44f, 0.43f), 0, 0.12f * (1 - tod * 0.6f)); }
             DrawParticles(dt, camPos);
+            env?.Update(cam, tod);
             // yıldızlar
             if (tod > 0.2f) { for (int i = 0; i < starC.Length; i++) starC[i].w = Mathf.Clamp01((tod - 0.2f) * 1.6f) * (0.5f + 0.5f * Mathf.Sin(t * 2 + i)); starMpb.SetVectorArray("_Color", starC); var rp = new RenderParams(GlowMat()) { matProps = starMpb, worldBounds = new Bounds(Vector3.zero, Vector3.one * 1000) }; FaceAll(starM, camPos); Graphics.RenderMeshInstanced(rp, Quad(), 0, starM); }
             // çimen

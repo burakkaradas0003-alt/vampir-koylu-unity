@@ -84,7 +84,7 @@ namespace VK
             }
             ME = P[0];
             cam.transform.position = new Vector3(ME.seat.x * 1.04f, 1.45f, ME.seat.z * 1.04f);
-            fpArm = Rig.Make(0, P[0].tint, 1, false, true); fpArm.transform.localScale = Vector3.one * 0.75f; fpArm.gameObject.SetActive(false);
+            fpArm = Rig.Make(0, P[0].tint, 1, false, true); fpArm.transform.localScale = Vector3.one * 0.8f; fpArm.gameObject.SetActive(false);
             ui.onSend = SendChat; ui.onEmote = k => Emote(ME, k); ui.onBack = Exit; ui.onAgain = () => UnityEngine.SceneManagement.SceneManager.LoadScene(0);
             ui.onRoleChip = () => { if (ME.role != null) { var r = ROLES[ME.role]; ui.ShowCard(r.ic, r.n, r.team == "v" ? "VAMPİRLER" : "KÖY", r.c, r.d, "Kapat", null); } };
             Run();
@@ -758,7 +758,7 @@ namespace VK
         }
 
         // ---------------------------------------------------------------- her kare
-        float nextLookAt, fpsT0, goodSecs; int fpsN;
+        float nextLookAt, fpsT0, goodSecs, armSide = 1; int fpsN;
         readonly List<Transform> ringObjs = new List<Transform>(); Material ringMat; Mesh ringMesh;
 
         float AngleTo(Pl p, Vector3 target) { var v = p.ch.transform.InverseTransformPoint(target); return Mathf.Atan2(v.x, v.z); }
@@ -862,10 +862,16 @@ namespace VK
             if (armOn)
             {
                 var q = P[ME.pointAt.Value].seat; var target = new Vector3(q.x, 1.3f, q.z);
+                // Agrou gibi: omuz ekranın alt köşesinin dışında, kol oradan hedefe uzanır (kesik uç asla görünmez)
                 float side = cam.transform.InverseTransformPoint(target).x < 0 ? -1 : 1;
-                var pos = cam.transform.position + cam.transform.right * 0.15f * side + Vector3.down * 0.17f + cam.transform.forward * 0.3f;
+                armSide = Mathf.Lerp(armSide, side, Mathf.Min(1, dt * 10));
+                var ct = cam.transform;
+                var pos = ct.position + ct.right * (0.2f * armSide) - ct.up * 0.23f + ct.forward * 0.02f;
                 fpArm.transform.position = pos;
-                fpArm.transform.rotation = Quaternion.LookRotation(target - pos) * Quaternion.Euler((1 - ME.raise) * 1.3f * Mathf.Rad2Deg, 0, 0);
+                var aim = Quaternion.LookRotation(target - pos, Vector3.up);
+                fpArm.transform.rotation = aim * Quaternion.Euler((1 - ME.raise) * 1.1f * Mathf.Rad2Deg, 0, 0);
+                // soldaki hedef için kolu aynala (sağ kol yerine sol kol)
+                fpArm.transform.localScale = new Vector3(0.8f * (armSide < 0 ? -1 : 1), 0.8f, 0.8f);
             }
             DrawRings(t);
             // etiketler

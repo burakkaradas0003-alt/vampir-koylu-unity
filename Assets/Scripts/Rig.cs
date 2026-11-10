@@ -311,7 +311,7 @@ namespace VK
                 var go = new GameObject("kol"); go.transform.SetParent(smr.transform.parent, false);
                 go.transform.localPosition = smr.transform.localPosition; go.transform.localRotation = smr.transform.localRotation; go.transform.localScale = smr.transform.localScale;
                 var n2 = go.AddComponent<SkinnedMeshRenderer>(); n2.sharedMesh = m; n2.bones = smr.bones; n2.rootBone = smr.rootBone;
-                var em = new Material(smr.sharedMaterial); em.EnableKeyword("_EMISSION"); em.SetTexture("_EmissionMap", ATLAS); em.SetColor("_EmissionColor", Color.white * 0.1f);
+                var em = new Material(smr.sharedMaterial); em.SetFloat("_Cull", 0f); em.doubleSidedGI = true; em.EnableKeyword("_EMISSION"); em.SetTexture("_EmissionMap", ATLAS); em.SetColor("_EmissionColor", Color.white * 0.1f);
                 n2.sharedMaterial = em; n2.shadowCastingMode = ShadowCastingMode.Off; n2.updateWhenOffscreen = true;
             }
             Pose(0);
