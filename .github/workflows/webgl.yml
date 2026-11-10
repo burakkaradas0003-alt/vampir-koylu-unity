@@ -10,6 +10,8 @@ on:
 concurrency:
   group: webgl
   cancel-in-progress: true
+permissions:
+  contents: write
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -51,6 +53,13 @@ jobs:
           build-target: WebGL
           log-name: WebGL-Build
           args: -quit -batchmode -nographics -executeMethod BuildSetup.BuildWebGL
+      - name: Web sürümünü webgl dalına yaz
+        run: |
+          cd Builds/WebGL
+          git init -q -b webgl
+          git add -A
+          git -c user.name="github-actions" -c user.email="github-actions@users.noreply.github.com" commit -qm "WebGL ${{ github.sha }}"
+          git push -f "https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git" webgl
       - uses: actions/upload-artifact@v4
         with:
           name: webgl
