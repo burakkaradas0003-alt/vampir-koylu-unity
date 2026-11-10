@@ -42,9 +42,9 @@ namespace VK
             var grassProto = Resources.Load<Material>("Mats/Grass");
             var layers = new[]
             {
-                new { r = 78f, depth = 26f, h = 16f, seed = 3.1f, low = new Color(0.16f, 0.27f, 0.13f), mid = new Color(0.22f, 0.33f, 0.17f), high = new Color(0.33f, 0.36f, 0.25f), snow = 2f },
-                new { r = 118f, depth = 40f, h = 34f, seed = 7.7f, low = new Color(0.17f, 0.25f, 0.16f), mid = new Color(0.33f, 0.34f, 0.3f), high = new Color(0.46f, 0.45f, 0.43f), snow = 0.86f },
-                new { r = 175f, depth = 60f, h = 70f, seed = 12.3f, low = new Color(0.26f, 0.31f, 0.33f), mid = new Color(0.44f, 0.46f, 0.5f), high = new Color(0.62f, 0.63f, 0.66f), snow = 0.62f },
+                new { r = 78f, depth = 26f, h = 16f, seed = 3.1f, low = new Color(0.1f, 0.19f, 0.1f), mid = new Color(0.14f, 0.24f, 0.13f), high = new Color(0.24f, 0.29f, 0.2f), snow = 2f },
+                new { r = 118f, depth = 40f, h = 34f, seed = 7.7f, low = new Color(0.12f, 0.2f, 0.13f), mid = new Color(0.27f, 0.3f, 0.31f), high = new Color(0.42f, 0.44f, 0.48f), snow = 0.8f },
+                new { r = 175f, depth = 60f, h = 70f, seed = 12.3f, low = new Color(0.22f, 0.27f, 0.33f), mid = new Color(0.38f, 0.42f, 0.5f), high = new Color(0.56f, 0.6f, 0.68f), snow = 0.58f },
             };
             foreach (var L in layers)
             {
@@ -97,18 +97,18 @@ namespace VK
         // bir sıradağ halkası: önden bakan, sırtları kırık, yüksekliğe göre renklenen şerit
         Mesh Range(float r0, float depth, float hMax, float seed, Color low, Color mid, Color high, float snowAt)
         {
-            int seg = 240, rows = 8;
+            int seg = 360, rows = 10;
             var v = new List<Vector3>(); var c = new List<Color>(); var tri = new List<int>();
             for (int i = 0; i <= seg; i++)
             {
                 float u = i / (float)seg, a = u * Mathf.PI * 2;
                 float ridge = Ridge(u * 9 + seed, seed, 5);
-                float peak = hMax * (0.35f + ridge * 0.9f) * (0.75f + 0.25f * Mathf.Sin(a * 3 + seed));
+                float peak = hMax * (0.25f + ridge * 1.05f) * (0.7f + 0.3f * Mathf.Sin(a * 3 + seed));
                 for (int j = 0; j <= rows; j++)
                 {
                     float t = j / (float)rows;
                     float prof = Mathf.Sin(t * Mathf.PI * 0.5f);             // önden yükselen yamaç
-                    float rough = (Mathf.PerlinNoise(u * 60 + seed, t * 6) - 0.5f) * hMax * 0.08f * t;
+                    float rough = ((Mathf.PerlinNoise(u * 60 + seed, t * 6) - 0.5f) * 0.1f + (Mathf.PerlinNoise(u * 180 + seed, t * 14) - 0.5f) * 0.05f) * hMax * t;
                     float y = peak * prof + rough - 2f;
                     float rr = r0 + depth * t + (Mathf.PerlinNoise(u * 20, seed) - 0.5f) * 6;
                     v.Add(new Vector3(Mathf.Cos(a) * rr, y, Mathf.Sin(a) * rr));
@@ -148,6 +148,8 @@ namespace VK
 
         public void ApplyTOD(float k, Light sun)
         {
+            // dağlar güneşin sıcak rengini almasın: hafif soğuk ton (uzak hava perspektifi)
+            var cool = Color.Lerp(new Color(0.86f, 0.93f, 1.05f), new Color(0.35f, 0.4f, 0.6f), k);
             if (sky != null)
             {
                 sky.SetFloat("_Exposure", Mathf.Lerp(1.15f, 0.08f, k));
@@ -160,7 +162,7 @@ namespace VK
             // uzak sis gökyüzünün ufkuyla aynı renkte: dağlar ufukta erir
             RenderSettings.fogColor = Color.Lerp(new Color(0.72f, 0.8f, 0.88f), new Color(0.05f, 0.06f, 0.13f), k);
             RenderSettings.fogDensity = Mathf.Lerp(0.006f, 0.0085f, k);
-            foreach (var m in mountainMats) m.SetColor("_Tint", Color.Lerp(Color.white, new Color(0.35f, 0.4f, 0.6f), k));
+            foreach (var m in mountainMats) m.SetColor("_Tint", cool);
         }
 
         public void Update(Camera cam, float tod)

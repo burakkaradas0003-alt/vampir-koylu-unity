@@ -81,7 +81,7 @@ namespace VK
             emoRow.gameObject.SetActive(false);
 
             // eylem kartı
-            var act = Panel("eylem", canvas, BG, new Vector2(1, 0), new Vector2(1, 0), new Vector2(-170, 76), new Vector2(316, 132), true);
+            var act = Panel("eylem", canvas, BG, new Vector2(1, 1), new Vector2(1, 1), new Vector2(-160, -130), new Vector2(300, 132), true);
             actG = act.gameObject.AddComponent<CanvasGroup>();
             actI = Img("i", act, null, new Vector2(0, 1), new Vector2(30, -30), new Vector2(34, 34));
             actT = Label("t", act, "", 17, FontStyle.Bold, TextAnchor.MiddleLeft, new Vector2(0, 1), new Vector2(170, -22), new Vector2(240, 24));

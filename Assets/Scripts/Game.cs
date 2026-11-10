@@ -866,9 +866,12 @@ namespace VK
                 float side = cam.transform.InverseTransformPoint(target).x < 0 ? -1 : 1;
                 armSide = Mathf.Lerp(armSide, side, Mathf.Min(1, dt * 10));
                 var ct = cam.transform;
-                var pos = ct.position + ct.right * (0.2f * armSide) - ct.up * 0.23f + ct.forward * 0.02f;
+                var pos = ct.position + ct.right * (0.3f * armSide) - ct.up * 0.3f + ct.forward * 0.04f;
                 fpArm.transform.position = pos;
-                var aim = Quaternion.LookRotation(target - pos, Vector3.up);
+                // kolu hedefe doğru ama ekranın ortasına çapraz uzanacak şekilde yönelt (el ve işaret parmağı net görünsün)
+                var toT = (target - pos).normalized;
+                var dir = (toT * 0.55f + ct.forward * 0.25f - ct.right * (0.22f * armSide) + ct.up * 0.18f).normalized;
+                var aim = Quaternion.LookRotation(dir, Vector3.up);
                 fpArm.transform.rotation = aim * Quaternion.Euler((1 - ME.raise) * 1.1f * Mathf.Rad2Deg, 0, 0);
                 // soldaki hedef için kolu aynala (sağ kol yerine sol kol)
                 fpArm.transform.localScale = new Vector3(0.8f * (armSide < 0 ? -1 : 1), 0.8f, 0.8f);
