@@ -182,6 +182,25 @@ namespace VK
         public void ShowAction(string icon, string title, string desc, params Btn_[] btns)
         {
             actG.gameObject.SetActive(true); actI.sprite = Emoji(icon); actI.enabled = actI.sprite != null; actT.text = title; actD.text = desc;
+            // düğmesizse ince şerit (üst orta), düğmeliyse kart (sağ alt)
+            var ar = (RectTransform)actG.transform; bool compact = btns.Length == 0;
+            if (compact)
+            {
+                ar.anchorMin = ar.anchorMax = new Vector2(0.5f, 1); ar.anchoredPosition = new Vector2(0, -78); ar.sizeDelta = new Vector2(440, 40);
+                actI.rectTransform.anchorMin = actI.rectTransform.anchorMax = new Vector2(0, 0.5f); actI.rectTransform.anchoredPosition = new Vector2(22, 0); actI.rectTransform.sizeDelta = new Vector2(24, 24);
+                actT.gameObject.SetActive(false);
+                actD.rectTransform.anchorMin = actD.rectTransform.anchorMax = new Vector2(0, 0.5f); actD.rectTransform.anchoredPosition = new Vector2(230, 0); actD.rectTransform.sizeDelta = new Vector2(380, 36);
+                actD.alignment = TextAnchor.MiddleLeft;
+                var first = desc.IndexOf('\n'); if (first > 0) actD.text = desc.Substring(0, first) + "  ·  <size=11>tekrar dokun: geri al</size>";
+            }
+            else
+            {
+                ar.anchorMin = ar.anchorMax = new Vector2(1, 0); ar.anchoredPosition = new Vector2(-150, 64); ar.sizeDelta = new Vector2(284, 112);
+                actI.rectTransform.anchorMin = actI.rectTransform.anchorMax = new Vector2(0, 1); actI.rectTransform.anchoredPosition = new Vector2(28, -28); actI.rectTransform.sizeDelta = new Vector2(30, 30);
+                actT.gameObject.SetActive(true);
+                actD.rectTransform.anchorMin = actD.rectTransform.anchorMax = new Vector2(0, 1); actD.rectTransform.anchoredPosition = new Vector2(160, -52); actD.rectTransform.sizeDelta = new Vector2(222, 42);
+                actD.alignment = TextAnchor.UpperLeft;
+            }
             foreach (Transform c in actBtns) Destroy(c.gameObject);
             foreach (var b in btns)
             {

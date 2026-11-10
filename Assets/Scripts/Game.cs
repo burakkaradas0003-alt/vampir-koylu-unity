@@ -423,7 +423,7 @@ namespace VK
                 void Render()
                 {
                     ui.ShowAction(kind == "mayor" ? "crown" : "hand", kind == "mayor" ? "Muhtar seçimi" : "Oylama",
-                        ME.pointAt == null ? "Oy vermek istediğin kişiye dokun. Geri almak için tekrar dokun, değiştirmek için başkasına dokun." : $"Oyun: <b><color=#FFFFFF>{P[ME.pointAt.Value].n}</color></b>\nGeri almak için tekrar dokun, değiştirmek için başkasına dokun.");
+                        ME.pointAt == null ? "Oy vermek istediğin kişiye dokun." : $"Oyun: <b><color=#FFFFFF>{P[ME.pointAt.Value].n}</color></b>\nGeri almak için tekrar dokun, değiştirmek için başkasına dokun.");
                 }
                 selectable = q => q.alive && !q.me;
                 onSelect = i => { ME.pointAt = ME.pointAt == i ? null : (int?)i; voteChangedAt = Now; Render(); };
@@ -867,9 +867,11 @@ namespace VK
                 armSide = Mathf.Lerp(armSide, side, Mathf.Min(1, dt * 10));
                 // önce elin ekrandaki yeri (hedefin biraz altı/yanı), sonra omuz oradan geriye: ekran köşesinin dışına
                 var tv = cam.WorldToViewportPoint(target);
-                float hx = Mathf.Clamp(tv.x + 0.07f * armSide, 0.22f, 0.8f), hy = Mathf.Clamp(tv.y - 0.2f, 0.22f, 0.52f);
+                // el, ekran köşesiyle hedef arasındaki çizginin üstünde: parmak ekranda tam hedefi gösterir
+                float cx = armSide > 0 ? 1.12f : -0.12f, cy = -0.2f;
+                float hx = Mathf.Lerp(cx, Mathf.Clamp(tv.x, 0.05f, 0.95f), 0.58f), hy = Mathf.Clamp(Mathf.Lerp(cy, Mathf.Clamp(tv.y, 0.3f, 0.9f), 0.58f), 0.22f, 0.5f);
                 var hand = cam.ViewportToWorldPoint(new Vector3(hx, hy, 0.5f));
-                var corner = cam.ViewportToWorldPoint(new Vector3(armSide > 0 ? 1.12f : -0.12f, -0.2f, 0.28f));
+                var corner = cam.ViewportToWorldPoint(new Vector3(cx, cy, 0.28f));
                 var dir = (hand - corner).normalized;
                 float rch = fpArm.reach * 0.8f;
                 var pos = hand - dir * rch;
