@@ -49,6 +49,7 @@ namespace VK
         readonly List<Pl> P = new List<Pl>();
         Pl ME;
         string phase = "intro"; int day; int? mayor, wolfTarget, guardLast, guardT, poisonT; bool healTonight, healUsed, poisonUsed, locked, over, ghostCam, vampChatHint;
+        float voteChangedAt;
         int[] lovers = new int[0]; readonly List<Claim> claims = new List<Claim>(); string countMode;
         Func<Pl, bool> selectable; Action<int> onSelect; readonly List<KeyValuePair<int, Color>> rings = new List<KeyValuePair<int, Color>>();
         int? lastSpeaker; float lastSpeakAt; int token;
@@ -421,17 +422,16 @@ namespace VK
             {
                 void Render()
                 {
-                    var btns = new List<Hud.Btn_> { new Hud.Btn_ { t = locked ? "Onaylandı" : "Onayla", style = "on", dis = ME.pointAt == null || locked, f = () => { locked = true; Render(); } } };
-                    if (ME.pointAt != null && !locked) btns.Add(new Hud.Btn_ { t = "Vazgeç", style = "m", f = () => { ME.pointAt = null; Render(); } });
                     ui.ShowAction(kind == "mayor" ? "crown" : "hand", kind == "mayor" ? "Muhtar seçimi" : "Oylama",
-                        ME.pointAt == null ? "Seçmek istediğin kişiye dokun. Herkes kimi gösterdiğini görür." : $"Gösterdiğin kişi: <b><color=#FFFFFF>{P[ME.pointAt.Value].n}</color></b>{(locked ? " · onaylandı" : "")}", btns.ToArray());
+                        ME.pointAt == null ? "Oy vermek istediğin kişiye dokun. Geri almak için tekrar dokun, değiştirmek için başkasına dokun." : $"Oyun: <b><color=#FFFFFF>{P[ME.pointAt.Value].n}</color></b>\nGeri almak için tekrar dokun, değiştirmek için başkasına dokun.");
                 }
                 selectable = q => q.alive && !q.me;
-                onSelect = i => { if (locked) return; ME.pointAt = ME.pointAt == i ? null : (int?)i; Render(); };
+                onSelect = i => { ME.pointAt = ME.pointAt == i ? null : (int?)i; voteChangedAt = Now; Render(); };
                 Render();
             }
             else if (!ME.alive) ui.ShowAction("ghost", "Hayaletsin", "Yaşayanların tartışmasını izliyorsun.");
-            await Timed(sec, () => voters.All(p => !p.alive || p.pointAt != null) && (!ME.alive || AUTO || locked));
+            // herkes oy verdiyse ve oyuncu birkaç saniyedir fikrini değiştirmediyse süre kısalır
+            await Timed(sec, () => voters.All(p => !p.alive || p.pointAt != null) && (!ME.alive || AUTO || Now - voteChangedAt > 6 / SPEED));
             selectable = null;
             var c = Tally(null, kind != "mayor");
             var r = TopOf(c);
@@ -572,14 +572,14 @@ namespace VK
             ui.InputState(true, "Vampirlere yaz...");
             void Render()
             {
-                ui.ShowAction("vampir", "Avını seç", (ME.pointAt == null ? "Isıracağın kişiye dokun. Diğer vampirler kimi gösterdiğini görür." : $"Hedef: <b><color=#FFFFFF>{P[ME.pointAt.Value].n}</color></b>") + (mates.Count > 0 ? "\nDiğer vampir: " + string.Join(", ", mates.Select(m => m.n)) : ""),
-                    new Hud.Btn_ { t = locked ? "Onaylandı" : "Onayla", style = "on", dis = ME.pointAt == null || locked, f = () => { locked = true; Render(); } });
+                ui.ShowAction("vampir", "Avını seç", (ME.pointAt == null ? "Isıracağın kişiye dokun. Geri almak için tekrar dokun. Diğer vampirler kimi gösterdiğini görür." : $"Hedef: <b><color=#FFFFFF>{P[ME.pointAt.Value].n}</color></b>") + (mates.Count > 0 ? "\nDiğer vampir: " + string.Join(", ", mates.Select(m => m.n)) : ""),
+                    new Hud.Btn_[0]);
             }
             locked = false;
             selectable = q => q.alive && !IsV(q);
-            onSelect = i => { if (locked) return; ME.pointAt = ME.pointAt == i ? null : (int?)i; Render(); };
+            onSelect = i => { ME.pointAt = ME.pointAt == i ? null : (int?)i; voteChangedAt = Now; Render(); };
             Render();
-            await Timed(T_WOLF, () => locked && mates.All(m => m.pointAt != null));
+            await Timed(T_WOLF, () => ME.pointAt != null && mates.All(m => m.pointAt != null) && Now - voteChangedAt > 6 / SPEED);
             selectable = null;
             var r = TopOf(Tally(q => IsV(q), false));
             wolfTarget = r.list.Count > 0 ? Pick(r.list) : Pick(Alive().Where(q => !IsV(q)).ToList()).i;
