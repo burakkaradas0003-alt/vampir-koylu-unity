@@ -38,7 +38,7 @@ namespace VK
             cam.fieldOfView = 62; cam.nearClipPlane = 0.05f; cam.farClipPlane = 600;
             cam.clearFlags = CameraClearFlags.SolidColor;
             var cd = cgo.AddComponent<UniversalAdditionalCameraData>();
-            cd.renderPostProcessing = !low; cd.antialiasing = AntialiasingMode.SubpixelMorphologicalAntiAliasing; cd.antialiasingQuality = AntialiasingQuality.High;
+            cd.renderPostProcessing = !low; cd.antialiasing = AntialiasingMode.FastApproximateAntialiasing;
 
             // ışıklar
             var sgo = new GameObject("Güneş"); sun = sgo.AddComponent<Light>(); sun.type = LightType.Directional;
@@ -67,6 +67,7 @@ namespace VK
             BuildVillage();
             BuildCampfire();
             BuildGrass();
+            SetLevel(low ? 3 : Application.isMobilePlatform ? 1 : 0);
             ApplyTOD(0);
         }
 
@@ -406,7 +407,7 @@ namespace VK
             }
             // bir öbek: 13 ince yaprak, 2 parçalı, uca doğru incelir ve kıvrılır
             var tuft = TuftMesh(low ? 9 : 13);
-            int n = low ? 8000 : 22000;
+            int n = low ? 5000 : (Application.isMobilePlatform ? 9000 : 18000);
             var mats = new List<Matrix4x4>(); var tints = new List<Vector4>();
             var tint = new Color(0.62f, 0.8f, 0.5f);
             for (int i = 0; i < n; i++)
@@ -426,7 +427,7 @@ namespace VK
                 var meshes = new List<Mesh>();
                 foreach (var mf in wild.GetComponentsInChildren<MeshFilter>()) if (mf.sharedMesh != null && mf.sharedMesh.vertexCount > 100) meshes.Add(WildMesh(mf.sharedMesh));
                 foreach (var smr in wild.GetComponentsInChildren<SkinnedMeshRenderer>()) if (smr.sharedMesh != null && smr.sharedMesh.vertexCount > 100) meshes.Add(WildMesh(smr.sharedMesh));
-                int cnt = (low ? 220 : 600) / Mathf.Max(1, meshes.Count);
+                int cnt = (low ? 150 : (Application.isMobilePlatform ? 300 : 600)) / Mathf.Max(1, meshes.Count);
                 foreach (var wm in meshes)
                 {
                     mats.Clear(); tints.Clear();
@@ -522,7 +523,7 @@ namespace VK
             RenderSettings.fogColor = Color.Lerp(new Color(0.86f, 0.82f, 0.74f), new Color(0.05f, 0.05f, 0.12f), k);
             PaintSky(k);
             fireBase = Mathf.Lerp(0.6f, 5.5f, k * k); fireLight.range = Mathf.Lerp(4, 18, k);
-            fireLight.shadows = !low && k > 0.5f ? LightShadows.Soft : LightShadows.None;
+            fireLight.shadows = !low && fireShadowAllowed && k > 0.5f ? LightShadows.Hard : LightShadows.None;
             foreach (var m in windowMats) m.SetColor("_EmissionColor", new Color(1f, 0.75f, 0.4f) * (k * 2.2f));
             moon.SetActive(k > 0.3f);
         }
@@ -611,12 +612,30 @@ namespace VK
         }
 
         // telefon zorlanırsa: parlama kapanır, çimenin yarısı çizilmez
-        public bool degraded;
-        public void Degrade()
+        // Uyarlamalı kalite: kare hızı düşükse adım adım hafifler, yüksekse geri yükselir.
+        // 0 en iyi … 4 en hafif. Çözünürlük, çimen, gölge, parlama ve kenar yumuşatma ayarlanır.
+        public bool degraded => level > 0;
+        public int level = -1;
+        int[][] grassFull;
+        static readonly float[] SCALE = { 1f, 0.85f, 0.72f, 0.62f, 0.52f };
+        static readonly int[] GRASS = { 100, 75, 50, 35, 20 };
+        public void SetLevel(int L)
         {
-            if (degraded) return; degraded = true;
-            if (volume != null) volume.enabled = false;
-            for (int k = 0; k < grassBatches.Count; k++) { var b = grassBatches[k]; for (int c = 0; c < b.count.Length; c++) b.count[c] = b.count[c] * 55 / 100; }
+            L = Mathf.Clamp(L, 0, 4); if (L == level) return; level = L;
+            var urp = GraphicsSettings.currentRenderPipeline as UniversalRenderPipelineAsset;
+            if (urp != null)
+            {
+                urp.renderScale = SCALE[L];
+                urp.msaaSampleCount = L == 0 ? 2 : 1;
+                urp.shadowDistance = L >= 3 ? 14 : L >= 1 ? 22 : 30;
+            }
+            if (volume != null) volume.enabled = L <= 1;
+            sun.shadows = L >= 4 ? LightShadows.None : L >= 2 ? LightShadows.Hard : LightShadows.Soft;
+            if (grassFull == null) grassFull = grassBatches.ConvertAll(b => (int[])b.count.Clone()).ToArray();
+            for (int k = 0; k < grassBatches.Count; k++) for (int c = 0; c < grassBatches[k].count.Length; c++) grassBatches[k].count[c] = grassFull[k][c] * GRASS[L] / 100;
+            Debug.Log("[Zuplay] kalite seviyesi " + L);
         }
+        public void Degrade() { SetLevel(level + 1); }
+        public bool fireShadowAllowed => level <= 1;
     }
 }

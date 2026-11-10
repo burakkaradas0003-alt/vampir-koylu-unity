@@ -73,14 +73,14 @@ public static class BuildSetup
             AssetDatabase.CreateAsset(urp, rpPath);
         }
         urp.supportsHDR = true;
-        urp.msaaSampleCount = 4;
+        urp.msaaSampleCount = 2;
         urp.shadowDistance = 32f;
         urp.shadowCascadeCount = 2;
         urp.renderScale = 1f;
         var so = new SerializedObject(urp);
         void SetI(string n, int v) { var p = so.FindProperty(n); if (p != null) p.intValue = v; else Debug.LogWarning("[Zuplay] yok: " + n); }
         void SetB(string n, bool v) { var p = so.FindProperty(n); if (p != null) p.boolValue = v; else Debug.LogWarning("[Zuplay] yok: " + n); }
-        SetI("m_MainLightShadowmapResolution", 2048);
+        SetI("m_MainLightShadowmapResolution", 1024);
         SetB("m_SoftShadowsSupported", true);
         SetB("m_AdditionalLightShadowsSupported", true);
         SetI("m_AdditionalLightsShadowmapResolution", 1024);
