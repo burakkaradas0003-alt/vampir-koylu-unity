@@ -21,7 +21,7 @@ namespace VK
         InputField input; Image cardIcon; Text cardName, cardTeam, cardDesc; Button cardBtn; Text cardBtnT;
         Text endTitle, endSub;
         public Action<string> onSend; public Action<string> onEmote; public Action onBack, onRoleChip, onAgain;
-        public static readonly Color BG = new Color(0.05f, 0.06f, 0.13f, 0.82f);
+        public static readonly Color BG = new Color(0.04f, 0.05f, 0.11f, 0.9f);
 
         public static Sprite Emoji(string k) => string.IsNullOrEmpty(k) ? null : Resources.Load<Sprite>("Emoji/" + k);
 
@@ -46,7 +46,7 @@ namespace VK
 
             // üst çubuk
             var back = Panel("geri", canvas, BG, new Vector2(0, 1), new Vector2(0, 1), new Vector2(34, -30), new Vector2(40, 40), true);
-            Label("<", back, "‹", 26, FontStyle.Bold, TextAnchor.MiddleCenter, new Vector2(0.5f, 0.5f), new Vector2(0, 2), new Vector2(40, 40));
+            Label("<", back, "<", 24, FontStyle.Bold, TextAnchor.MiddleCenter, new Vector2(0.5f, 0.5f), new Vector2(0, 2), new Vector2(40, 40));
             Btn(back, () => onBack?.Invoke());
             var chip = Panel("rol", canvas, BG, new Vector2(0, 1), new Vector2(0, 1), new Vector2(124, -30), new Vector2(118, 40), true);
             rcBorder = chip.GetComponent<Image>();
@@ -68,11 +68,11 @@ namespace VK
             Btn(emoBtn, () => emoG.gameObject.SetActive(!emoG.gameObject.activeSelf));
             var inBox = Panel("yaz", canvas, BG, Vector2.zero, Vector2.zero, new Vector2(170, 28), new Vector2(224, 40), true);
             var it = Label("metin", inBox, "", 14, FontStyle.Normal, TextAnchor.MiddleLeft, new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(200, 34));
-            var ph = Label("ipucu", inBox, "Bir şey yaz…", 14, FontStyle.Normal, TextAnchor.MiddleLeft, new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(200, 34)); ph.color = new Color(1, 1, 1, 0.45f);
+            var ph = Label("ipucu", inBox, "Bir şey yaz...", 14, FontStyle.Normal, TextAnchor.MiddleLeft, new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(200, 34)); ph.color = new Color(1, 1, 1, 0.45f);
             input = inBox.gameObject.AddComponent<InputField>(); input.textComponent = it; input.placeholder = ph; input.characterLimit = 120;
             input.onEndEdit.AddListener(s => { if (Input.GetKeyDown(KeyCode.Return) || Input.GetKeyDown(KeyCode.KeypadEnter)) Send(); });
             var send = Panel("gönder", canvas, BG, Vector2.zero, Vector2.zero, new Vector2(306, 28), new Vector2(40, 40), true);
-            Label("›", send, "➤", 18, FontStyle.Bold, TextAnchor.MiddleCenter, new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(40, 40));
+            Label(">", send, ">", 20, FontStyle.Bold, TextAnchor.MiddleCenter, new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(40, 40));
             Btn(send, Send);
             emoRow = Panel("emojiler", canvas, BG, Vector2.zero, Vector2.zero, new Vector2(170, 72), new Vector2(310, 40), true);
             emoG = emoRow.gameObject.AddComponent<CanvasGroup>();
@@ -217,7 +217,7 @@ namespace VK
             var le = row.gameObject.AddComponent<LayoutElement>(); le.preferredWidth = 320; le.minHeight = 24;
             while (logBox.childCount > 6) DestroyImmediate(logBox.GetChild(0).gameObject);
         }
-        static string Esc(string s) => s.Replace("<", "‹").Replace(">", "›");
+        static string Esc(string s) => s.Replace("<", "(").Replace(">", ")");
 
         public void Eyes(bool closed, string icon = "moon", string text = "", string small = "")
         {
@@ -225,7 +225,7 @@ namespace VK
         }
         bool eyesClosed; float lid;
 
-        public void RoleChip(string icon, string name, Color c) { rcIcon.sprite = Emoji(icon); rcIcon.enabled = true; rcName.text = name; rcBorder.color = new Color(c.r * 0.35f, c.g * 0.35f, c.b * 0.35f, 0.9f); }
+        public void RoleChip(string icon, string name, Color c) { rcIcon.sprite = Emoji(icon); rcIcon.enabled = rcIcon.sprite != null; rcName.text = name; rcBorder.color = new Color(c.r * 0.35f, c.g * 0.35f, c.b * 0.35f, 0.9f); }
 
         public void ShowCard(string icon, string name, string team, Color c, string desc, string btn, Action onClose)
         {

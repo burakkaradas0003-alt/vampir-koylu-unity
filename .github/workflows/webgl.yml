@@ -55,7 +55,11 @@ jobs:
           args: -quit -batchmode -nographics -executeMethod BuildSetup.BuildWebGL
       - name: Web sürümünü webgl dalına yaz
         run: |
+          D=$(cd Builds/WebGL/Build && ls | grep -E '\.data' | head -1); F=$(cd Builds/WebGL/Build && ls | grep -E 'framework' | head -1); C=$(cd Builds/WebGL/Build && ls | grep -E '\.wasm' | head -1)
+          sed -e "s#__DATA__#$D#" -e "s#__FW__#$F#" -e "s#__CODE__#$C#" web/index.html > Builds/WebGL/index.html
+          touch Builds/WebGL/.nojekyll
           cd Builds/WebGL
+          ls -la Build
           git init -q -b webgl
           git add -A
           git -c user.name="github-actions" -c user.email="github-actions@users.noreply.github.com" commit -qm "WebGL ${{ github.sha }}"

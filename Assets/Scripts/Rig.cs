@@ -12,7 +12,7 @@ namespace VK
 
     public class Rig : MonoBehaviour
     {
-        public class Outfit { public string[] parts; public float shift; public Outfit(float s, params string[] p) { parts = p; shift = s; } }
+        public class Outfit { public string[] parts; public Color tint; public Outfit(float s, params string[] p) { parts = p; tint = s == 0 ? Color.white : Color.HSVToRGB(Mathf.Repeat(s, 1f), 0.35f, 1f); } }
 
         // shift: kıyafet renk paletinde kayma (atlas sütunları farklı renkler)
         public static readonly Outfit[] OUTFITS =
@@ -78,7 +78,7 @@ namespace VK
             var lit = Resources.Load<Material>("Mats/Lit");
             Material Cloth(float shift) { var m = new Material(lit); m.SetTexture("_BaseMap", ATLAS); m.SetTextureOffset("_BaseMap", new Vector2(shift, 0)); m.SetFloat("_Smoothness", 0.25f); return m; }
             var skin = Cloth(0); skin.SetColor("_BaseColor", skinTint);
-            var cloth = Cloth(outfit.shift); var plain = Cloth(0);
+            var cloth = Cloth(0); cloth.SetColor("_BaseColor", outfit.tint); var plain = Cloth(0);
             var glass = new Material(lit); glass.SetColor("_BaseColor", new Color(0.08f, 0.12f, 0.16f)); glass.SetFloat("_Smoothness", 0.9f);
             if (ghost && ghostMat == null) ghostMat = new Material(Resources.Load<Material>("Mats/Ghost"));
 

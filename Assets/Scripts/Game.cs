@@ -421,7 +421,7 @@ namespace VK
             {
                 void Render()
                 {
-                    var btns = new List<Hud.Btn_> { new Hud.Btn_ { t = locked ? "Onaylandı ✓" : "Onayla", style = "on", dis = ME.pointAt == null || locked, f = () => { locked = true; Render(); } } };
+                    var btns = new List<Hud.Btn_> { new Hud.Btn_ { t = locked ? "Onaylandı" : "Onayla", style = "on", dis = ME.pointAt == null || locked, f = () => { locked = true; Render(); } } };
                     if (ME.pointAt != null && !locked) btns.Add(new Hud.Btn_ { t = "Vazgeç", style = "m", f = () => { ME.pointAt = null; Render(); } });
                     ui.ShowAction(kind == "mayor" ? "crown" : "hand", kind == "mayor" ? "Muhtar seçimi" : "Oylama",
                         ME.pointAt == null ? "Seçmek istediğin kişiye dokun. Herkes kimi gösterdiğini görür." : $"Gösterdiğin kişi: <b><color=#FFFFFF>{P[ME.pointAt.Value].n}</color></b>{(locked ? " · onaylandı" : "")}", btns.ToArray());
@@ -448,7 +448,7 @@ namespace VK
             ui.RoleChip(r.ic, r.n, r.c);
             var desc = r.d;
             if (IsV(ME)) desc += " Diğer vampir: " + string.Join(", ", P.Where(q => IsV(q) && !q.me).Select(q => q.n)) + ".";
-            ui.Phase("VAMPİR KÖYLÜ", "Rolün dağıtılıyor…");
+            ui.Phase("VAMPİR KÖYLÜ", "Rolün dağıtılıyor...");
             await Wait(0.7f);
             bool closed = false;
             ui.ShowCard(r.ic, r.n, r.team == "v" ? "VAMPİRLER" : "KÖY", r.c, desc, "Hazırım", () => closed = true);
@@ -475,12 +475,12 @@ namespace VK
             token++;
             phase = "night"; day = n; wolfTarget = null; guardT = null; healTonight = false; poisonT = null;
             ui.HideAction();
-            ui.Phase("GECE " + n, "Köy uyuyor…");
+            ui.Phase("GECE " + n, "Köy uyuyor...");
             W.SetTOD(1, 3.5f / SPEED);
-            await ui.Banner("moon", "Gece " + n, "Herkes gözlerini kapatsın…", 2);
+            await ui.Banner("moon", "Gece " + n, "Herkes gözlerini kapatsın...", 2);
             while (W.TodBusy) await Awaitable.NextFrameAsync();
             foreach (var p in P) p.sleepTo = 1;
-            if (ME.alive) ui.Eyes(true, "moon", "Köy uyuyor…", "Gözlerin kapalı");
+            if (ME.alive) ui.Eyes(true, "moon", "Köy uyuyor...", "Gözlerin kapalı");
             await Wait(1.2f);
             foreach (var role in NIGHT_ORDER)
             {
@@ -498,12 +498,12 @@ namespace VK
             var actors = Alive().Where(p => p.role == role).ToList();
             phase = "night-" + role;
             var nm = R0.pl ?? R0.n;
-            ui.Sub(nm + " uyanıyor…");
-            if (actors.Count == 0) { if (ME.alive) ui.Eyes(true, R0.ic, nm + " uyanıyor…", "Gözlerin kapalı"); await Wait(T_BOTSTEP); return; }
+            ui.Sub(nm + " uyanıyor...");
+            if (actors.Count == 0) { if (ME.alive) ui.Eyes(true, R0.ic, nm + " uyanıyor...", "Gözlerin kapalı"); await Wait(T_BOTSTEP); return; }
             bool human = actors.Contains(ME) && !AUTO;
             if (!human)
             {
-                if (ME.alive) ui.Eyes(true, R0.ic, nm + " uyanıyor…", "Gözlerin kapalı");
+                if (ME.alive) ui.Eyes(true, R0.ic, nm + " uyanıyor...", "Gözlerin kapalı");
                 await BotNight(role, actors, n);
                 await Wait(T_BOTSTEP);
                 return;
@@ -569,11 +569,11 @@ namespace VK
             ui.Phase("GECE " + n, "Vampirler kurbanını seçiyor", T_WOLF / SPEED);
             foreach (var m in mates) { var mm = m; mm.sleepTo = 0; Later(T_WOLF * (0.25f + Rnd() * 0.35f), () => { mm.pointAt = BotWolfVote(mm); if (Rnd() < 0.6f) Say(mm, Line("wolf", P[mm.pointAt.Value].n), "wolf"); }); }
             if (!vampChatHint) { vampChatHint = true; ui.Toast("Vampir sohbeti açık — sadece vampirler görür"); }
-            ui.InputState(true, "Vampirlere yaz…");
+            ui.InputState(true, "Vampirlere yaz...");
             void Render()
             {
                 ui.ShowAction("vampir", "Avını seç", (ME.pointAt == null ? "Isıracağın kişiye dokun. Diğer vampirler kimi gösterdiğini görür." : $"Hedef: <b><color=#FFFFFF>{P[ME.pointAt.Value].n}</color></b>") + (mates.Count > 0 ? "\nDiğer vampir: " + string.Join(", ", mates.Select(m => m.n)) : ""),
-                    new Hud.Btn_ { t = locked ? "Onaylandı ✓" : "Onayla", style = "on", dis = ME.pointAt == null || locked, f = () => { locked = true; Render(); } });
+                    new Hud.Btn_ { t = locked ? "Onaylandı" : "Onayla", style = "on", dis = ME.pointAt == null || locked, f = () => { locked = true; Render(); } });
             }
             locked = false;
             selectable = q => q.alive && !IsV(q);
@@ -586,7 +586,7 @@ namespace VK
             ui.Toast("Kurban: " + P[wolfTarget.Value].n);
             await Wait(1.2f);
             foreach (var v in actors) { v.pointAt = null; v.sleepTo = 1; }
-            countMode = null; ui.InputState(true, "Bir şey yaz…");
+            countMode = null; ui.InputState(true, "Bir şey yaz...");
             ui.HideAction();
         }
 
@@ -656,11 +656,11 @@ namespace VK
                 else deaths.Add((wolfTarget.Value, "night"));
             }
             if (poisonT != null && !deaths.Any(d => d.i == poisonT) && P[poisonT.Value].alive) deaths.Add((poisonT.Value, "poison"));
-            ui.Phase("SABAH", "Güneş doğuyor…");
+            ui.Phase("SABAH", "Güneş doğuyor...");
             foreach (var p in P) p.sleepTo = 0;
             W.SetTOD(0, 3.5f / SPEED);
             while (W.TodBusy) await Awaitable.NextFrameAsync();
-            await ui.Banner("sun", "Gün " + n, "Köy uyanıyor…", 1.8f);
+            await ui.Banner("sun", "Gün " + n, "Köy uyanıyor...", 1.8f);
             if (deaths.Count == 0)
             {
                 if (saved != null) W.Burst(P[saved.Value].seat + Vector3.up * 1.2f, new Color(0.5f, 0.84f, 1f), 30, 0.6f, 0.18f, 1.6f);
@@ -692,7 +692,7 @@ namespace VK
             int t = r.list[0];
             if (r.list.Count > 1)
             {
-                await ui.Banner("scale", "Oylar eşit!", mayor != null ? "Son kararı muhtar verecek" : "Kura çekiliyor…", 2);
+                await ui.Banner("scale", "Oylar eşit!", mayor != null ? "Son kararı muhtar verecek" : "Kura çekiliyor...", 2);
                 var m = mayor != null ? P[mayor.Value] : null;
                 if (m != null && m.alive && m.me && !AUTO)
                 {
@@ -875,7 +875,7 @@ namespace VK
                     if (p.talk > 0) icons.Add("speaker");
                 }
                 counts.TryGetValue(p.i, out int n);
-                ui.PlaceTag(p.tag, pos, cam, !p.alive, selected, icons.ToArray(), n > 0 ? (countMode == "wolf" ? "• " : "✋ ") + n : null, countMode == "wolf");
+                ui.PlaceTag(p.tag, pos, cam, !p.alive, selected, icons.ToArray(), n > 0 ? n.ToString() : null, countMode == "wolf");
             }
         }
 

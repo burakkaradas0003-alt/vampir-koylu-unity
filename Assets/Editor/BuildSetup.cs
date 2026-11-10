@@ -18,8 +18,8 @@ public static class BuildSetup
     public static void BuildWebGL()
     {
         Setup();
-        PlayerSettings.WebGL.compressionFormat = WebGLCompressionFormat.Disabled;
-        PlayerSettings.WebGL.decompressionFallback = false;
+        PlayerSettings.WebGL.compressionFormat = WebGLCompressionFormat.Gzip;
+        PlayerSettings.WebGL.decompressionFallback = true; // sunucu sıkıştırma başlığı göndermese de açılır
         PlayerSettings.WebGL.dataCaching = false;
         PlayerSettings.runInBackground = true;
         var opt = new BuildPlayerOptions { scenes = new[] { "Assets/Scenes/Main.unity" }, locationPathName = "Builds/WebGL", target = BuildTarget.WebGL, options = BuildOptions.None };
@@ -40,6 +40,7 @@ public static class BuildSetup
     public static void Setup()
     {
         ReimportModels();
+        foreach (var g in AssetDatabase.FindAssets("t:Texture2D", new[] { "Assets/Resources/Emoji" })) AssetDatabase.ImportAsset(AssetDatabase.GUIDToAssetPath(g), ImportAssetOptions.ForceUpdate);
         var urp = SetupPipeline();
         SetupMaterials();
         SetupScene();
@@ -181,7 +182,7 @@ public class ZuImport : AssetPostprocessor
         if (!assetPath.Contains("/Resources/")) return;
         var ti = (TextureImporter)assetImporter;
         if (assetPath.Contains("_normal")) ti.textureType = TextureImporterType.NormalMap;
-        if (assetPath.Contains("/Emoji/")) { ti.textureType = TextureImporterType.Sprite; ti.alphaIsTransparency = true; ti.mipmapEnabled = false; }
+        if (assetPath.Contains("/Emoji/")) { ti.textureType = TextureImporterType.Sprite; ti.spriteImportMode = SpriteImportMode.Single; ti.alphaIsTransparency = true; ti.mipmapEnabled = false; ti.textureCompression = TextureImporterCompression.Uncompressed; }
         if (assetPath.Contains("turf")) { ti.wrapMode = TextureWrapMode.Mirror; ti.isReadable = true; }
         if (assetPath.Contains("flames")) ti.wrapMode = TextureWrapMode.Clamp;
         ti.maxTextureSize = 2048;

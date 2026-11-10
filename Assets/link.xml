@@ -1,0 +1,4 @@
+<linker>
+  <!-- CreatePrimitive çarpıştırıcı ekler; WebGL derlemesinde bu sınıflar silinmesin -->
+  <assembly fullname="UnityEngine.PhysicsModule" preserve="all" />
+</linker>

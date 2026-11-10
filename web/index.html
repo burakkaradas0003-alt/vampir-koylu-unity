@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, height=device-height, initial-scale=1.0, user-scalable=no">
+<title>Vampir Köylü Unity</title>
+<style>
+  :root { --bg: #070A1F; --fg: #F2F3FA; --muted: #9AA3C7; --accent: #F5C542; --bar: rgba(255,255,255,0.12); }
+  @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --bg: #070A1F; --fg: #F2F3FA; } }
+  :root[data-theme="dark"] { --bg: #070A1F; --fg: #F2F3FA; }
+  html, body { margin: 0; height: 100%; background: var(--bg); color: var(--fg); overflow: hidden; font-family: system-ui, -apple-system, "Segoe UI", sans-serif; }
+  #c { position: fixed; inset: 0; width: 100vw; height: 100vh; display: block; background: var(--bg); }
+  #load { position: fixed; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 14px; padding: 0 16px; text-align: center; }
+  #load h1 { margin: 0; font-size: 22px; font-weight: 800; letter-spacing: 0.5px; }
+  #load p { margin: 0; color: var(--muted); font-size: 13px; }
+  .bar { width: min(260px, 70vw); height: 6px; border-radius: 3px; background: var(--bar); overflow: hidden; }
+  .bar i { display: block; height: 100%; width: 0; background: var(--accent); transition: width .2s; }
+  #rot { display: none; position: fixed; inset: 0; background: var(--bg); align-items: center; justify-content: center; text-align: center; padding: 0 16px; color: var(--muted); font-size: 15px; z-index: 5; }
+  @media (orientation: portrait) and (max-width: 700px) { #rot { display: flex; } }
+</style>
+</head>
+<body>
+<canvas id="c" tabindex="-1"></canvas>
+<div id="load"><h1>Vampir Köylü</h1><div class="bar"><i id="pb"></i></div><p id="lt">Unity sürümü yükleniyor… (ilk açılışta biraz sürebilir)</p></div>
+<div id="rot">Oyunu oynamak için telefonu yan çevir.</div>
+<script>
+  var canvas = document.getElementById("c");
+  var s = document.createElement("script");
+  s.src = "Build/WebGL.loader.js";
+  s.onload = function () {
+    createUnityInstance(canvas, {
+      dataUrl: "Build/__DATA__", frameworkUrl: "Build/__FW__", codeUrl: "Build/__CODE__",
+      streamingAssetsUrl: "StreamingAssets", companyName: "Zuplay", productName: "Vampir Köylü", productVersion: "0.1.0",
+      showBanner: function (msg, type) { if (type === "error") document.getElementById("lt").textContent = msg; }
+    }, function (p) { document.getElementById("pb").style.width = Math.round(p * 100) + "%"; })
+    .then(function () { document.getElementById("load").style.display = "none"; })
+    .catch(function (m) { document.getElementById("lt").textContent = "Açılamadı: " + m; });
+  };
+  s.onerror = function () { document.getElementById("lt").textContent = "Oyun dosyaları yüklenemedi."; };
+  document.body.appendChild(s);
+</script>
+</body>
+</html>
