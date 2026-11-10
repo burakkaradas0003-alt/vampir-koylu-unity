@@ -49,7 +49,7 @@ namespace VK
         public float crownBase;
         public Material ghostMat;
 
-        bool ghost, fp;
+        bool ghost, fp; float phase;
         readonly Dictionary<string, Transform> B = new Dictionary<string, Transform>();
         readonly List<KeyValuePair<Transform, Quaternion>> rest = new List<KeyValuePair<Transform, Quaternion>>();
         readonly Dictionary<Transform, Vector3> curlAxis = new Dictionary<Transform, Vector3>();
@@ -71,6 +71,7 @@ namespace VK
 
         void Setup(Outfit outfit, Color skinTint, float size)
         {
+            phase = Random.value * 6.28f;
             var model = Instantiate(BASE, transform); model.name = "model"; body = model;
             foreach (var t in model.GetComponentsInChildren<Transform>()) { var n = Nm(t.name); if (!B.ContainsKey(n)) B[n] = t; }
 
@@ -250,8 +251,10 @@ namespace VK
             }
             // gövde: eğilme + beden dili
             float laugh = c.open * c.smile;
-            float ux = upperPitch + c.angry * 0.12f + c.sad * 0.1f - c.up * 0.08f + Mathf.Sin(time * 12) * laugh * 0.06f + (ghost ? 0 : 0.05f);
-            CharRot("Spine", ux * 0.5f, 0, upperRoll * 0.5f); CharRot("Spine1", ux * 0.5f, 0, upperRoll * 0.5f);
+            float breath = Mathf.Sin(time * 1.7f + phase) * 0.018f, sway = Mathf.Sin(time * 0.45f + phase * 2) * 0.03f;
+            float ux = upperPitch + c.angry * 0.12f + c.sad * 0.1f - c.up * 0.08f + Mathf.Sin(time * 12) * laugh * 0.06f + (ghost ? 0 : 0.05f) + breath;
+            CharRot("Spine", ux * 0.5f, sway * 0.5f, upperRoll * 0.5f + sway * 0.3f); CharRot("Spine1", ux * 0.5f, sway * 0.5f, upperRoll * 0.5f);
+            if (!ghost) { CharRot("LeftShoulder", 0, 0, -breath * 1.5f); CharRot("RightShoulder", 0, 0, breath * 1.5f); }
             float hx = headPitch + c.sad * 0.28f - c.up * 0.1f + c.angry * 0.06f;
             CharRot("Neck", hx * 0.35f, headYaw * 0.35f, 0); CharRot("Head", hx * 0.65f, headYaw * 0.65f, 0);
             // sol kol: dinlenme / el sallama / konuşurken jest

@@ -54,8 +54,10 @@ namespace VK
             {
                 var vgo = new GameObject("Efekt"); volume = vgo.AddComponent<Volume>(); volume.isGlobal = true;
                 var prof = ScriptableObject.CreateInstance<VolumeProfile>();
-                bloom = prof.Add<Bloom>(true); bloom.intensity.Override(0.55f); bloom.threshold.Override(0.95f); bloom.scatter.Override(0.6f);
-                var tm = prof.Add<Tonemapping>(true); tm.mode.Override(TonemappingMode.Neutral);
+                bloom = prof.Add<Bloom>(true); bloom.intensity.Override(0.6f); bloom.threshold.Override(0.9f); bloom.scatter.Override(0.65f);
+                var tm = prof.Add<Tonemapping>(true); tm.mode.Override(TonemappingMode.ACES);
+                var ca = prof.Add<ColorAdjustments>(true); ca.postExposure.Override(0.25f); ca.contrast.Override(12f); ca.saturation.Override(12f);
+                var vg = prof.Add<Vignette>(true); vg.intensity.Override(0.28f); vg.smoothness.Override(0.45f);
                 volume.profile = prof;
             }
 
@@ -68,6 +70,14 @@ namespace VK
             ApplyTOD(0);
         }
 
+        Material TexMat(Tex.Pair p, Vector2 tiling, Color tint, float smooth = 0.08f)
+        {
+            var m = new Material(Resources.Load<Material>("Mats/LitNormal"));
+            m.SetTexture("_BaseMap", p.col); m.SetTexture("_BumpMap", p.nrm); m.SetFloat("_BumpScale", 1f);
+            m.SetTextureScale("_BaseMap", tiling); m.SetColor("_BaseColor", tint); m.SetFloat("_Smoothness", smooth);
+            m.SetColor("_EmissionColor", Color.black); m.SetTexture("_OcclusionMap", null);
+            return m;
+        }
         Material Lit(Color c, float smooth = 0.1f)
         {
             var m = new Material(matLit); m.SetColor("_BaseColor", c); m.SetFloat("_Smoothness", smooth); return m;
@@ -153,11 +163,11 @@ namespace VK
             var g = MeshGO("Çimen zemin", m, gm, transform, false); g.GetComponent<MeshRenderer>().receiveShadows = true;
             groundMesh = m;
             // kum meydan
-            var sand = Lit(new Color(0.89f, 0.78f, 0.57f), 0.02f);
+            var sand = TexMat(Tex.Sand(), Vector2.one, Color.white, 0.02f);
             var disc = new Mesh(); var dv = new List<Vector3> { new Vector3(0, 0.02f, 0) }; var dt = new List<int>();
             int seg = 96; for (int i = 0; i <= seg; i++) { float a = i * Mathf.PI * 2 / seg; float r = 9.55f + Mathf.Sin(a * 7) * 0.12f; dv.Add(new Vector3(Mathf.Cos(a) * r, 0.02f, Mathf.Sin(a) * r)); }
             for (int i = 1; i <= seg; i++) { dt.Add(0); dt.Add(i + 1); dt.Add(i); }
-            disc.SetVertices(dv); disc.SetTriangles(dt, 0); disc.RecalculateNormals();
+            disc.SetVertices(dv); disc.SetUVs(0, dv.ConvertAll(p => new Vector2(p.x * 0.3f, p.z * 0.3f))); disc.SetTriangles(dt, 0); disc.RecalculateNormals(); disc.RecalculateTangents();
             MeshGO("Meydan", disc, sand, transform, false);
         }
         Mesh groundMesh;
@@ -190,9 +200,13 @@ namespace VK
         void BuildVillage()
         {
             var root = new GameObject("Köy").transform; root.SetParent(transform, false);
-            var plaster = Lit(new Color(0.93f, 0.9f, 0.84f)); var timber = Lit(new Color(0.24f, 0.16f, 0.11f));
-            var roofs = new[] { Lit(new Color(0.55f, 0.19f, 0.16f)), Lit(new Color(0.42f, 0.24f, 0.18f)), Lit(new Color(0.35f, 0.3f, 0.32f)) };
-            var stone = Lit(new Color(0.55f, 0.52f, 0.48f));
+            var tP = Tex.Plaster(); var tW = Tex.Wood(); var tS = Tex.Stone();
+            var plaster = TexMat(tP, new Vector2(2, 1.5f), Color.white); var timber = TexMat(tW, new Vector2(1, 1), Color.white, 0.15f);
+            var roofs = new[] { TexMat(Tex.RoofTiles(new Color(0.62f, 0.22f, 0.17f)), new Vector2(1, 1), Color.white, 0.2f), TexMat(Tex.RoofTiles(new Color(0.48f, 0.3f, 0.2f)), new Vector2(1, 1), Color.white, 0.2f), TexMat(Tex.RoofTiles(new Color(0.36f, 0.33f, 0.36f)), new Vector2(1, 1), Color.white, 0.25f) };
+            var stone = TexMat(tS, new Vector2(3, 0.6f), Color.white);
+            var shutterMats = new[] { Lit(new Color(0.2f, 0.36f, 0.3f)), Lit(new Color(0.22f, 0.3f, 0.45f)), Lit(new Color(0.45f, 0.22f, 0.16f)) };
+            var flowerMats = new[] { Lit(new Color(0.9f, 0.2f, 0.25f)), Lit(new Color(0.95f, 0.8f, 0.2f)), Lit(new Color(0.85f, 0.4f, 0.8f)), Lit(new Color(0.3f, 0.6f, 0.25f)) };
+            var flowerIco = Ico(1);
             int houses = 8;
             for (int i = 0; i < houses; i++)
             {
@@ -208,6 +222,8 @@ namespace VK
                 Prim(PrimitiveType.Cube, timber, new Vector3(0, ht + 0.2f, dep / 2 + 0.02f), new Vector3(w, 0.16f, 0.06f), h);
                 Prim(PrimitiveType.Cube, timber, new Vector3(0, ht * 0.55f, dep / 2 + 0.02f), new Vector3(w, 0.14f, 0.06f), h);
                 Prim(PrimitiveType.Cube, timber, new Vector3(-w / 3, ht * 0.75f, dep / 2 + 0.03f), new Vector3(0.12f, ht * 0.55f, 0.05f), h, new Vector3(0, 0, 38));
+                Prim(PrimitiveType.Cube, timber, new Vector3(w / 3, ht * 0.75f, dep / 2 + 0.03f), new Vector3(0.12f, ht * 0.55f, 0.05f), h, new Vector3(0, 0, -38));
+                Prim(PrimitiveType.Cube, timber, new Vector3(0, ht * 0.75f, dep / 2 + 0.03f), new Vector3(0.12f, ht * 0.5f, 0.05f), h, new Vector3(0, 0, 90));
                 // kapı ve pencereler (gece ışıklı)
                 Prim(PrimitiveType.Cube, timber, new Vector3(0, 1.0f, dep / 2 + 0.04f), new Vector3(0.95f, 1.6f, 0.06f), h);
                 var win = new Material(Resources.Load<Material>("Mats/LitEmissive")); win.SetColor("_BaseColor", new Color(0.18f, 0.16f, 0.14f)); windowMats.Add(win);
@@ -215,11 +231,20 @@ namespace VK
                     {
                         Prim(PrimitiveType.Cube, win, new Vector3(x, y, dep / 2 + 0.04f), new Vector3(0.6f, 0.62f, 0.05f), h);
                         Prim(PrimitiveType.Cube, timber, new Vector3(x, y, dep / 2 + 0.07f), new Vector3(0.07f, 0.66f, 0.03f), h);
+                        Prim(PrimitiveType.Cube, timber, new Vector3(x, y, dep / 2 + 0.07f), new Vector3(0.66f, 0.07f, 0.03f), h);
+                        var sm = shutterMats[i % 3];
+                        foreach (float sx in new[] { -0.47f, 0.47f }) Prim(PrimitiveType.Cube, sm, new Vector3(x + sx, y, dep / 2 + 0.06f), new Vector3(0.3f, 0.66f, 0.04f), h, new Vector3(0, sx < 0 ? 12 : -12, 0));
+                        if (y < 2) // çiçek kutusu
+                        {
+                            Prim(PrimitiveType.Cube, timber, new Vector3(x, y - 0.42f, dep / 2 + 0.16f), new Vector3(0.7f, 0.14f, 0.2f), h);
+                            for (int f = 0; f < 5; f++) { var fl = MeshGO("çiçek", flowerIco, flowerMats[(f + i) % 4], h, false); fl.transform.localPosition = new Vector3(x - 0.28f + f * 0.14f, y - 0.3f, dep / 2 + 0.16f); fl.transform.localScale = Vector3.one * R(0.05f, 0.08f); }
+                        }
                     }
                 // çatı
                 var roof = MeshGO("çatı", Prism(w + 0.7f, ht * 0.7f, dep + 0.7f), roofs[i % 3], h);
                 roof.transform.localPosition = new Vector3(0, ht + 0.25f, 0);
                 Prim(PrimitiveType.Cube, stone, new Vector3(w * 0.28f, ht + ht * 0.55f, -dep * 0.15f), new Vector3(0.5f, 1.4f, 0.5f), h);
+                chimneys.Add(h.TransformPoint(new Vector3(w * 0.28f, ht + ht * 0.55f + 0.75f, -dep * 0.15f)));
                 // fıçı, sandık
                 if (i % 2 == 0) Prim(PrimitiveType.Cylinder, Lit(new Color(0.42f, 0.27f, 0.16f)), new Vector3(w / 2 + 0.6f, 0.45f, dep / 2 - 0.3f), new Vector3(0.7f, 0.45f, 0.7f), h);
                 else Prim(PrimitiveType.Cube, Lit(new Color(0.5f, 0.34f, 0.2f)), new Vector3(-w / 2 - 0.6f, 0.35f, dep / 2 - 0.4f), new Vector3(0.7f, 0.7f, 0.7f), h, new Vector3(0, 20, 0));
@@ -267,9 +292,10 @@ namespace VK
             var m = new Mesh();
             Vector3 a = new Vector3(-w / 2, 0, -d / 2), b = new Vector3(w / 2, 0, -d / 2), c = new Vector3(w / 2, 0, d / 2), e = new Vector3(-w / 2, 0, d / 2), t1 = new Vector3(-w / 2, h, 0), t2 = new Vector3(w / 2, h, 0);
             var v = new List<Vector3>(); var tr = new List<int>();
-            void Tri(Vector3 p, Vector3 q, Vector3 r) { int i = v.Count; v.Add(p); v.Add(r); v.Add(q); tr.Add(i); tr.Add(i + 1); tr.Add(i + 2); }
+            var uv = new List<Vector2>(); Vector2 U(Vector3 a) => new Vector2(a.x * 0.45f, (a.y + Mathf.Abs(a.z)) * 0.45f);
+            void Tri(Vector3 p, Vector3 q, Vector3 r) { int i = v.Count; v.Add(p); v.Add(r); v.Add(q); uv.Add(U(p)); uv.Add(U(r)); uv.Add(U(q)); tr.Add(i); tr.Add(i + 1); tr.Add(i + 2); }
             Tri(e, t1, t2); Tri(e, t2, c); Tri(b, t2, t1); Tri(b, t1, a); Tri(a, t1, e); Tri(c, t2, b);
-            m.SetVertices(v); m.SetTriangles(tr, 0); m.RecalculateNormals(); m.RecalculateBounds(); return m;
+            m.SetVertices(v); m.SetUVs(0, uv); m.SetTriangles(tr, 0); m.RecalculateNormals(); m.RecalculateTangents(); m.RecalculateBounds(); return m;
         }
         static Mesh Cone(float r, float h, int seg)
         {
@@ -346,7 +372,7 @@ namespace VK
         readonly List<Part> parts = new List<Part>();
         Matrix4x4[] pm = new Matrix4x4[1023]; Vector4[] pc = new Vector4[1023]; MaterialPropertyBlock pmpb;
         Mesh dotQuad; Material glowMat;
-        float fireAcc, smokeAcc, emberAcc;
+        float fireAcc, smokeAcc, emberAcc, chimAcc; readonly List<Vector3> chimneys = new List<Vector3>();
 
         public void Emit(Vector3 pos, Vector3 vel, float life, float size, float size1, Color col, float gravity = 0, float alpha = 0.85f, bool drag = false)
         {
@@ -495,6 +521,7 @@ namespace VK
             RenderSettings.fogColor = Color.Lerp(new Color(0.86f, 0.82f, 0.74f), new Color(0.05f, 0.05f, 0.12f), k);
             PaintSky(k);
             fireBase = Mathf.Lerp(0.6f, 5.5f, k * k); fireLight.range = Mathf.Lerp(4, 18, k);
+            fireLight.shadows = !low && k > 0.5f ? LightShadows.Soft : LightShadows.None;
             foreach (var m in windowMats) m.SetColor("_EmissionColor", new Color(1f, 0.75f, 0.4f) * (k * 2.2f));
             moon.SetActive(k > 0.3f);
         }
@@ -536,6 +563,8 @@ namespace VK
             while (emberAcc > 1) { emberAcc--; Emit(new Vector3((Random.value - 0.5f) * 0.25f, 0.4f, (Random.value - 0.5f) * 0.25f), new Vector3((Random.value - 0.5f) * 0.3f, 0.7f + Random.value * 0.8f, (Random.value - 0.5f) * 0.3f), 2 + Random.value, 0.05f, 0.02f, new Color(1, 0.7f, 0.35f), 0, 1); }
             smokeAcc += dt * (low ? 1.5f : 3);
             while (smokeAcc > 1) { smokeAcc--; Emit(new Vector3((Random.value - 0.5f) * 0.2f, 1.1f, (Random.value - 0.5f) * 0.2f), new Vector3(0.12f + Random.value * 0.1f, 0.45f + Random.value * 0.2f, (Random.value - 0.5f) * 0.1f), 3.2f, 0.35f, 1.6f, new Color(0.35f, 0.34f, 0.33f), 0, 0.1f * (1 - tod * 0.7f)); }
+            chimAcc += dt * chimneys.Count * 0.9f;
+            while (chimAcc > 1 && chimneys.Count > 0) { chimAcc--; var cp = chimneys[Random.Range(0, chimneys.Count)]; Emit(cp, new Vector3(0.15f + Random.value * 0.1f, 0.5f + Random.value * 0.3f, (Random.value - 0.5f) * 0.1f), 4f, 0.4f, 2.2f, new Color(0.45f, 0.44f, 0.43f), 0, 0.12f * (1 - tod * 0.6f)); }
             DrawParticles(dt, camPos);
             // yıldızlar
             if (tod > 0.2f) { for (int i = 0; i < starC.Length; i++) starC[i].w = Mathf.Clamp01((tod - 0.2f) * 1.6f) * (0.5f + 0.5f * Mathf.Sin(t * 2 + i)); starMpb.SetVectorArray("_Color", starC); var rp = new RenderParams(GlowMat()) { matProps = starMpb, worldBounds = new Bounds(Vector3.zero, Vector3.one * 1000) }; FaceAll(starM, camPos); Graphics.RenderMeshInstanced(rp, Quad(), 0, starM); }
