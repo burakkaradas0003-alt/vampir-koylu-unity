@@ -73,7 +73,7 @@ public static class BuildSetup
             AssetDatabase.CreateAsset(urp, rpPath);
         }
         urp.supportsHDR = true;
-        urp.msaaSampleCount = 2;
+        urp.msaaSampleCount = 4;
         urp.shadowDistance = 32f;
         urp.shadowCascadeCount = 2;
         urp.renderScale = 1f;

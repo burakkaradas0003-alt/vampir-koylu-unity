@@ -55,7 +55,7 @@ Shader "Zu/Grass"
                 UNITY_SETUP_INSTANCE_ID(i);
                 float3 n = normalize(i.normalWS);
                 Light L = GetMainLight(TransformWorldToShadowCoord(i.positionWS));
-                float nl = saturate(dot(n, L.direction)) * 0.6 + 0.4;
+                float nl = saturate(dot(n, L.direction)) * 0.45 + 0.55;
                 float3 c = i.color.rgb * 1.15 * (L.color * nl * L.shadowAttenuation + SampleSH(n));
                 c = MixFog(c, i.fog);
                 return half4(c, 1);

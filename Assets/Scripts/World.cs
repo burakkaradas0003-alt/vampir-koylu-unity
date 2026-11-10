@@ -38,7 +38,7 @@ namespace VK
             cam.fieldOfView = 62; cam.nearClipPlane = 0.05f; cam.farClipPlane = 600;
             cam.clearFlags = CameraClearFlags.SolidColor;
             var cd = cgo.AddComponent<UniversalAdditionalCameraData>();
-            cd.renderPostProcessing = !low; cd.antialiasing = AntialiasingMode.FastApproximateAntialiasing;
+            cd.renderPostProcessing = !low; cd.antialiasing = AntialiasingMode.SubpixelMorphologicalAntiAliasing; cd.antialiasingQuality = AntialiasingQuality.High;
 
             // ışıklar
             var sgo = new GameObject("Güneş"); sun = sgo.AddComponent<Light>(); sun.type = LightType.Directional;
@@ -143,6 +143,7 @@ namespace VK
         {
             // çim: gerçek çim fotoğrafı, uzakta tepeler
             var turf = Resources.Load<Texture2D>("Grass/turf");
+            if (turf != null) { turf.filterMode = FilterMode.Trilinear; turf.anisoLevel = 8; }
             var gm = new Material(matLit); gm.SetTexture("_BaseMap", turf); gm.SetColor("_BaseColor", new Color(0.62f, 0.78f, 0.5f)); gm.SetFloat("_Smoothness", 0.05f);
             int n = low ? 90 : 140; float size = 200;
             var verts = new List<Vector3>(); var uvs = new List<Vector2>(); var tris = new List<int>();
@@ -167,7 +168,7 @@ namespace VK
             var disc = new Mesh(); var dv = new List<Vector3> { new Vector3(0, 0.02f, 0) }; var dt = new List<int>();
             int seg = 96; for (int i = 0; i <= seg; i++) { float a = i * Mathf.PI * 2 / seg; float r = 9.55f + Mathf.Sin(a * 7) * 0.12f; dv.Add(new Vector3(Mathf.Cos(a) * r, 0.02f, Mathf.Sin(a) * r)); }
             for (int i = 1; i <= seg; i++) { dt.Add(0); dt.Add(i + 1); dt.Add(i); }
-            disc.SetVertices(dv); disc.SetUVs(0, dv.ConvertAll(p => new Vector2(p.x * 0.3f, p.z * 0.3f))); disc.SetTriangles(dt, 0); disc.RecalculateNormals(); disc.RecalculateTangents();
+            disc.SetVertices(dv); disc.SetUVs(0, dv.ConvertAll(p => new Vector2(p.x * 0.12f, p.z * 0.12f))); disc.SetTriangles(dt, 0); disc.RecalculateNormals(); disc.RecalculateTangents();
             MeshGO("Meydan", disc, sand, transform, false);
         }
         Mesh groundMesh;

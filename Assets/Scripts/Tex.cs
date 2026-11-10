@@ -19,7 +19,7 @@ namespace VK
         // yükseklikten kabartma (normal) haritası
         static Texture2D Normal(float[] h, int s, float k)
         {
-            var t = new Texture2D(s, s, TextureFormat.RGBA32, true, true) { wrapMode = TextureWrapMode.Repeat };
+            var t = new Texture2D(s, s, TextureFormat.RGBA32, true, true) { wrapMode = TextureWrapMode.Repeat, anisoLevel = 8, filterMode = FilterMode.Trilinear };
             var px = new Color32[s * s];
             for (int y = 0; y < s; y++) for (int x = 0; x < s; x++)
             {
@@ -31,7 +31,7 @@ namespace VK
         }
         static Texture2D MakeTex(UnityEngine.Color[] c, int s)
         {
-            var t = new Texture2D(s, s, TextureFormat.RGBA32, true) { wrapMode = TextureWrapMode.Repeat, anisoLevel = 4 };
+            var t = new Texture2D(s, s, TextureFormat.RGBA32, true) { wrapMode = TextureWrapMode.Repeat, anisoLevel = 8, filterMode = FilterMode.Trilinear };
             t.SetPixels(c); t.Apply(true); return t;
         }
 
@@ -113,12 +113,12 @@ namespace VK
             for (int y = 0; y < s; y++) for (int x = 0; x < s; x++)
             {
                 float u = x / (float)s, v = y / (float)s;
-                float n = Fbm(u, v, 5), fine = N(u, v, 90);
-                float g = 0.82f + (n - 0.5f) * 0.18f + (fine - 0.5f) * 0.08f;
+                float n = Fbm(u, v, 4, 3), fine = N(u, v, 12);
+                float g = 0.83f + (n - 0.5f) * 0.14f + (fine - 0.5f) * 0.03f;
                 c[y * s + x] = new UnityEngine.Color(g * 1.02f, g * 0.89f, g * 0.66f);
                 h[y * s + x] = n * 0.6f + fine * 0.4f;
             }
-            return new Pair { col = MakeTex(c, s), nrm = Normal(h, s, 3f) };
+            return new Pair { col = MakeTex(c, s), nrm = Normal(h, s, 0.8f) };
         }
     }
 }
