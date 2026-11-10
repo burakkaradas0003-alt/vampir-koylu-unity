@@ -167,6 +167,9 @@ public static class BuildSetup
         PlayerSettings.bundleVersion = "0.1.0";
         PlayerSettings.Android.bundleVersionCode = 1;
         QualitySettings.vSyncCount = 0;
+        // açılıştaki Unity logosu (Unity 6'da Personal lisansta da kapatılabilir)
+        PlayerSettings.SplashScreen.show = false;
+        PlayerSettings.SplashScreen.showUnityLogo = false;
     }
 }
 
