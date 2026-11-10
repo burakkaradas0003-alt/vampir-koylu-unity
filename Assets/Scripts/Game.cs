@@ -870,7 +870,7 @@ namespace VK
                 fpArm.transform.position = pos;
                 // kolu hedefe doğru ama ekranın ortasına çapraz uzanacak şekilde yönelt (el ve işaret parmağı net görünsün)
                 var toT = (target - pos).normalized;
-                var dir = (toT * 0.55f + ct.forward * 0.25f - ct.right * (0.22f * armSide) + ct.up * 0.18f).normalized;
+                var dir = (toT + ct.up * 0.05f).normalized; // parmak doğrudan hedefi gösterir
                 var aim = Quaternion.LookRotation(dir, Vector3.up);
                 fpArm.transform.rotation = aim * Quaternion.Euler((1 - ME.raise) * 1.1f * Mathf.Rad2Deg, 0, 0);
                 // soldaki hedef için kolu aynala (sağ kol yerine sol kol)
