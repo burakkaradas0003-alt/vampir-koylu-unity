@@ -55,7 +55,7 @@ namespace VK
         int? lastSpeaker; float lastSpeakAt; int token;
         System.Random rng; bool AUTO; string MY_NAME = "Oyuncu";
         World W; Hud ui; Camera cam; Rig fpArm;
-        float yaw, pitch = 0.17f; Vector2? drag, downAt;
+        float yaw, pitch = 0.17f, yawT, pitchT = 0.17f; Vector2? drag, downAt;
 
         float Rnd() => (float)rng.NextDouble();
         T Pick<T>(IList<T> a) => a[(int)(Rnd() * a.Count) % Math.Max(1, a.Count)];
@@ -844,8 +844,11 @@ namespace VK
             bool myShow = ME.alive && ME.pointAt != null && !ghostCam;
             ME.raise += ((myShow ? 1 : 0) - ME.raise) * k;
             if (ghostCam) cam.transform.position = Vector3.Lerp(cam.transform.position, new Vector3(ME.seat.x * 1.3f, 2.5f, ME.seat.z * 1.3f), Mathf.Min(1, dt * 1.5f));
+            // kamera parmağı yumuşakça izler (titreşim süzülür)
+            float follow = 1 - Mathf.Exp(-dt * 18f);
+            yaw = Mathf.Lerp(yaw, yawT, follow); pitch = Mathf.Lerp(pitch, pitchT, follow);
             float baseYaw = Mathf.Atan2(-ME.seat.x, -ME.seat.z) * Mathf.Rad2Deg;
-            cam.transform.rotation = Quaternion.Euler((pitch + Mathf.Sin(t * 1.6f) * 0.008f) * Mathf.Rad2Deg, baseYaw + yaw * Mathf.Rad2Deg, 0);
+            cam.transform.rotation = Quaternion.Euler(pitch * Mathf.Rad2Deg, baseYaw + yaw * Mathf.Rad2Deg, 0);
             bool armOn = ME.raise > 0.03f && ME.pointAt != null;
             if (fpArm.gameObject.activeSelf != armOn) fpArm.gameObject.SetActive(armOn);
             if (armOn)
@@ -914,7 +917,7 @@ namespace VK
             if (held && drag != null)
             {
                 var d = mp - drag.Value; float s = 844f / Screen.width;
-                yaw -= d.x * s * 0.006f; pitch = Mathf.Clamp(pitch + d.y * s * 0.004f, -0.35f, 0.75f); drag = mp;
+                yawT -= d.x * s * 0.006f; pitchT = Mathf.Clamp(pitchT + d.y * s * 0.004f, -0.35f, 0.75f); drag = mp;
             }
             if (upE)
             {

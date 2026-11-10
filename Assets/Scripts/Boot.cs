@@ -7,7 +7,12 @@ namespace VK
     {
         void Start()
         {
+            // WebGL'de kare hızı tarayıcıya bırakılmalı (sabitleme düzensiz kare/titreme yapar)
+#if UNITY_WEBGL && !UNITY_EDITOR
+            Application.targetFrameRate = -1;
+#else
             Application.targetFrameRate = 60;
+#endif
             Screen.orientation = ScreenOrientation.LandscapeLeft;
             Screen.autorotateToPortrait = false; Screen.autorotateToPortraitUpsideDown = false;
             Screen.autorotateToLandscapeLeft = true; Screen.autorotateToLandscapeRight = true;
