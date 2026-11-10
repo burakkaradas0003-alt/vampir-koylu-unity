@@ -865,12 +865,15 @@ namespace VK
                 // Agrou gibi: omuz ekranın alt köşesinin dışında, kol oradan hedefe uzanır (kesik uç asla görünmez)
                 float side = cam.transform.InverseTransformPoint(target).x < 0 ? -1 : 1;
                 armSide = Mathf.Lerp(armSide, side, Mathf.Min(1, dt * 10));
-                var ct = cam.transform;
-                var pos = ct.position + ct.right * (0.3f * armSide) - ct.up * 0.3f + ct.forward * 0.04f;
+                // önce elin ekrandaki yeri (hedefin biraz altı/yanı), sonra omuz oradan geriye: ekran köşesinin dışına
+                var tv = cam.WorldToViewportPoint(target);
+                float hx = Mathf.Clamp(tv.x + 0.07f * armSide, 0.22f, 0.8f), hy = Mathf.Clamp(tv.y - 0.2f, 0.22f, 0.52f);
+                var hand = cam.ViewportToWorldPoint(new Vector3(hx, hy, 0.5f));
+                var corner = cam.ViewportToWorldPoint(new Vector3(armSide > 0 ? 1.12f : -0.12f, -0.2f, 0.28f));
+                var dir = (hand - corner).normalized;
+                float rch = fpArm.reach * 0.8f;
+                var pos = hand - dir * rch;
                 fpArm.transform.position = pos;
-                // kolu hedefe doğru ama ekranın ortasına çapraz uzanacak şekilde yönelt (el ve işaret parmağı net görünsün)
-                var toT = (target - pos).normalized;
-                var dir = (toT + ct.up * 0.05f).normalized; // parmak doğrudan hedefi gösterir
                 var aim = Quaternion.LookRotation(dir, Vector3.up);
                 fpArm.transform.rotation = aim * Quaternion.Euler((1 - ME.raise) * 1.1f * Mathf.Rad2Deg, 0, 0);
                 // soldaki hedef için kolu aynala (sağ kol yerine sol kol)

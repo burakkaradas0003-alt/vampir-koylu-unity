@@ -50,6 +50,7 @@ namespace VK
         public Material ghostMat;
 
         bool ghost, fp; float phase;
+        public float reach = 0.5f; // birinci şahıs: omuzdan işaret parmağına uzunluk
         readonly Dictionary<string, Transform> B = new Dictionary<string, Transform>();
         readonly List<KeyValuePair<Transform, Quaternion>> rest = new List<KeyValuePair<Transform, Quaternion>>();
         readonly Dictionary<Transform, Vector3> curlAxis = new Dictionary<Transform, Vector3>();
@@ -316,6 +317,8 @@ namespace VK
             }
             Pose(0);
             var model = body.transform; model.position += transform.position - B["RightArm"].position;
+            string tip = B.ContainsKey("RightHandIndex2") ? "RightHandIndex2" : "RightHand";
+            reach = Vector3.Distance(B["RightArm"].position, B[tip].position) / Mathf.Max(0.001f, transform.lossyScale.x);
         }
     }
 }
