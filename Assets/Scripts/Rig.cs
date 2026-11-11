@@ -360,7 +360,7 @@ namespace VK
             }
             float h = mx.y - mn.y; if (h < 1e-4f) return false;
             float k = 2f * seatH / h; // oturak, toplam yüksekliğin yarısında
-            var g = new GameObject("sandalye"); g.transform.SetParent(transform, false); g.transform.localPosition = new Vector3(0, 0, -0.04f); g.transform.localScale = Vector3.one * k;
+            var g = new GameObject("sandalye"); g.transform.SetParent(transform, false); g.transform.localPosition = new Vector3(0, 0, -0.04f); g.transform.localScale = Vector3.one * k; g.transform.localRotation = Quaternion.Euler(0, 180, 0); // sırtlık arkada, oturak öne bakar
             var m = new GameObject("model"); m.transform.SetParent(g.transform, false); m.transform.localRotation = chairRot; m.transform.localScale = chairScl;
             m.transform.localPosition = -new Vector3((mn.x + mx.x) / 2, mn.y, (mn.z + mx.z) / 2);
             m.AddComponent<MeshFilter>().sharedMesh = chairMesh; var r = m.AddComponent<MeshRenderer>(); r.sharedMaterial = chairMat;
