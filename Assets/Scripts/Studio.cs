@@ -81,7 +81,7 @@ namespace VK
         public RenderTexture Showcase(Look look, int w = 512, int h = 640, bool withSet = false)
         {
             useSet = withSet; if (withSet) BuildSet(); if (set != null) set.SetActive(withSet);
-            vcam.backgroundColor = withSet ? new Color(0.05f, 0.05f, 0.12f) : new Color(0, 0, 0, 0);
+            vcam.backgroundColor = withSet ? new Color(0.1f, 0.08f, 0.22f) : new Color(0, 0, 0, 0);
             vcam.GetComponent<UniversalAdditionalCameraData>().renderShadows = withSet;
             if (showRT == null || showRT.width != w || showRT.height != h) { if (showRT != null) showRT.Release(); showRT = new RenderTexture(w, h, 16, RenderTextureFormat.ARGB32) { antiAliasing = 4, name = "vitrin" }; showRT.Create(); }
             SetShow(look);
@@ -105,7 +105,7 @@ namespace VK
         {
             if (c != vcam || !useSet || World.I == null || World.I.Sun == null) return;
             var s = World.I.Sun; sunI = s.intensity; sunC = s.color; dimmed = true;
-            s.intensity = 0.22f; s.color = new Color(0.5f, 0.58f, 1f);
+            s.intensity = 0.42f; s.color = new Color(0.55f, 0.6f, 1f);
         }
         void EndCam(UnityEngine.Rendering.ScriptableRenderContext ctx, Camera c)
         {
@@ -162,6 +162,29 @@ namespace VK
             var moon = new GameObject("ay"); moon.transform.SetParent(set.transform, false); moon.transform.localPosition = new Vector3(-5.5f, 6.5f, 14f); moon.transform.localScale = Vector3.one * 2.2f;
             moon.AddComponent<MeshFilter>().sharedMesh = qm; var mr = moon.AddComponent<MeshRenderer>(); var mm = new Material(Resources.Load<Material>("Mats/Glow")); mm.SetTexture("_MainTex", Resources.Load<Texture2D>("UI/moon") != null ? Resources.Load<Texture2D>("UI/moon") : null); mr.sharedMaterial = mm;
             var mpb2 = new MaterialPropertyBlock(); mpb2.SetColor("_Color", new Color(0.85f, 0.88f, 1f, 0.9f)); mr.SetPropertyBlock(mpb2);
+            // gece göğü: mor-lacivert degrade ve yıldızlar (düz siyah yerine)
+            var skyT = new Texture2D(4, 128, TextureFormat.RGBA32, false) { wrapMode = TextureWrapMode.Clamp };
+            for (int y = 0; y < 128; y++) { float k = y / 127f; var cc = Color.Lerp(new Color(0.32f, 0.2f, 0.42f), new Color(0.07f, 0.06f, 0.2f), Mathf.Pow(k, 0.7f)); for (int x = 0; x < 4; x++) skyT.SetPixel(x, y, cc); }
+            skyT.Apply();
+            var sky = GameObject.CreatePrimitive(PrimitiveType.Quad); Destroy(sky.GetComponent<Collider>()); sky.name = "gök"; sky.transform.SetParent(set.transform, false);
+            sky.transform.localPosition = new Vector3(1, 9, 26); sky.transform.localScale = new Vector3(90, 34, 1);
+            var skm = new Material(Resources.Load<Material>("Mats/Unlit")); skm.SetTexture("_BaseMap", skyT); skm.SetColor("_BaseColor", Color.white); sky.GetComponent<MeshRenderer>().sharedMaterial = skm;
+            var rs = new System.Random(4);
+            for (int i = 0; i < 60; i++)
+            {
+                var st = new GameObject("yıldız"); st.transform.SetParent(set.transform, false); st.transform.localPosition = new Vector3((float)rs.NextDouble() * 60 - 28, 5 + (float)rs.NextDouble() * 18, 25.5f); st.transform.localScale = Vector3.one * (0.12f + (float)rs.NextDouble() * 0.18f);
+                st.AddComponent<MeshFilter>().sharedMesh = qm; var sr2 = st.AddComponent<MeshRenderer>(); sr2.sharedMaterial = Resources.Load<Material>("Mats/Glow") is Material gmat ? new Material(gmat) { mainTexture = Resources.Load<Texture2D>("UI/moon") } : null;
+                var sp = new MaterialPropertyBlock(); sp.SetColor("_Color", new Color(0.9f, 0.9f, 1f, 0.5f + (float)rs.NextDouble() * 0.5f)); sr2.SetPropertyBlock(sp);
+            }
+            // pencere önlerinde sıcak ışıklar (ev cephesi ve zemin aydınlansın)
+            foreach (var wp in new[] { new Vector3(-1.6f, 2.4f, 3.2f), new Vector3(2.2f, 2.4f, 3.2f), new Vector3(0.4f, 1.2f, 3.4f) })
+            {
+                var wl = new GameObject("pencere ışığı").AddComponent<Light>(); wl.transform.SetParent(set.transform, false); wl.transform.localPosition = wp;
+                wl.type = LightType.Point; wl.range = 5.5f; wl.intensity = 2.4f; wl.color = new Color(1f, 0.6f, 0.28f); wl.cullingMask = 1 << LAYER;
+            }
+            // önden yumuşak ay ışığı dolgusu (karakterin yüzü ve zemin seçilsin)
+            var front = new GameObject("ön dolgu").AddComponent<Light>(); front.transform.SetParent(set.transform, false); front.transform.localPosition = new Vector3(0.5f, 3.2f, -3.5f);
+            front.type = LightType.Point; front.range = 12; front.intensity = 1.6f; front.color = new Color(0.66f, 0.66f, 1f); front.cullingMask = 1 << LAYER;
             // fener ve pencerelerden gelen sıcak ışık, arkadan mor dolgu
             lantern = new GameObject("fener ışığı").AddComponent<Light>(); lantern.transform.SetParent(set.transform, false); lantern.transform.localPosition = new Vector3(-2.0f, 2.3f, 1.4f);
             lantern.type = LightType.Point; lantern.range = 7; lantern.intensity = 3.2f; lantern.color = new Color(1f, 0.62f, 0.3f); lantern.cullingMask = 1 << LAYER;
@@ -182,7 +205,10 @@ namespace VK
             if (useSet)
             {
                 // giyinme seti: karakter evin kapısı önünde, kamera hafif aşağıdan ve soldan
-                vcam.transform.position = c + new Vector3(0.55f, 0.45f, -4.9f); vcam.transform.LookAt(c + new Vector3(0.15f, -0.05f, 0)); vcam.fieldOfView = 34;
+                // görüntü tüm ekranı kaplar; karakter ekranın soldan ~%31'inde durur (sağda seçenek paneli)
+                float asp = showRT != null ? showRT.width / (float)showRT.height : 1.6f, dist = 4.9f;
+                float halfW = Mathf.Tan(34 * 0.5f * Mathf.Deg2Rad) * dist * asp, shift = halfW * 2 * (0.5f - 0.31f);
+                vcam.transform.position = c + new Vector3(0.4f + shift, 0.45f, -dist); vcam.transform.LookAt(c + new Vector3(shift, -0.05f, 0)); vcam.fieldOfView = 34;
                 if (ringMpb != null) { ringMpb.SetColor("_Color", new Color(1f, 0.74f, 0.34f, 0.5f + Mathf.Sin(Time.time * 2.2f) * 0.12f)); ringR.SetPropertyBlock(ringMpb); }
                 if (lantern != null) lantern.intensity = 3.2f + Mathf.Sin(Time.time * 9f) * 0.25f + Mathf.Sin(Time.time * 4.3f) * 0.2f;
             }

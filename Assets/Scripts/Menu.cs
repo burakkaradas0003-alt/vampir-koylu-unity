@@ -330,15 +330,15 @@ namespace VK
         {
             var s = UI.R("karakter", content); s.anchorMin = Vector2.zero; s.anchorMax = Vector2.one; s.offsetMin = new Vector2(-86, -10); s.offsetMax = new Vector2(0, 56);
             // sahne (tam ekranın solu): stüdyodaki giyinme setini gösterir
-            var raw = UI.R("sahne", s); raw.anchorMin = Vector2.zero; raw.anchorMax = new Vector2(0.62f, 1); raw.offsetMin = raw.offsetMax = Vector2.zero;
+            var raw = UI.R("sahne", s); raw.anchorMin = Vector2.zero; raw.anchorMax = Vector2.one; raw.offsetMin = raw.offsetMax = Vector2.zero;
             show = raw.gameObject.AddComponent<RawImage>(); show.raycastTarget = true; raw.gameObject.AddComponent<DragRotate>();
-            var fade = UI.Img(raw, UI.GradH, new Color(0.04f, 0.04f, 0.06f, 0.55f), "geçiş"); fade.rectTransform.anchorMin = new Vector2(0.8f, 0); fade.rectTransform.anchorMax = Vector2.one; fade.rectTransform.offsetMin = fade.rectTransform.offsetMax = Vector2.zero; fade.rectTransform.localScale = new Vector3(-1, 1, 1);
+            raw.SetAsFirstSibling();
             // isim etiketi (sol üst)
             var tag = UI.Panel(raw, "isim", UI.A(UI.Ink, 0.75f), false, UI.Pill).At(new Vector2(0, 1), new Vector2(98, -60), new Vector2(190, 40), new Vector2(0, 1));
             nameTag = UI.Txt(tag, "", 16, null, UI.Display); nameTag.rectTransform.At(new Vector2(0, 1), new Vector2(14, -3), new Vector2(170, 20), new Vector2(0, 1));
             var tt = UI.Txt(tag, "", 9, UI.Gold, UI.Bold); tt.rectTransform.At(new Vector2(0, 0), new Vector2(14, 5), new Vector2(170, 14), new Vector2(0, 0)); tt.name = "unvan";
             tag.gameObject.SetActive(false); // karakterin üstünde isim/unvan kutusu gösterilmez
-            var hint = UI.Txt(raw, "Karakteri döndürmek için sağa sola kaydır", 10, UI.Fg, null, TextAnchor.MiddleCenter).Shadowed(0.7f); hint.rectTransform.At(new Vector2(0.5f, 0), new Vector2(40, 12), new Vector2(300, 16), new Vector2(0.5f, 0));
+            var hint = UI.Txt(raw, "Karakteri döndürmek için sağa sola kaydır", 10, UI.Fg, null, TextAnchor.MiddleCenter).Shadowed(0.7f); hint.rectTransform.At(new Vector2(0.31f, 0), new Vector2(40, 12), new Vector2(300, 16), new Vector2(0.5f, 0));
             // sağ panel
             var pan = UI.Panel(s, "seçenekler", UI.A(UI.Ink, 0.9f)); pan.anchorMin = new Vector2(0.62f, 0); pan.anchorMax = Vector2.one; pan.offsetMin = new Vector2(4, 10); pan.offsetMax = new Vector2(-14, -60);
             // sekmeler ve düğmeler panelin genişliğine sığar (dar ekranda dışarı taşmaz)
