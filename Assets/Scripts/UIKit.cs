@@ -318,11 +318,14 @@ namespace VK
         public static void Count(Text t, int from, int to, float dur = 0.9f, float delay = 0, string fmt = "{0}")
         { if (t == null) return; Run(t, dur, k => { if (t) t.text = string.Format(fmt, Mathf.RoundToInt(Mathf.Lerp(from, to, k))); }, OutCubic, delay); }
         // ekran geçişi: hafif kayarak ve belirerek gelir
+        static readonly System.Collections.Generic.Dictionary<RectTransform, Vector2> homePos = new System.Collections.Generic.Dictionary<RectTransform, Vector2>();
         public static void ShowScreen(RectTransform r, float dx = 26)
         {
             var cg = r.GetComponent<CanvasGroup>() ?? r.gameObject.AddComponent<CanvasGroup>(); r.gameObject.SetActive(true);
-            var p = r.anchoredPosition; Fade(cg, 0, 1, 0.22f);
-            Run(r.gameObject, 0.28f, k => { if (r) r.anchoredPosition = new Vector2(Mathf.Lerp(dx, 0, k), p.y); }, OutCubic);
+            // ekranın asıl konumu ilk açılışta saklanır (kenar boşlukları simetrik olmayan ekranlar kaymasın)
+            if (!homePos.TryGetValue(r, out var p)) { p = r.anchoredPosition; homePos[r] = p; }
+            Fade(cg, 0, 1, 0.22f);
+            Run(r.gameObject, 0.28f, k => { if (r) r.anchoredPosition = new Vector2(p.x + Mathf.Lerp(dx, 0, k), p.y); }, OutCubic);
         }
     }
 }
