@@ -350,7 +350,7 @@ namespace VK
 
         public void ShowCard(string icon, string name, string team, Color c, string desc, string btn, Action onClose)
         {
-            cardIcon.sprite = Emoji(icon); cardName.text = name; cardTeam.text = team; cardTeam.color = Color.white; cardDesc.text = desc; cardBtnT.text = btn;
+            cardIcon.sprite = Emoji(icon); cardIcon.enabled = cardIcon.sprite != null; cardName.text = name; cardTeam.text = team; cardTeam.color = Color.white; cardDesc.text = desc; cardBtnT.text = btn;
             bool vamp = team.StartsWith("VAMP");
             cardRibbon.sprite = Resources.Load<Sprite>(vamp ? "UI/ribbon_r" : "UI/ribbon_g");
             var props = icon switch { "vampir" => ("batw", "poison"), "kahin" => ("crystal", "telescope"), "koruma" => ("shield", "swords"), "cadi" => ("heal", "book"), "avci" => ("rifle", "axes"), "melek" => ("wings", "crown"), _ => ("axes", "lantern") };
