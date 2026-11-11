@@ -812,7 +812,8 @@ namespace VK
             return IsV(p) && IsV(ME) && phase == "night-vampir";
         }
 
-        void Update()
+        void Update() { try { UpdateInner(); } catch (System.Exception e) { ZuLog.Err("Game.Update", e); } }
+        void UpdateInner()
         {
             if (ME == null) return;
             float t = Time.time, dt = Mathf.Min(0.1f, Time.deltaTime), k = Mathf.Min(1, dt * 7);

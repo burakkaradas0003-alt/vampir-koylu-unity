@@ -274,11 +274,12 @@ namespace VK
             var t = Label("t", row, (string.IsNullOrEmpty(name) ? "" : $"<color={col}><b>{Esc(name)}</b></color>  ") + Esc(text), 11, FontStyle.Normal, TextAnchor.MiddleLeft, new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(286, 18));
             t.horizontalOverflow = HorizontalWrapMode.Overflow; t.verticalOverflow = VerticalWrapMode.Truncate;
             if (cls == "sys") t.color = new Color(1f, 0.92f, 0.7f);
-            var hl = row.gameObject.AddComponent<HorizontalLayoutGroup>(); hl.padding = new RectOffset(10, 10, 1, 1); hl.childControlWidth = true; hl.childControlHeight = true; hl.childForceExpandWidth = false;
-            var tle = t.gameObject.AddComponent<LayoutElement>(); tle.preferredHeight = 18;
-            var le = row.gameObject.AddComponent<LayoutElement>(); le.preferredHeight = 20; le.minHeight = 20;
-            var fit = row.gameObject.AddComponent<ContentSizeFitter>(); fit.horizontalFit = ContentSizeFitter.FitMode.PreferredSize;
-            if ((name ?? "").Length + text.Length > 44) { t.horizontalOverflow = HorizontalWrapMode.Wrap; tle.preferredWidth = 290; tle.preferredHeight = 32; le.preferredHeight = 34; le.minHeight = 34; }
+            // genişlik metne göre elle hesaplanır (yerleşim grubu tek kaynak)
+            t.rectTransform.anchorMin = Vector2.zero; t.rectTransform.anchorMax = Vector2.one; t.rectTransform.offsetMin = new Vector2(10, 1); t.rectTransform.offsetMax = new Vector2(-10, -1);
+            bool two = (name ?? "").Length + text.Length > 44;
+            float w = two ? 300 : Mathf.Clamp(t.preferredWidth + 22, 60, 300);
+            if (two) t.horizontalOverflow = HorizontalWrapMode.Wrap;
+            var le = row.gameObject.AddComponent<LayoutElement>(); le.preferredWidth = w; le.minWidth = w; le.preferredHeight = le.minHeight = two ? 34 : 20;
             while (logBox.childCount > 5) DestroyImmediate(logBox.GetChild(0).gameObject);
             for (int i = 0; i < logBox.childCount; i++) { var g = logBox.GetChild(i).GetComponent<CanvasGroup>() ?? logBox.GetChild(i).gameObject.AddComponent<CanvasGroup>(); g.alpha = Mathf.Lerp(0.55f, 1f, (i + 1f) / logBox.childCount); }
             Scale(row, new Vector3(0.94f, 0.94f, 1), Vector3.one, 0.22f);
@@ -503,7 +504,8 @@ namespace VK
 
         public void HideHint() { if (hint != null) hint.enabled = false; }
 
-        void Update()
+        void Update() { try { UpdateInner(); } catch (System.Exception e) { ZuLog.Err("Hud.Update", e); } }
+        void UpdateInner()
         {
             if (timerOn)
             {

@@ -55,7 +55,8 @@ namespace VK
         // gece/gündüz geçişinde atmosferler yumuşakça karışır; gece ateş daha belirgin
         float todNow;
         public void SetTod(float k) { todNow = k; }
-        void Update()
+        void Update() { try { UpdateInner(); } catch (System.Exception e) { ZuLog.Err("Sfx.Update", e); } }
+        void UpdateInner()
         {
             if (day == null) return;
             float k = todNow;

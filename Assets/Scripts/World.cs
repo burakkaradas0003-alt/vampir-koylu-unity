@@ -543,11 +543,13 @@ namespace VK
             moon.SetActive(false);
             env?.ApplyTOD(k, sun);
             GradeTOD(k);
+            if (villageMat != null) villageMat.SetColor("_EmissionColor", new Color(1f, 0.62f, 0.28f) * (k * 0.8f)); // köy paketi: yumuşak pencere ışığı
         }
         float fireBase = 0.6f;
 
         // ---------------------------------------------------------------- her kare
-        void Update()
+        void Update() { try { UpdateInner(); } catch (System.Exception e) { ZuLog.Err("World.Update", e); } }
+        void UpdateInner()
         {
             float t = Time.time, dt = Mathf.Min(0.1f, Time.deltaTime);
             if (todDur > 0)

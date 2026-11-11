@@ -133,7 +133,8 @@ namespace VK
 
         // ---------------------------------------------------------------- 3B kamera
         float camT, camTarget, orbit;
-        void Update()
+        void Update() { try { UpdateInner(); } catch (System.Exception e) { ZuLog.Err("Menu.Update", e); } }
+        void UpdateInner()
         {
             camT = Mathf.MoveTowards(camT, camTarget, Time.deltaTime * 1.5f);
             orbit += Time.deltaTime * 0.035f;

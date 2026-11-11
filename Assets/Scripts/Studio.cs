@@ -95,7 +95,8 @@ namespace VK
         }
         public void Cheer(float k) { if (show != null) show.cheer = k; }
         public void HideShowcase() { vcam.enabled = false; if (show != null) { Destroy(show.gameObject); show = null; showLook = null; } }
-        void LateUpdate()
+        void LateUpdate() { try { LateUpdateInner(); } catch (System.Exception e) { ZuLog.Err("Studio.LateUpdate", e); } }
+        void LateUpdateInner()
         {
             if (show == null || !vcam.enabled) return;
             bob = Mathf.MoveTowards(bob, 0, Time.deltaTime * 3);

@@ -316,7 +316,8 @@ namespace VK
 
         // efekt: karakterin çevresinde küçük parıltılar (kozmetik, oyuna etkisi yok)
         float fxAcc;
-        void Update()
+        void Update() { try { UpdateInner(); } catch (System.Exception e) { ZuLog.Err("Rig.Update", e); } }
+        void UpdateInner()
         {
             if (preview || ghost || fp || look == null || string.IsNullOrEmpty(look.effect) || World.I == null || body == null || !body.activeInHierarchy) return;
             var it = Catalog.Get(look.effect); if (it == null) return;
@@ -416,7 +417,7 @@ namespace VK
         static Vector3 Lerp(Vector3 a, Vector3 b, float k) => Vector3.Lerp(a.normalized, b.normalized, k).normalized;
         static readonly string[] FING = { "Index", "Middle", "Ring", "Pinky" };
 
-        void LateUpdate() { Pose(Time.time); }
+        void LateUpdate() { try { Pose(Time.time); } catch (System.Exception e) { ZuLog.Err("Rig.Pose " + name, e); } }
 
         void Pose(float time)
         {
