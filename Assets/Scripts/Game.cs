@@ -318,7 +318,7 @@ namespace VK
             var rope = Part(PrimitiveType.Cylinder, ropeM, new Vector3(0, beamY - 0.3f, 0.05f), new Vector3(0.045f, 0.3f, 0.045f));
             var loop = Part(PrimitiveType.Cylinder, ropeM, new Vector3(0, beamY - 0.62f, 0.05f), new Vector3(0.2f, 0.025f, 0.2f), new Vector3(70, 0, 0));
             foreach (var rr in g.GetComponentsInChildren<MeshRenderer>()) rr.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.On;
-            Focus(GALLOWS + Vector3.up * 2.2f, 9f / SPEED, 44);
+            Focus(GALLOWS + Vector3.up * 2.2f, 9.5f, 44);
             // yükselme
             Sfx.Play("whoosh", 0.8f, 0.7f);
             for (float a = 0; a < 1; a += Time.deltaTime / Mathf.Max(0.01f, 0.9f / SPEED))
