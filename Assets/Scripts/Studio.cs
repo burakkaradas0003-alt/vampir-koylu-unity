@@ -129,7 +129,7 @@ namespace VK
             P("Tree_01", new Vector3(-5.5f, 0, 7.5f), 0, 1.1f); P("Tree_02", new Vector3(6.5f, 0, 8.5f), 0, 1.6f); P("Tree_02", new Vector3(-8f, 0, 10f), 0, 1.8f);
             w.StudioGround(set.transform);
             // gece seti: malzemeler kopyalanıp akşam mavisine çekilir, pencereler sıcak yanar
-            var nightTint = new Color(0.36f, 0.36f, 0.55f);
+            var nightTint = new Color(0.46f, 0.44f, 0.62f);
             var copies = new Dictionary<Material, Material>();
             foreach (var r in set.GetComponentsInChildren<Renderer>(true))
             {
@@ -151,9 +151,9 @@ namespace VK
             }
             // altın parıltılı taş kaide
             var ped = GameObject.CreatePrimitive(PrimitiveType.Cylinder); Destroy(ped.GetComponent<Collider>()); ped.name = "kaide"; ped.transform.SetParent(set.transform, false);
-            ped.transform.localPosition = new Vector3(0, 0.03f, 0); ped.transform.localScale = new Vector3(2.1f, 0.03f, 2.1f);
+            ped.transform.localPosition = new Vector3(0, 0.03f, 0); ped.transform.localScale = new Vector3(1.75f, 0.03f, 1.75f);
             var pm = new Material(Resources.Load<Material>("Mats/LitMatte") ?? Resources.Load<Material>("Mats/Lit")); pm.SetColor("_BaseColor", new Color(0.3f, 0.29f, 0.32f)); ped.GetComponent<MeshRenderer>().sharedMaterial = pm;
-            var ringGo = new GameObject("kaide ışığı"); ringGo.transform.SetParent(set.transform, false); ringGo.transform.localPosition = new Vector3(0, 0.07f, 0); ringGo.transform.localRotation = Quaternion.Euler(90, 0, 0); ringGo.transform.localScale = Vector3.one * 2.3f;
+            var ringGo = new GameObject("kaide ışığı"); ringGo.transform.SetParent(set.transform, false); ringGo.transform.localPosition = new Vector3(0, 0.07f, 0); ringGo.transform.localRotation = Quaternion.Euler(90, 0, 0); ringGo.transform.localScale = Vector3.one * 1.9f;
             var qm = new Mesh(); qm.vertices = new[] { new Vector3(-0.5f, -0.5f, 0), new Vector3(0.5f, -0.5f, 0), new Vector3(-0.5f, 0.5f, 0), new Vector3(0.5f, 0.5f, 0) }; qm.uv = new[] { new Vector2(0, 0), new Vector2(1, 0), new Vector2(0, 1), new Vector2(1, 1) }; qm.triangles = new[] { 0, 2, 1, 1, 2, 3 }; qm.RecalculateBounds();
             ringGo.AddComponent<MeshFilter>().sharedMesh = qm;
             var gm = new Material(Resources.Load<Material>("Mats/Glow")); gm.SetTexture("_MainTex", Resources.Load<Texture2D>("UI/pedestal_ring")); gm.enableInstancing = true;
@@ -183,7 +183,7 @@ namespace VK
             {
                 // giyinme seti: karakter evin kapısı önünde, kamera hafif aşağıdan ve soldan
                 vcam.transform.position = c + new Vector3(0.55f, 0.45f, -4.9f); vcam.transform.LookAt(c + new Vector3(0.15f, -0.05f, 0)); vcam.fieldOfView = 34;
-                if (ringMpb != null) { ringMpb.SetColor("_Color", new Color(1f, 0.78f, 0.38f, 0.75f + Mathf.Sin(Time.time * 2.2f) * 0.2f)); ringR.SetPropertyBlock(ringMpb); }
+                if (ringMpb != null) { ringMpb.SetColor("_Color", new Color(1f, 0.74f, 0.34f, 0.5f + Mathf.Sin(Time.time * 2.2f) * 0.12f)); ringR.SetPropertyBlock(ringMpb); }
                 if (lantern != null) lantern.intensity = 3.2f + Mathf.Sin(Time.time * 9f) * 0.25f + Mathf.Sin(Time.time * 4.3f) * 0.2f;
             }
             else { vcam.transform.position = c + new Vector3(0, 0.12f, -4.3f); vcam.transform.LookAt(c); vcam.fieldOfView = 25; }

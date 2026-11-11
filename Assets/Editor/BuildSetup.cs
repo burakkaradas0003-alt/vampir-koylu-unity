@@ -233,7 +233,7 @@ public class ZuImport : AssetPostprocessor
         {
             ti.textureType = TextureImporterType.Sprite; ti.spriteImportMode = SpriteImportMode.Single; ti.alphaIsTransparency = true; ti.mipmapEnabled = false; ti.textureCompression = TextureImporterCompression.Uncompressed;
             var n = System.IO.Path.GetFileNameWithoutExtension(assetPath); // kenarlar: sol, alt, sağ, üst
-            ti.spriteBorder = n == "ornate" ? new Vector4(72, 72, 72, 72) : n == "tile" || n == "tile_on" ? new Vector4(28, 28, 28, 28) : n == "btn_purple" || n == "btn_dark" || n == "pill_dark" ? new Vector4(44, 0, 44, 0) : n == "frame" ? new Vector4(72, 72, 72, 72) : n == "plaque" ? new Vector4(70, 0, 70, 0) : n.StartsWith("ribbon") ? new Vector4(26, 0, 26, 0) : n == "btn_gold" ? new Vector4(70, 0, 70, 0) : Vector4.zero;
+            ti.spriteBorder = n == "ornate" ? new Vector4(72, 72, 72, 72) : n == "tile" || n == "tile_on" ? new Vector4(28, 28, 28, 28) : n == "btn_purple" || n == "btn_dark" || n == "pill_dark" ? new Vector4(44, 30, 44, 30) : n == "frame" ? new Vector4(72, 72, 72, 72) : n == "plaque" ? new Vector4(70, 0, 70, 0) : n.StartsWith("ribbon") ? new Vector4(26, 0, 26, 0) : n == "btn_gold" ? new Vector4(70, 0, 70, 0) : Vector4.zero;
         }
         if (assetPath.Contains("/Resources/Cards/"))
         {
