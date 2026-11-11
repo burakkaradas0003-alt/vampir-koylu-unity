@@ -14,6 +14,7 @@ namespace VK
         System.Random vr = new System.Random(11);
         float VR(float a, float b) => a + (float)vr.NextDouble() * (b - a);
 
+        public GameObject PutMedieval(string name, Transform parent, Vector3 localPos, float yaw, float scale = 1) => PutMed(name, parent, localPos, yaw, scale);
         public GameObject PutVillage(string name, Transform parent, Vector3 localPos, float yaw, float scale) { var g = Put(name, parent, localPos, yaw, scale); return g; }
         // giyinme seti zemini: düz gölgeli taş döşeme + çevresinde çimen
         public void StudioGround(Transform parent)

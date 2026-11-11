@@ -104,7 +104,8 @@ namespace VK
             set = new GameObject("giyinme seti"); set.transform.SetParent(transform, false); set.transform.position = ORIGIN;
             var w = World.I;
             void P(string n, Vector3 local, float yaw, float sc) { var g = w.PutVillage(n, set.transform, local, yaw, sc); }
-            P("House_01", new Vector3(0.6f, 0, 4.9f), 180, 0.88f);
+            // karakter değirmenin kapısının önünde durur (yoksa köy evi)
+            if (w.PutMedieval("windmill", set.transform, new Vector3(0.3f, 0, 4.6f), 180, 0.85f) == null) P("House_01", new Vector3(0.6f, 0, 4.9f), 180, 0.88f);
             P("Street_Lamp", new Vector3(-2.2f, 0, 1.6f), 90, 0.95f);
             P("Vooden_Barrel", new Vector3(1.9f, 0, 1.3f), 30, 1.15f);
             P("Wooden_Case", new Vector3(2.5f, 0, 0.6f), 10, 1.1f);
