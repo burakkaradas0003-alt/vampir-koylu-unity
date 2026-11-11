@@ -128,7 +128,7 @@ namespace VK
             sky.GetComponent<MeshRenderer>().shadowCastingMode = ShadowCastingMode.Off;
             moon = Prim(PrimitiveType.Sphere, Resources.Load<Material>("Mats/Unlit"), new Vector3(-120, 150, 180), Vector3.one * 14, transform);
             moon.GetComponent<MeshRenderer>().material.SetColor("_BaseColor", new Color(1.6f, 1.55f, 1.3f));
-            int n = 260; starM = new Matrix4x4[n]; starC = new Vector4[n]; starMpb = new MaterialPropertyBlock();
+            int n = 260; starM = new Matrix4x4[n]; starC = new Vector4[1023]; // renk dizisi hep 1023: WebGL örnekli çizimde kısa dizi sorun çıkarıyor starMpb = new MaterialPropertyBlock();
             for (int i = 0; i < n; i++)
             {
                 var d = Random.onUnitSphere; d.y = Mathf.Abs(d.y) * 0.9f + 0.1f;
@@ -386,7 +386,7 @@ namespace VK
         class Part { public Vector3 p, v; public float age, life, s0, s1, g, a; public Color c; public bool drag; }
         readonly List<Part> parts = new List<Part>();
         Matrix4x4[] pm = new Matrix4x4[1023]; Vector4[] pc = new Vector4[1023]; MaterialPropertyBlock pmpb;
-        Mesh dotQuad; Material glowMat;
+        Mesh dotQuad; Material glowMat, starMat;
         float fireAcc, smokeAcc, emberAcc, chimAcc; readonly List<Vector3> chimneys = new List<Vector3>();
 
         public void Emit(Vector3 pos, Vector3 vel, float life, float size, float size1, Color col, float gravity = 0, float alpha = 0.85f, bool drag = false)
@@ -587,7 +587,7 @@ namespace VK
             env?.Update(cam, tod);
             if (Sfx.I != null) Sfx.I.SetTod(tod);
             // yıldızlar
-            if (tod > 0.2f) { for (int i = 0; i < starC.Length; i++) starC[i].w = Mathf.Clamp01((tod - 0.2f) * 1.6f) * (0.5f + 0.5f * Mathf.Sin(t * 2 + i)); starMpb.SetVectorArray("_Color", starC); var rp = new RenderParams(GlowMat()) { matProps = starMpb, worldBounds = new Bounds(Vector3.zero, Vector3.one * 1000) }; FaceAll(starM, camPos); Graphics.RenderMeshInstanced(rp, Quad(), 0, starM); }
+            if (tod > 0.2f) { for (int i = 0; i < starC.Length; i++) starC[i].w = Mathf.Clamp01((tod - 0.2f) * 1.6f) * (0.5f + 0.5f * Mathf.Sin(t * 2 + i)); starMpb.SetVectorArray("_Color", starC); if (starMat == null) starMat = new Material(GlowMat()); var rp = new RenderParams(starMat) { matProps = starMpb, worldBounds = new Bounds(Vector3.zero, Vector3.one * 1000) }; FaceAll(starM, camPos); Graphics.RenderMeshInstanced(rp, Quad(), 0, starM); }
             // çimen
             foreach (var b in grassBatches) for (int c = 0; c < b.m.Length; c++) { if (b.count[c] == 0) continue; grassRp.matProps = b.mpb[c]; Graphics.RenderMeshInstanced(grassRp, b.mesh, 0, b.m[c], b.count[c]); }
         }

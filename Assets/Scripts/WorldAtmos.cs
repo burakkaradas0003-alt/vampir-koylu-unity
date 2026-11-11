@@ -111,16 +111,16 @@ namespace VK
         // ------------------------------------------------------------ fener haleleri, ateş böcekleri, yer sisi
         Matrix4x4[] haloM, poolM, flyM, mistM; Vector4[] haloC, poolC, flyC, mistC;
         Vector3[] flyP; float[] flyPh; Vector3[] mistP; Vector2[] mistS;
-        MaterialPropertyBlock haloMpb, poolMpb, flyMpb, mistMpb; Material mistMat;
+        MaterialPropertyBlock haloMpb, poolMpb, flyMpb, mistMpb; Material mistMat, haloMat, poolMat, flyMat;
 
         void BuildAtmos()
         {
             int nl = lanternPos.Count;
-            haloM = new Matrix4x4[nl]; haloC = new Vector4[nl]; poolM = new Matrix4x4[nl]; poolC = new Vector4[nl];
+            haloM = new Matrix4x4[nl]; haloC = new Vector4[1023]; poolM = new Matrix4x4[nl]; poolC = new Vector4[1023];
             haloMpb = new MaterialPropertyBlock(); poolMpb = new MaterialPropertyBlock();
             for (int i = 0; i < nl; i++) poolM[i] = Matrix4x4.TRS(new Vector3(lanternPos[i].x, 0.04f, lanternPos[i].z), Quaternion.Euler(90, 0, 0), Vector3.one * 5.5f);
 
-            int nf = low ? 24 : 48; flyP = new Vector3[nf]; flyPh = new float[nf]; flyM = new Matrix4x4[nf]; flyC = new Vector4[nf]; flyMpb = new MaterialPropertyBlock();
+            int nf = low ? 24 : 48; flyP = new Vector3[nf]; flyPh = new float[nf]; flyM = new Matrix4x4[nf]; flyC = new Vector4[1023]; flyMpb = new MaterialPropertyBlock();
             for (int i = 0; i < nf; i++) { float a = R(0, 6.283f), d = R(7, 26); flyP[i] = new Vector3(Mathf.Cos(a) * d, R(0.4f, 2.2f), Mathf.Sin(a) * d); flyPh[i] = R(0, 100); }
 
             int nm = low ? 10 : 18; mistP = new Vector3[nm]; mistS = new Vector2[nm]; mistM = new Matrix4x4[nm]; mistC = new Vector4[nm]; mistMpb = new MaterialPropertyBlock();
@@ -145,7 +145,9 @@ namespace VK
         {
             if (haloM == null) return;
             float night = Mathf.Clamp01((tod - 0.35f) / 0.65f);
-            var glowM = GlowMat(); var q = Quad();
+            // her grup kendi malzeme kopyasıyla çizilir: aynı karede aynı malzemeyle birden çok örnekli çizim WebGL'de birbirini eziyor
+            if (haloMat == null) { haloMat = new Material(GlowMat()); poolMat = new Material(GlowMat()); flyMat = new Material(GlowMat()); }
+            var q = Quad();
             if (night > 0.01f && haloM.Length > 0)
             {
                 for (int i = 0; i < haloM.Length; i++)
@@ -157,8 +159,8 @@ namespace VK
                 }
                 haloMpb.SetVectorArray("_Color", haloC); poolMpb.SetVectorArray("_Color", poolC);
                 var b = new Bounds(Vector3.zero, Vector3.one * 60);
-                Graphics.RenderMeshInstanced(new RenderParams(glowM) { matProps = poolMpb, worldBounds = b, shadowCastingMode = ShadowCastingMode.Off }, q, 0, poolM);
-                Graphics.RenderMeshInstanced(new RenderParams(glowM) { matProps = haloMpb, worldBounds = b, shadowCastingMode = ShadowCastingMode.Off }, q, 0, haloM);
+                Graphics.RenderMeshInstanced(new RenderParams(poolMat) { matProps = poolMpb, worldBounds = b, shadowCastingMode = ShadowCastingMode.Off }, q, 0, poolM);
+                Graphics.RenderMeshInstanced(new RenderParams(haloMat) { matProps = haloMpb, worldBounds = b, shadowCastingMode = ShadowCastingMode.Off }, q, 0, haloM);
             }
             // ateş böcekleri: yalnız gece, yumuşak yanıp sönme
             if (night > 0.2f)
@@ -172,7 +174,7 @@ namespace VK
                     flyC[i] = new Vector4(0.8f, 1f, 0.45f, (night - 0.2f) * 1.25f * blink);
                 }
                 flyMpb.SetVectorArray("_Color", flyC);
-                Graphics.RenderMeshInstanced(new RenderParams(glowM) { matProps = flyMpb, worldBounds = new Bounds(Vector3.zero, Vector3.one * 80), shadowCastingMode = ShadowCastingMode.Off }, q, 0, flyM);
+                Graphics.RenderMeshInstanced(new RenderParams(flyMat) { matProps = flyMpb, worldBounds = new Bounds(Vector3.zero, Vector3.one * 80), shadowCastingMode = ShadowCastingMode.Off }, q, 0, flyM);
             }
             // yer sisi: gece belirgin, gündüz çok hafif pus
             if (mistMat != null)
