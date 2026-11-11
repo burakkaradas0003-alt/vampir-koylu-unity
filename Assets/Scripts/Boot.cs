@@ -20,6 +20,7 @@ namespace VK
             bool low = SystemInfo.systemMemorySize < 3000 || Bridge.Param("lite") == "1";
             var w = new GameObject("Dünya").AddComponent<World>(); w.Build(low);
             var h = new GameObject("Arayüz").AddComponent<Hud>(); h.Build();
+            new GameObject("Ses").AddComponent<Sfx>().Build(new Vector3(0, 0.5f, 0));
             var g = new GameObject("Oyun").AddComponent<Game>();
             g.Begin(w, h, Bridge.Param("me"), false, System.Environment.TickCount & 0x7fffffff);
         }

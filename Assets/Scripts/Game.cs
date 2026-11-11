@@ -314,6 +314,7 @@ namespace VK
                 ui.Log("", txt, "sys");
                 Feel(p, cause == "grief" ? "sad" : "surprise", 2.5f);
                 foreach (var q in Alive()) if (!q.me) { var qq = q; Later(0.3f + Rnd() * 0.9f, () => Feel(qq, Rnd() < 0.6f ? "sad" : "surprise", 3)); }
+                Sfx.Play("death");
                 var anim = KillAnim(p, cause);
                 await ui.Banner(cause == "grief" ? "broken" : "skull", Who(p), txt, 2.2f);
                 await anim;
@@ -354,7 +355,7 @@ namespace VK
         {
             if (mayor != null) P[mayor.Value].ch.crown.gameObject.SetActive(false);
             mayor = i; var p = P[i];
-            p.ch.crown.gameObject.SetActive(true); p.crownDrop = 1; Feel(p, "happy", 3.5f);
+            p.ch.crown.gameObject.SetActive(true); p.crownDrop = 1; Feel(p, "happy", 3.5f); Sfx.Play("fanfare"); if (p.tag != null) ui.PunchTag(p.tag);
             W.Burst(p.seat + Vector3.up * 2.1f, new Color(0.96f, 0.77f, 0.26f), 30, 0.8f, 0.12f, 1.3f, 0.6f);
         }
 
@@ -375,7 +376,7 @@ namespace VK
                 ui.ShowAction(icon, title, desc + (names.Length > 0 ? $"\n<b><color=#FFFFFF>{names}</color></b>" : ""), btns.ToArray());
             }
             selectable = filter;
-            onSelect = i => { int k = sel.IndexOf(i); if (k >= 0) sel.RemoveAt(k); else { if (sel.Count >= multi) sel.RemoveAt(0); sel.Add(i); } Render(); };
+            onSelect = i => { int k = sel.IndexOf(i); if (k >= 0) { sel.RemoveAt(k); Sfx.Play("unselect"); } else { if (sel.Count >= multi) sel.RemoveAt(0); sel.Add(i); Sfx.Play("select"); if (P[i].tag != null) ui.PunchTag(P[i].tag); } Render(); };
             Render();
             ui.SetTimer(sec / SPEED);
             TimedThen(sec, () => done, () => Finish(sel.Count == multi ? sel.ToArray() : null));
@@ -426,7 +427,7 @@ namespace VK
                         ME.pointAt == null ? "Oy vermek istediğin kişiye dokun." : $"Oyun: <b><color=#FFFFFF>{P[ME.pointAt.Value].n}</color></b>\nGeri almak için tekrar dokun, değiştirmek için başkasına dokun.");
                 }
                 selectable = q => q.alive && !q.me;
-                onSelect = i => { ME.pointAt = ME.pointAt == i ? null : (int?)i; voteChangedAt = Now; Render(); };
+                onSelect = i => { ME.pointAt = ME.pointAt == i ? null : (int?)i; voteChangedAt = Now; Sfx.Play(ME.pointAt == null ? "unselect" : "select"); if (ME.pointAt != null) ui.PunchTag(P[i].tag); Render(); };
                 Render();
             }
             else if (!ME.alive) ui.ShowAction("ghost", "Hayaletsin", "Yaşayanların tartışmasını izliyorsun.");
@@ -476,7 +477,7 @@ namespace VK
             phase = "night"; day = n; wolfTarget = null; guardT = null; healTonight = false; poisonT = null;
             ui.HideAction();
             ui.Phase("GECE " + n, "Köy uyuyor...");
-            W.SetTOD(1, 3.5f / SPEED);
+            W.SetTOD(1, 3.5f / SPEED); Sfx.Play("night");
             await ui.Banner("moon", "Gece " + n, "Herkes gözlerini kapatsın...", 2);
             while (W.TodBusy) await Awaitable.NextFrameAsync();
             foreach (var p in P) p.sleepTo = 1;
@@ -577,7 +578,7 @@ namespace VK
             }
             locked = false;
             selectable = q => q.alive && !IsV(q);
-            onSelect = i => { ME.pointAt = ME.pointAt == i ? null : (int?)i; voteChangedAt = Now; Render(); };
+            onSelect = i => { ME.pointAt = ME.pointAt == i ? null : (int?)i; voteChangedAt = Now; Sfx.Play(ME.pointAt == null ? "unselect" : "select", 1, 0.8f); Render(); };
             Render();
             await Timed(T_WOLF, () => ME.pointAt != null && mates.All(m => m.pointAt != null) && Now - voteChangedAt > 6 / SPEED);
             selectable = null;
@@ -600,7 +601,7 @@ namespace VK
             {
                 rings.Clear(); if (vn != null) rings.Add(new KeyValuePair<int, Color>(v.Value, Hex("#FF4D6D")));
                 ui.ShowAction("cadi", "Cadı", vn != null ? $"Vampirler bu gece <b><color=#FF8FA3>{(vn.me ? "SENİ" : vn.n)}</color></b> seçti." : "Bu gece kimse saldırıya uğramadı.",
-                    new Hud.Btn_ { t = "İyileştir", style = "g", dis = healUsed || vn == null, f = () => { healUsed = true; healTonight = true; ui.Toast(vn.me ? "Kendini iyileştirdin" : vn.n + "'i iyileştirdin"); W.Burst(vn.seat + Vector3.up * 1.2f, Hex("#4FD99A"), 24, 0.6f, 0.15f); Main(); } },
+                    new Hud.Btn_ { t = "İyileştir", style = "g", dis = healUsed || vn == null, f = () => { healUsed = true; healTonight = true; Sfx.Play("heal"); ui.Toast(vn.me ? "Kendini iyileştirdin" : vn.n + "'i iyileştirdin"); W.Burst(vn.seat + Vector3.up * 1.2f, Hex("#4FD99A"), 24, 0.6f, 0.15f); Main(); } },
                     new Hud.Btn_ { t = "Zehirle", style = "r", dis = poisonUsed, f = Poison },
                     new Hud.Btn_ { t = "Bitti", style = "m", f = Fin });
             }
@@ -626,7 +627,7 @@ namespace VK
         {
             var q = P[i]; seer.known[i] = q.role;
             var r = ROLES[q.role];
-            ui.Seer(q.tag, q.n + ": " + r.n, 3.2f);
+            ui.Seer(q.tag, q.n + ": " + r.n, 3.2f); Sfx.Play("magic");
             W.Burst(q.seat + Vector3.up * 1.9f, Hex("#B9A8FF"), 26, 0.5f, 0.14f, 1.4f);
             ui.Log("", q.n + ": " + r.n, "sys");
             await Wait(3.2f);
@@ -639,6 +640,7 @@ namespace VK
             lovers = new[] { a, b }; P[a].lover = true; P[b].lover = true;
             bool meKnows = ME.role == "melek" || P[a].me || P[b].me;
             if (!meKnows) return;
+            Sfx.Play("heart");
             foreach (var i in lovers) W.Burst(P[i].seat + Vector3.up * 1.6f, new Color(1, 0.44f, 0.68f), 12, 0.4f, 0.22f, 1.6f);
             if (P[a].me || P[b].me) { var o = P[a].me ? P[b] : P[a]; ui.Toast(o.n + " ile âşık oldun! Biri ölürse diğeri de ölür.", 4); ui.Log("", o.n + " ile âşıksınız", "sys"); }
             else ui.Log("", P[a].n + " & " + P[b].n + " artık âşık", "sys");
@@ -660,6 +662,7 @@ namespace VK
             foreach (var p in P) p.sleepTo = 0;
             W.SetTOD(0, 3.5f / SPEED);
             while (W.TodBusy) await Awaitable.NextFrameAsync();
+            Sfx.Play("day");
             await ui.Banner("sun", "Gün " + n, "Köy uyanıyor...", 1.8f);
             if (deaths.Count == 0)
             {
@@ -727,6 +730,7 @@ namespace VK
             string title = w == "koy" ? "Köylüler kazandı!" : w == "vampir" ? "Vampirler kazandı!" : "Âşıklar kazandı!";
             W.SetTOD(w == "vampir" ? 1 : 0, 2.5f);
             foreach (var p in P) if (IsV(p)) p.reveal = true;
+            Sfx.Play(meWin ? "win" : "lose");
             await ui.Banner(w == "koy" ? "wheat" : w == "vampir" ? "vampir" : "melek", title, meWin ? "Tebrikler, kazandın!" : "Bu sefer kaybettin", 2.6f);
             var list = new List<Hud.EndEntry>();
             foreach (var p in P)

@@ -37,6 +37,7 @@ namespace VK
             cam = cgo.AddComponent<Camera>();
             cam.fieldOfView = 62; cam.nearClipPlane = 0.05f; cam.farClipPlane = 600;
             cam.clearFlags = CameraClearFlags.SolidColor;
+            cgo.AddComponent<AudioListener>();
             var cd = cgo.AddComponent<UniversalAdditionalCameraData>();
             cd.renderPostProcessing = !low; cd.antialiasing = AntialiasingMode.FastApproximateAntialiasing;
 
@@ -573,6 +574,7 @@ namespace VK
             while (chimAcc > 1 && chimneys.Count > 0) { chimAcc--; var cp = chimneys[Random.Range(0, chimneys.Count)]; Emit(cp, new Vector3(0.15f + Random.value * 0.1f, 0.5f + Random.value * 0.3f, (Random.value - 0.5f) * 0.1f), 4f, 0.4f, 2.2f, new Color(0.45f, 0.44f, 0.43f), 0, 0.12f * (1 - tod * 0.6f)); }
             DrawParticles(dt, camPos);
             env?.Update(cam, tod);
+            if (Sfx.I != null) Sfx.I.SetTod(tod);
             // yıldızlar
             if (tod > 0.2f) { for (int i = 0; i < starC.Length; i++) starC[i].w = Mathf.Clamp01((tod - 0.2f) * 1.6f) * (0.5f + 0.5f * Mathf.Sin(t * 2 + i)); starMpb.SetVectorArray("_Color", starC); var rp = new RenderParams(GlowMat()) { matProps = starMpb, worldBounds = new Bounds(Vector3.zero, Vector3.one * 1000) }; FaceAll(starM, camPos); Graphics.RenderMeshInstanced(rp, Quad(), 0, starM); }
             // çimen
