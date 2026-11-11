@@ -84,6 +84,7 @@ namespace VK
             }
             ME = P[0];
             cam.transform.position = new Vector3(ME.seat.x * 1.04f, 1.45f, ME.seat.z * 1.04f);
+            camRot = Quaternion.Euler(pitch * Mathf.Rad2Deg, Mathf.Atan2(-ME.seat.x, -ME.seat.z) * Mathf.Rad2Deg, 0);
             fpArm = Rig.Make(0, P[0].tint, 1, false, true); fpArm.transform.localScale = Vector3.one * 0.8f; fpArm.gameObject.SetActive(false);
             ui.onSend = SendChat; ui.onEmote = k => Emote(ME, k); ui.onBack = Exit; ui.onAgain = () => UnityEngine.SceneManagement.SceneManager.LoadScene(0);
             ui.onRoleChip = () => { if (ME.role != null) { var r = ROLES[ME.role]; ui.ShowCard(r.ic, r.n, r.team == "v" ? "VAMPİRLER" : "KÖY", r.c, r.d, "Kapat", null); } };
@@ -315,6 +316,7 @@ namespace VK
                 Feel(p, cause == "grief" ? "sad" : "surprise", 2.5f);
                 foreach (var q in Alive()) if (!q.me) { var qq = q; Later(0.3f + Rnd() * 0.9f, () => Feel(qq, Rnd() < 0.6f ? "sad" : "surprise", 3)); }
                 Sfx.Play("death");
+                if (!p.me) Focus(p.seat + Vector3.up * 0.95f, 3.4f, 40);
                 var anim = KillAnim(p, cause);
                 await ui.Banner(cause == "grief" ? "broken" : "skull", Who(p), txt, 2.2f);
                 await anim;
@@ -355,7 +357,7 @@ namespace VK
         {
             if (mayor != null) P[mayor.Value].ch.crown.gameObject.SetActive(false);
             mayor = i; var p = P[i];
-            p.ch.crown.gameObject.SetActive(true); p.crownDrop = 1; Feel(p, "happy", 3.5f); Sfx.Play("fanfare"); if (p.tag != null) ui.PunchTag(p.tag);
+            p.ch.crown.gameObject.SetActive(true); p.crownDrop = 1; Feel(p, "happy", 3.5f); Sfx.Play("fanfare"); if (!p.me) Focus(p.seat + Vector3.up * 1.3f, 2.6f, 44); if (p.tag != null) ui.PunchTag(p.tag);
             W.Burst(p.seat + Vector3.up * 2.1f, new Color(0.96f, 0.77f, 0.26f), 30, 0.8f, 0.12f, 1.3f, 0.6f);
         }
 
@@ -478,6 +480,7 @@ namespace VK
             ui.HideAction();
             ui.Phase("GECE " + n, "Köy uyuyor...");
             W.SetTOD(1, 3.5f / SPEED); Sfx.Play("night");
+            Focus(cam.transform.position + new Vector3(-0.42f, 0.75f, 0.72f).normalized * 50, 3.6f, 58); // gökyüzüne, aya bak
             await ui.Banner("moon", "Gece " + n, "Herkes gözlerini kapatsın...", 2);
             while (W.TodBusy) await Awaitable.NextFrameAsync();
             foreach (var p in P) p.sleepTo = 1;
@@ -661,6 +664,7 @@ namespace VK
             ui.Phase("SABAH", "Güneş doğuyor...");
             foreach (var p in P) p.sleepTo = 0;
             W.SetTOD(0, 3.5f / SPEED);
+            Focus(new Vector3(0, 1.1f, 0), 3.2f, 55); // güneş doğarken ateşe ve köye dön
             while (W.TodBusy) await Awaitable.NextFrameAsync();
             Sfx.Play("day");
             await ui.Banner("sun", "Gün " + n, "Köy uyanıyor...", 1.8f);
@@ -707,6 +711,7 @@ namespace VK
                 else t = Pick(r.list);
             }
             r.counts.TryGetValue(t, out int cnt);
+            if (!P[t].me) Focus(P[t].seat + Vector3.up * 1.0f, 2.4f, 42);
             await ui.Banner("scale", "Köyün kararı: " + Who(P[t]), cnt + " oy", 2);
             foreach (var p in P) p.pointAt = null; countMode = null;
             await KillMany(new List<(int, string)> { (t, "exec") });
@@ -730,7 +735,7 @@ namespace VK
             string title = w == "koy" ? "Köylüler kazandı!" : w == "vampir" ? "Vampirler kazandı!" : "Âşıklar kazandı!";
             W.SetTOD(w == "vampir" ? 1 : 0, 2.5f);
             foreach (var p in P) if (IsV(p)) p.reveal = true;
-            Sfx.Play(meWin ? "win" : "lose");
+            Sfx.Play(meWin ? "win" : "lose"); endOrbit = true; fpArm.gameObject.SetActive(false);
             await ui.Banner(w == "koy" ? "wheat" : w == "vampir" ? "vampir" : "melek", title, meWin ? "Tebrikler, kazandın!" : "Bu sefer kaybettin", 2.6f);
             var list = new List<Hud.EndEntry>();
             foreach (var p in P)
@@ -763,6 +768,9 @@ namespace VK
 
         // ---------------------------------------------------------------- her kare
         float nextLookAt, fpsT0, goodSecs, armSide = 1; int fpsN, lowCount;
+        Quaternion camRot = Quaternion.identity; float camEase = 1, shotUntil, shotFov = 62; Vector3 shotTarget; bool endOrbit;
+        // kamerayı bir noktaya çevir (oyuncu kaydırırsa iptal olur)
+        void Focus(Vector3 target, float sec, float fov = 48) { shotTarget = target; shotUntil = Now + sec / SPEED; shotFov = fov; }
         readonly List<Transform> ringObjs = new List<Transform>(); Material ringMat; Mesh ringMesh;
 
         float AngleTo(Pl p, Vector3 target) { var v = p.ch.transform.InverseTransformPoint(target); return Mathf.Atan2(v.x, v.z); }
@@ -801,6 +809,8 @@ namespace VK
                     var sp = lastSpeaker != null && Now - lastSpeakAt < 4 ? P[lastSpeaker.Value] : null;
                     var q = sp != null && sp != p && Rnd() < 0.6f ? sp : Pick(Alive());
                     p.lookYaw = q == p ? 0 : Mathf.Clamp(AngleTo(p, q.seat), -1.3f, 1.3f);
+                    // tartışma sırasında dinleyenler ara sıra düşünür
+                    if ((phase == "day" || phase == "mayor") && p.talk <= 0 && (p.expr == null || Now > p.expr.until) && Rnd() < 0.1f) Feel(p, "think", 2.5f + Rnd() * 2);
                 }
             }
             var counts = countMode != null ? Tally(countMode == "wolf" ? (Func<Pl, bool>)IsV : null, countMode == "day") : new Dictionary<int, int>();
@@ -822,22 +832,23 @@ namespace VK
                 if (p.talk > 0) p.talk -= dt;
                 bool red = p.reveal || (IsV(p) && IsV(ME) && W.tod > 0.5f);
                 // mimik hedefleri
-                float smile = 0.12f, open = 0, up = 0, angry = 0, sad = 0;
+                float smile = 0.12f, open = 0, up = 0, angry = 0, sad = 0, think = 0, laughW = 0, surp = 0;
                 string ex = p.expr != null && Now < p.expr.until ? p.expr.type : (red ? "evil" : null);
                 switch (ex)
                 {
                     case "happy": smile = 1; open = 0.25f; up = 0.3f; break;
-                    case "laugh": smile = 1; open = 0.45f + Mathf.Abs(Mathf.Sin(t * 12)) * 0.4f; up = 0.5f; break;
+                    case "laugh": smile = 1; open = 0.45f + Mathf.Abs(Mathf.Sin(t * 12)) * 0.4f; up = 0.5f; laughW = 1; break;
                     case "angry": smile = 0; angry = 1; break;
                     case "sad": smile = 0; sad = 1; break;
-                    case "surprise": smile = 0; up = 1; open = 0.75f; break;
-                    case "think": smile = 0; up = 0.5f; angry = 0.2f; break;
+                    case "surprise": smile = 0; up = 1; open = 0.75f; surp = 1; break;
+                    case "think": smile = 0; up = 0.3f; think = 1; break;
                     case "evil": smile = 0.8f; angry = 0.7f; break;
                 }
                 if (p.talk > 0) open = Mathf.Max(open, 0.15f + Mathf.Abs(Mathf.Sin(t * 13 + p.i)) * 0.55f);
                 if (p.sleep > 0.5f || p.slump > 0.5f) { smile = 0; open = 0; }
                 float fk = Mathf.Min(1, dt * 10); var F = ch.face;
                 F.smile += (smile - F.smile) * fk; F.open += (open - F.open) * fk; F.up += (up - F.up) * fk; F.angry += (angry - F.angry) * fk; F.sad += (sad - F.sad) * fk;
+                F.think = think; F.laugh = laughW; F.surprise = surp; F.talk = p.talk > 0 && p.alive ? 1 : 0;
                 ch.redEyes = red && p.alive;
                 if (tgt != null) ch.pointYaw = Mathf.Clamp(AngleTo(p, tgt.seat) * 0.9f, -1.1f, 1.1f);
                 ch.pointRaise = p.raise;
@@ -857,12 +868,24 @@ namespace VK
             // kamera ve kendi kolum
             bool myShow = ME.alive && ME.pointAt != null && !ghostCam;
             ME.raise += ((myShow ? 1 : 0) - ME.raise) * k;
-            if (ghostCam) cam.transform.position = Vector3.Lerp(cam.transform.position, new Vector3(ME.seat.x * 1.3f, 2.5f, ME.seat.z * 1.3f), Mathf.Min(1, dt * 1.5f));
-            // kamera parmağı yumuşakça izler (titreşim süzülür)
+            // ---- sinematik kamera: olaylarda yumuşakça hedefe döner, sonra oyuncunun bakışına geri süzülür
+            Vector3 seatEye = new Vector3(ME.seat.x * 1.04f, 1.45f, ME.seat.z * 1.04f);
+            Vector3 wantPos = ghostCam ? new Vector3(ME.seat.x * 1.3f, 2.5f, ME.seat.z * 1.3f) : seatEye;
+            if (endOrbit) { float oa = ME.ang + t * 0.12f; wantPos = new Vector3(Mathf.Cos(oa) * 7.2f, 3.1f + Mathf.Sin(t * 0.3f) * 0.3f, Mathf.Sin(oa) * 7.2f); }
+            cam.transform.position = Vector3.Lerp(cam.transform.position, wantPos, 1 - Mathf.Exp(-dt * (endOrbit ? 1.2f : 2.5f)));
             float follow = 1 - Mathf.Exp(-dt * 18f);
             yaw = Mathf.Lerp(yaw, yawT, follow); pitch = Mathf.Lerp(pitch, pitchT, follow);
             float baseYaw = Mathf.Atan2(-ME.seat.x, -ME.seat.z) * Mathf.Rad2Deg;
-            cam.transform.rotation = Quaternion.Euler(pitch * Mathf.Rad2Deg, baseYaw + yaw * Mathf.Rad2Deg, 0);
+            var playerRot = Quaternion.Euler(pitch * Mathf.Rad2Deg, baseYaw + yaw * Mathf.Rad2Deg, 0);
+            bool shot = Now < shotUntil || endOrbit;
+            Quaternion want = playerRot; float wantFov = 62;
+            if (endOrbit) { want = Quaternion.LookRotation(new Vector3(0, 0.9f, 0) - cam.transform.position); wantFov = 50; }
+            else if (shot) { var d = shotTarget - cam.transform.position; if (d.sqrMagnitude > 0.01f) want = Quaternion.LookRotation(d); wantFov = shotFov; }
+            if (shot) camEase = 0; else camEase = Mathf.Min(1, camEase + dt * 0.8f);
+            float rk = shot ? 3.2f : Mathf.Lerp(3.2f, 22f, camEase * camEase);
+            camRot = Quaternion.Slerp(camRot, want, 1 - Mathf.Exp(-dt * rk));
+            cam.transform.rotation = camRot;
+            cam.fieldOfView = Mathf.Lerp(cam.fieldOfView, wantFov, 1 - Mathf.Exp(-dt * 2.5f));
             bool armOn = ME.raise > 0.03f && ME.pointAt != null;
             if (fpArm.gameObject.activeSelf != armOn) fpArm.gameObject.SetActive(armOn);
             if (armOn)
@@ -942,6 +965,7 @@ namespace VK
             Vector2 mp = Input.mousePosition;
             bool overUI = EventSystem.current != null && (EventSystem.current.IsPointerOverGameObject() || (Input.touchCount > 0 && EventSystem.current.IsPointerOverGameObject(Input.GetTouch(0).fingerId)));
             if (down && !overUI) { drag = mp; downAt = mp; ui.HideHint(); }
+            if (held && drag != null && (mp - drag.Value).sqrMagnitude > 4) shotUntil = 0;
             if (held && drag != null)
             {
                 var d = mp - drag.Value; float s = 844f / Screen.width;

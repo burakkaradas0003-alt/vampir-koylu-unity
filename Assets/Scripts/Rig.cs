@@ -8,7 +8,7 @@ using UnityEngine.Rendering;
 
 namespace VK
 {
-    public class Face { public float smile, open, up, angry, sad; }
+    public class Face { public float smile, open, up, angry, sad, think, laugh, surprise, talk; }
 
     public class Rig : MonoBehaviour
     {
@@ -50,6 +50,15 @@ namespace VK
         public Material ghostMat;
 
         bool ghost, fp; float phase;
+        float bThink, bLaugh, bSurp, bAngry, bSad, bTalk, bCross, bChin, idleNext; int idleKind;
+        // ağırlıklı yön karışımı: temel + (ağırlık, yön) çiftleri
+        static Vector3 Blend(float time, Vector3 basis, params (float w, Vector3 d)[] parts)
+        {
+            float tw = 0; var v = Vector3.zero;
+            foreach (var p in parts) { float w = Mathf.Clamp01(p.w); v += p.d.normalized * w; tw += w; }
+            v += basis.normalized * Mathf.Max(0, 1 - tw);
+            return v.sqrMagnitude < 1e-6f ? basis.normalized : v.normalized;
+        }
         public float reach = 0.5f; // birinci şahıs: omuzdan işaret parmağına uzunluk
         readonly Dictionary<string, Transform> B = new Dictionary<string, Transform>();
         readonly List<KeyValuePair<Transform, Quaternion>> rest = new List<KeyValuePair<Transform, Quaternion>>();
@@ -251,33 +260,56 @@ namespace VK
                 Aim("LeftFoot", "LeftToeBase", W(-0.1f, -0.15f, 1)); Aim("RightFoot", "RightToeBase", W(0.1f, -0.15f, 1));
             }
             // gövde: eğilme + beden dili
-            float laugh = c.open * c.smile;
+            // tepki ağırlıkları yumuşakça hedefe gider (sert geçiş yok)
+            float dt = Mathf.Clamp(Time.deltaTime, 0, 0.1f), kk = 1 - Mathf.Exp(-dt * 7f);
+            bThink += (c.think - bThink) * kk; bLaugh += (Mathf.Max(c.laugh, c.open * c.smile) - bLaugh) * kk; bSurp += (c.surprise - bSurp) * kk;
+            bAngry += (c.angry - bAngry) * kk; bSad += (c.sad - bSad) * kk; bTalk += (c.talk - bTalk) * kk;
+            // bekleme: her karakterin kendi duruşu; ara sıra değişir
+            if (time > idleNext) { idleNext = time + 7 + Random.value * 9; idleKind = Random.Range(0, 3); }
+            float idleCross = idleKind == 1 ? 1 : 0, idleChin = idleKind == 2 ? 1 : 0;
+            bCross += (idleCross * (1 - bTalk) * (1 - bLaugh) - bCross) * kk * 0.5f;
+            bChin += (idleChin * (1 - bTalk) - bChin) * kk * 0.5f;
+            float laugh = bLaugh;
             float breath = Mathf.Sin(time * 1.7f + phase) * 0.018f, sway = Mathf.Sin(time * 0.45f + phase * 2) * 0.03f;
-            float ux = upperPitch + c.angry * 0.12f + c.sad * 0.1f - c.up * 0.08f + Mathf.Sin(time * 12) * laugh * 0.06f + (ghost ? 0 : 0.05f) + breath;
+            float ux = upperPitch + bAngry * 0.14f + bSad * 0.12f - bSurp * 0.16f + Mathf.Sin(time * 13) * laugh * 0.07f - laugh * 0.06f + (ghost ? 0 : 0.05f) + breath + bTalk * Mathf.Sin(time * 2.3f + phase) * 0.04f;
             CharRot("Spine", ux * 0.5f, sway * 0.5f, upperRoll * 0.5f + sway * 0.3f); CharRot("Spine1", ux * 0.5f, sway * 0.5f, upperRoll * 0.5f);
             if (!ghost) { CharRot("LeftShoulder", 0, 0, -breath * 1.5f); CharRot("RightShoulder", 0, 0, breath * 1.5f); }
-            float hx = headPitch + c.sad * 0.28f - c.up * 0.1f + c.angry * 0.06f;
-            CharRot("Neck", hx * 0.35f, headYaw * 0.35f, 0); CharRot("Head", hx * 0.65f, headYaw * 0.65f, 0);
+            float hx = headPitch + bSad * 0.3f - c.up * 0.08f - bSurp * 0.12f + bAngry * 0.06f - laugh * (0.18f + Mathf.Sin(time * 13) * 0.05f) + bThink * 0.1f + bChin * 0.08f;
+            float hr = bThink * 0.16f + bChin * 0.1f + bTalk * Mathf.Sin(time * 1.7f + phase) * 0.06f;
+            CharRot("Neck", hx * 0.35f, headYaw * 0.35f, hr * 0.4f); CharRot("Head", hx * 0.65f, headYaw * 0.65f, hr * 0.6f);
             // sol kol: dinlenme / el sallama / konuşurken jest
             float w = Mathf.Clamp01(wave);
             float ges = !ghost && w < 0.05f && c.open > 0.12f ? 0.35f + Mathf.Sin(time * 5.3f) * 0.15f : 0;
             if (ghost) { Aim("LeftArm", "LeftForeArm", W(-0.55f, -1, 0.1f)); Aim("LeftForeArm", "LeftHand", W(-0.35f, -1, 0.35f)); }
             else
             {
-                Aim("LeftArm", "LeftForeArm", rootQ * Lerp(new Vector3(-0.25f, -1, 0.35f), new Vector3(-0.45f, 0.95f, 0.15f), w));
-                var fore = Lerp(new Vector3(-0.02f, -0.45f, 1), new Vector3(-0.6f, 0.4f, 1), ges);
-                Aim("LeftForeArm", "LeftHand", rootQ * Lerp(fore, new Vector3(-0.15f - waveWiggle * 1.2f, 1, 0.15f), w));
-                Aim("LeftHand", "LeftHandMiddle1", rootQ * Lerp(new Vector3(0.1f, -0.7f, 1), new Vector3(-0.05f, 1, 0.2f), w));
+                float gs = Mathf.Sin(time * 4.1f + phase), gc = Mathf.Cos(time * 2.9f + phase);
+                var upL = Blend(time, new Vector3(-0.25f, -1, 0.35f),
+                    (bThink + bChin, new Vector3(-0.12f, -0.55f, 0.75f)), (bCross, new Vector3(-0.2f, -0.85f, 0.5f)), (laugh, new Vector3(-0.3f, -0.9f, 0.32f)),
+                    (bSurp, new Vector3(-0.6f, -0.35f, 0.6f)), (bTalk * (1 - bThink), new Vector3(-0.42f, -0.72f, 0.62f + gs * 0.1f)));
+                var foL = Blend(time, new Vector3(-0.02f, -0.45f, 1),
+                    (bThink + bChin, new Vector3(0.32f, 0.95f, 0.3f)), (bCross, new Vector3(1f, 0.12f, 0.32f)), (laugh, new Vector3(0.85f, -0.05f, 0.55f)),
+                    (bSurp, new Vector3(-0.15f, 0.9f, 0.4f)), (bTalk * (1 - bThink), new Vector3(-0.38f + gs * 0.25f, 0.2f + gc * 0.2f, 1)));
+                var haL = Blend(time, new Vector3(0.1f, -0.7f, 1), (bThink + bChin, new Vector3(0.35f, 0.75f, 0.55f)), (bCross, new Vector3(1, 0, 0.1f)), (bSurp, new Vector3(-0.1f, 1, 0.3f)), (bTalk, new Vector3(-0.3f, 0.5f, 1)));
+                Aim("LeftArm", "LeftForeArm", rootQ * Lerp(upL, new Vector3(-0.45f, 0.95f, 0.15f), w));
+                Aim("LeftForeArm", "LeftHand", rootQ * Lerp(foL, new Vector3(-0.15f - waveWiggle * 1.2f, 1, 0.15f), w));
+                Aim("LeftHand", "LeftHandMiddle1", rootQ * Lerp(haL, new Vector3(-0.05f, 1, 0.2f), w));
             }
-            foreach (var f in FING) { Bend("LeftHand" + f + "1", 0.35f * (1 - w)); Bend("LeftHand" + f + "2", 0.4f * (1 - w)); }
+            float fist = bAngry * (1 - bTalk);
+            foreach (var f in FING) { Bend("LeftHand" + f + "1", (0.35f + fist * 1.0f - bSurp * 0.3f) * (1 - w)); Bend("LeftHand" + f + "2", (0.4f + fist * 1.1f) * (1 - w)); }
             // sağ kol: dinlenme ↔ işaret parmağıyla gösterme
             float r = Mathf.Clamp01(pointRaise);
             var P = new Vector3(Mathf.Sin(pointYaw) + 0.08f, 0.16f, Mathf.Cos(pointYaw));
             if (ghost) { Aim("RightArm", "RightForeArm", W(0.55f, -1, 0.1f)); Aim("RightForeArm", "RightHand", W(0.35f, -1, 0.35f)); }
             else
             {
-                Aim("RightArm", "RightForeArm", rootQ * Lerp(new Vector3(0.25f, -1, 0.35f), P, r));
-                Aim("RightForeArm", "RightHand", rootQ * Lerp(new Vector3(0.02f, -0.45f, 1), P, r));
+                float gs2 = Mathf.Sin(time * 3.3f + phase * 1.7f);
+                var upR = Blend(time, new Vector3(0.25f, -1, 0.35f), (bCross, new Vector3(0.2f, -0.85f, 0.5f)), (laugh, new Vector3(0.3f, -0.9f, 0.32f)),
+                    (bSurp, new Vector3(0.6f, -0.35f, 0.6f)), (bTalk * 0.6f, new Vector3(0.4f, -0.75f, 0.6f)), (bAngry * (1 - bCross), new Vector3(0.3f, -0.95f, 0.25f)));
+                var foR = Blend(time, new Vector3(0.02f, -0.45f, 1), (bCross, new Vector3(-1f, 0.18f, 0.28f)), (laugh, new Vector3(-0.85f, -0.05f, 0.55f)),
+                    (bSurp, new Vector3(0.15f, 0.9f, 0.4f)), (bTalk * 0.6f, new Vector3(0.35f + gs2 * 0.2f, 0.15f, 1)));
+                Aim("RightArm", "RightForeArm", rootQ * Lerp(upR, P, r));
+                Aim("RightForeArm", "RightHand", rootQ * Lerp(foR, P, r));
                 Aim("RightHand", "RightHandMiddle1", rootQ * Lerp(new Vector3(-0.1f, -0.7f, 1), P, r));
             }
             Bend("RightHandIndex1", 0.35f * (1 - r)); Bend("RightHandIndex2", 0.4f * (1 - r));
