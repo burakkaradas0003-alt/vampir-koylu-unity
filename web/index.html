@@ -2,42 +2,72 @@
 <html lang="tr">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, height=device-height, initial-scale=1.0, user-scalable=no">
-<title>Vampir Köylü Unity</title>
+<meta name="viewport" content="width=device-width, height=device-height, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
+<title>Vampir Köylü</title>
+<link rel="preload" href="loading-bg.png" as="image">
+<link rel="preload" href="logo.png" as="image">
 <style>
-  :root { --bg: #070A1F; --fg: #F2F3FA; --muted: #9AA3C7; --accent: #F5C542; --bar: rgba(255,255,255,0.12); }
-  @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --bg: #070A1F; --fg: #F2F3FA; } }
-  :root[data-theme="dark"] { --bg: #070A1F; --fg: #F2F3FA; }
+  :root { --bg: #0B0614; --fg: #F6EEE4; --muted: #C9B8C8; --gold: #F5C542; --gold-d: #9A6A1E; --red: #C4162B; }
+  @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --bg: #0B0614; } }
+  :root[data-theme="dark"] { --bg: #0B0614; }
   html, body { margin: 0; height: 100%; background: var(--bg); color: var(--fg); overflow: hidden; font-family: system-ui, -apple-system, "Segoe UI", sans-serif; }
   #c { position: fixed; inset: 0; width: 100vw; height: 100vh; display: block; background: var(--bg); }
-  #load { position: fixed; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 14px; padding: 0 16px; text-align: center; }
-  #load h1 { margin: 0; font-size: 22px; font-weight: 800; letter-spacing: 0.5px; }
-  #load p { margin: 0; color: var(--muted); font-size: 13px; }
-  .bar { width: min(260px, 70vw); height: 6px; border-radius: 3px; background: var(--bar); overflow: hidden; }
-  .bar i { display: block; height: 100%; width: 0; background: var(--accent); transition: width .2s; }
+  #load { position: fixed; inset: 0; z-index: 3; overflow: hidden; background: var(--bg); transition: opacity .6s ease; }
+  #load.out { opacity: 0; pointer-events: none; }
+  #load .bg { position: absolute; inset: -2%; background: url("loading-bg.png") center / cover no-repeat; animation: drift 18s ease-in-out infinite alternate; }
+  #load .shade { position: absolute; inset: 0; background:
+      radial-gradient(ellipse at 50% 42%, rgba(0,0,0,0) 0%, rgba(0,0,0,.18) 55%, rgba(0,0,0,.6) 100%),
+      linear-gradient(to bottom, rgba(10,4,18,.15) 0%, rgba(10,4,18,0) 35%, rgba(10,4,18,.55) 78%, rgba(10,4,18,.9) 100%); }
+  #load .mid { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2.2vh; padding: 0 16px; }
+  #load .logo { width: min(64vw, 620px, 95vh); height: auto; filter: drop-shadow(0 6px 18px rgba(0,0,0,.75)) drop-shadow(0 0 26px rgba(196,22,43,.35)); animation: breathe 4s ease-in-out infinite; }
+  .bar { position: relative; width: min(46vw, 420px); height: 14px; border-radius: 9px; padding: 3px; box-sizing: border-box;
+         background: linear-gradient(#2a1520, #12080e); border: 2px solid var(--gold-d);
+         box-shadow: 0 0 0 1px rgba(0,0,0,.6), inset 0 2px 4px rgba(0,0,0,.7), 0 4px 14px rgba(0,0,0,.6); }
+  .bar::before, .bar::after { content: ""; position: absolute; top: 50%; width: 10px; height: 10px; background: linear-gradient(135deg, #FFE7A3, var(--gold-d)); transform: translateY(-50%) rotate(45deg); box-shadow: 0 0 6px rgba(0,0,0,.6); }
+  .bar::before { left: -8px; } .bar::after { right: -8px; }
+  .bar i { position: relative; display: block; height: 100%; width: 0; border-radius: 6px;
+           background: linear-gradient(90deg, #7A0D1C, var(--red) 45%, #F08A24 80%, var(--gold));
+           box-shadow: 0 0 10px rgba(240,120,40,.7); transition: width .25s ease; overflow: hidden; }
+  .bar i::after { content: ""; position: absolute; inset: 0; background: linear-gradient(90deg, transparent, rgba(255,240,200,.55), transparent); width: 40%; animation: shine 1.6s linear infinite; }
+  .info { display: flex; gap: 10px; align-items: baseline; font-size: 13px; color: var(--muted); text-shadow: 0 1px 3px #000; }
+  .info b { color: var(--gold); font-size: 14px; min-width: 3ch; text-align: right; }
   #rot { display: none; position: fixed; inset: 0; background: var(--bg); align-items: center; justify-content: center; text-align: center; padding: 0 16px; color: var(--muted); font-size: 15px; z-index: 5; }
   @media (orientation: portrait) and (max-width: 700px) { #rot { display: flex; } }
+  @keyframes breathe { 0%,100% { transform: scale(1); } 50% { transform: scale(1.025); } }
+  @keyframes drift { from { transform: scale(1.04) translateX(-1%); } to { transform: scale(1.08) translateX(1%); } }
+  @keyframes shine { from { transform: translateX(-100%); } to { transform: translateX(260%); } }
+  @media (prefers-reduced-motion: reduce) { #load .bg, #load .logo, .bar i::after { animation: none; } }
 </style>
 </head>
 <body>
 <canvas id="c" tabindex="-1"></canvas>
-<div id="load"><h1>Vampir Köylü</h1><div class="bar"><i id="pb"></i></div><p id="lt">Unity sürümü yükleniyor… (ilk açılışta biraz sürebilir)</p></div>
+<div id="load">
+  <div class="bg"></div><div class="shade"></div>
+  <div class="mid">
+    <img class="logo" src="logo.png" alt="Vampir Köylü">
+    <div class="bar"><i id="pb"></i></div>
+    <div class="info"><span id="lt">Köy uyanıyor…</span><b id="pc">0%</b></div>
+  </div>
+</div>
 <div id="rot">Oyunu oynamak için telefonu yan çevir.</div>
 <script>
   var canvas = document.getElementById("c");
+  var tips = ["Köy uyanıyor…", "Ateş yakılıyor…", "Vampirler gölgelerde bekliyor…", "Sandalyeler diziliyor…"];
+  var ti = 0, tipTimer = setInterval(function () { ti = (ti + 1) % tips.length; document.getElementById("lt").textContent = tips[ti]; }, 2600);
+  function setP(p) { var v = Math.round(p * 100); document.getElementById("pb").style.width = v + "%"; document.getElementById("pc").textContent = v + "%"; }
   var s = document.createElement("script");
   s.src = "Build/WebGL.loader.js";
   s.onload = function () {
     createUnityInstance(canvas, {
       dataUrl: "Build/__DATA__", frameworkUrl: "Build/__FW__", codeUrl: "Build/__CODE__",
       streamingAssetsUrl: "StreamingAssets", companyName: "Zuplay", productName: "Vampir Köylü", productVersion: "0.1.0",
-      devicePixelRatio: Math.min(window.devicePixelRatio || 1, /iPhone|iPad|Android/i.test(navigator.userAgent) ? 2 : 2),
-      showBanner: function (msg, type) { if (type === "error") document.getElementById("lt").textContent = msg; }
-    }, function (p) { document.getElementById("pb").style.width = Math.round(p * 100) + "%"; })
-    .then(function () { document.getElementById("load").style.display = "none"; })
-    .catch(function (m) { document.getElementById("lt").textContent = "Açılamadı: " + m; });
+      devicePixelRatio: Math.min(window.devicePixelRatio || 1, 2),
+      showBanner: function (msg, type) { if (type === "error") { clearInterval(tipTimer); document.getElementById("lt").textContent = msg; } }
+    }, setP)
+    .then(function () { setP(1); clearInterval(tipTimer); var l = document.getElementById("load"); setTimeout(function () { l.classList.add("out"); setTimeout(function () { l.style.display = "none"; }, 650); }, 350); })
+    .catch(function (m) { clearInterval(tipTimer); document.getElementById("lt").textContent = "Açılamadı: " + m; });
   };
-  s.onerror = function () { document.getElementById("lt").textContent = "Oyun dosyaları yüklenemedi."; };
+  s.onerror = function () { clearInterval(tipTimer); document.getElementById("lt").textContent = "Oyun dosyaları yüklenemedi."; };
   document.body.appendChild(s);
 </script>
 </body>

@@ -66,6 +66,7 @@ jobs:
         run: |
           D=$(cd Builds/WebGL/Build && ls | grep -E '\.data' | head -1); F=$(cd Builds/WebGL/Build && ls | grep -E 'framework' | head -1); C=$(cd Builds/WebGL/Build && ls | grep -E '\.wasm' | head -1)
           sed -e "s#__DATA__#$D#" -e "s#__FW__#$F#" -e "s#__CODE__#$C#" web/index.html > Builds/WebGL/index.html
+          cp web/loading-bg.png web/logo.png Builds/WebGL/
           touch Builds/WebGL/.nojekyll
           cd Builds/WebGL
           ls -la Build
