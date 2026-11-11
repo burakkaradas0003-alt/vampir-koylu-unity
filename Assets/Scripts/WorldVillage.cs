@@ -116,7 +116,7 @@ namespace VK
             { var p = Ring(2.1f, 14.6f); Put("Stand_Orange", root, p, Yaw(p, center), 1.05f); }
             { var p = Ring(4.15f, 14.6f); Put("Stand_Purple", root, p, Yaw(p, center), 1.05f); }
             { var p = Ring(0.0f, 14.8f); Put("Stand_Wood", root, p, Yaw(p, center), 1.15f); var q = Ring(0.12f, 14.8f); Put("Stand_Empty_Wood", root, q, Yaw(q, center), 1.15f); }
-            foreach (float a in new[] { 1.55f, 3.65f, 5.75f }) { var p = Ring(a, 9.6f); Put("Bank_01", root, p, Yaw(p, center), 1.05f); }
+            foreach (float a in new[] { 1.55f, 3.65f, 5.75f }) { var p = Ring(a, 13.6f); Put("Bank_01", root, p, Yaw(p, center), 1.05f); }
             { var p = Ring(2.65f, 16.2f); Put("Bank_02", root, p, Yaw(p, center) + 20, 1f); }
             // çalılar ve taşlar
             for (int i = 0; i < 18; i++) { var p = Ring(VR(0, 6.283f), VR(15.5f, 26)); Put(new[] { "Bushes_01", "Bushes_02", "Bushes_03" }[i % 3], root, p, VR(0, 360), VR(1.1f, 1.8f)); }

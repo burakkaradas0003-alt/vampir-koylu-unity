@@ -278,7 +278,7 @@ namespace VK
             var tle = t.gameObject.AddComponent<LayoutElement>(); tle.preferredHeight = 18;
             var le = row.gameObject.AddComponent<LayoutElement>(); le.preferredHeight = 20; le.minHeight = 20;
             var fit = row.gameObject.AddComponent<ContentSizeFitter>(); fit.horizontalFit = ContentSizeFitter.FitMode.PreferredSize;
-            if (t.preferredWidth > 290) { t.horizontalOverflow = HorizontalWrapMode.Wrap; tle.preferredWidth = 290; tle.preferredHeight = 32; le.preferredHeight = 34; le.minHeight = 34; }
+            if ((name ?? "").Length + text.Length > 44) { t.horizontalOverflow = HorizontalWrapMode.Wrap; tle.preferredWidth = 290; tle.preferredHeight = 32; le.preferredHeight = 34; le.minHeight = 34; }
             while (logBox.childCount > 5) DestroyImmediate(logBox.GetChild(0).gameObject);
             for (int i = 0; i < logBox.childCount; i++) { var g = logBox.GetChild(i).GetComponent<CanvasGroup>() ?? logBox.GetChild(i).gameObject.AddComponent<CanvasGroup>(); g.alpha = Mathf.Lerp(0.55f, 1f, (i + 1f) / logBox.childCount); }
             Scale(row, new Vector3(0.94f, 0.94f, 1), Vector3.one, 0.22f);
