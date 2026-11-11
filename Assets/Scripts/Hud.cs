@@ -331,6 +331,8 @@ namespace VK
         // sinematik sonuç ekranı: kazanan takım, MVP, ödüller, istatistikler
         public void ShowEnd(string title, string sub, List<EndEntry> list, Store.MatchResult res, Color team, string stats)
         {
+            // oyun arayüzü (üst çubuk, sohbet, isim etiketleri) sonuç ekranının arkasında kalmasın
+            for (int i = 0; i < canvas.childCount; i++) canvas.GetChild(i).gameObject.SetActive(false);
             var end = UI.R("bitiş", canvas).Fill(); end.SetAsLastSibling();
             endG = end.gameObject.AddComponent<CanvasGroup>(); Tween.Fade(endG, 0, 1, 0.5f);
             var dim = UI.Img(end, UI.Grad, new Color(0.02f, 0.02f, 0.04f, 0.9f), "alt karartma"); dim.rectTransform.anchorMin = Vector2.zero; dim.rectTransform.anchorMax = new Vector2(1, 0.75f); dim.rectTransform.offsetMin = dim.rectTransform.offsetMax = Vector2.zero;
