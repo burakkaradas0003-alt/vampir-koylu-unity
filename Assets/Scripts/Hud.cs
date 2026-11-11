@@ -616,6 +616,10 @@ namespace VK
             var tg = new Tag();
             tg.r = Rect("etiket", tagsRoot, new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(10, 10));
             tg.name = Label("n", tg.r, n, 15, FontStyle.Bold, TextAnchor.MiddleCenter, new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(160, 22));
+            // çerçevesiz isim: harflerin çevresinde siyah dış çizgi
+            DestroyImmediate(tg.name.GetComponent<Shadow>());
+            var ol = tg.name.gameObject.AddComponent<Outline>(); ol.effectColor = new Color(0, 0, 0, 0.95f); ol.effectDistance = new Vector2(1.4f, -1.4f);
+            var ol2 = tg.name.gameObject.AddComponent<Outline>(); ol2.effectColor = new Color(0, 0, 0, 0.6f); ol2.effectDistance = new Vector2(-1.2f, 1.2f);
             for (int i = 0; i < 3; i++) tg.icons.Add(Img("ic" + i, tg.r, null, new Vector2(0.5f, 0.5f), new Vector2(-60 - i * 20, 0), new Vector2(18, 18)));
             tg.badgeBox = Panel("rozet", tg.r, new Color(0.96f, 0.77f, 0.26f, 0.95f), new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(64, 0), new Vector2(42, 22), true);
             tg.badge = Label("t", tg.badgeBox, "", 13, FontStyle.Bold, TextAnchor.MiddleCenter, new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(42, 22)); tg.badge.color = new Color(0.12f, 0.08f, 0.02f);
@@ -635,14 +639,15 @@ namespace VK
         public void Emote(Tag t, string key) { t.emo.sprite = Emoji(key); t.emo.enabled = true; t.emoUntil = Time.time + 2.4f; Scale(t.emo.rectTransform, Vector3.zero, Vector3.one, 0.35f); }
         public void Seer(Tag t, string text, float sec) { t.seer.text = text; t.seerBox.gameObject.SetActive(true); t.seerUntil = Time.time + sec; }
 
-        public void PlaceTag(Tag t, Vector3 world, Camera cam, bool dead, bool selected, string[] iconKeys, string badge, bool wolfBadge)
+        public void PlaceTag(Tag t, Vector3 world, Camera cam, bool dead, bool selected, string[] iconKeys, string badge, bool wolfBadge, bool mate = false)
         {
             var sp = cam.WorldToScreenPoint(world);
             bool vis = sp.z > 0 && sp.x > -Screen.width * 0.1f && sp.x < Screen.width * 1.1f;
             t.r.gameObject.SetActive(vis); if (!vis) return;
             RectTransformUtility.ScreenPointToLocalPointInRectangle(tagsRoot, sp, null, out var lp);
             t.r.anchoredPosition = lp;
-            t.name.color = dead ? new Color(1, 1, 1, 0.45f) : selected ? new Color(0.96f, 0.77f, 0.26f) : Color.white;
+            // vampirler birbirinin adını koyu kırmızı görür
+            t.name.color = dead ? new Color(1, 1, 1, 0.45f) : selected ? new Color(0.96f, 0.77f, 0.26f) : mate ? new Color(0.72f, 0.06f, 0.1f) : Color.white;
             for (int i = 0; i < t.icons.Count; i++) { var k = i < iconKeys.Length ? iconKeys[i] : null; var s = Emoji(k); if (t.icons[i].sprite != s) t.icons[i].sprite = s; t.icons[i].enabled = s != null; }
             bool hasB = !string.IsNullOrEmpty(badge); if (t.badgeBox.gameObject.activeSelf != hasB) t.badgeBox.gameObject.SetActive(hasB);
             if (hasB) { if (t.badge.text != badge) { Scale(t.badgeBox, Vector3.one * 1.45f, Vector3.one, 0.3f); Sfx.Play("pop", 0.35f, 1.5f); } t.badge.text = badge; t.badgeBox.GetComponent<Image>().color = wolfBadge ? new Color(1f, 0.3f, 0.43f, 0.95f) : new Color(0.96f, 0.77f, 0.26f, 0.95f); }
@@ -679,6 +684,9 @@ namespace VK
             lid = Mathf.MoveTowards(lid, eyesClosed ? 1 : 0, Time.deltaTime * 2.2f);
             float h = canvas.rect.height * 0.62f * lid; // iki kapak tam kapandığında ekranın tamamı kararır
             lidTop.sizeDelta = new Vector2(0, h); lidBot.sizeDelta = new Vector2(0, h);
+            // "uyanıyor" yazısı ve ikonu, gözler kapandığında ekranın tam ortasında
+            float mid = h - canvas.rect.height * 0.5f; // alt kapağın üst kenarından ekran ortasına
+            sleepI.rectTransform.anchoredPosition = new Vector2(0, -mid + 52); sleepT.rectTransform.anchoredPosition = new Vector2(0, -mid + 4); sleepS.rectTransform.anchoredPosition = new Vector2(0, -mid - 24);
             lidTop.gameObject.SetActive(lid > 0.001f); lidBot.gameObject.SetActive(lid > 0.001f);
             if (hint != null && hint.enabled && Time.time > 9) hint.enabled = false;
             // animasyonlar

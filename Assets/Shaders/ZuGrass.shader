@@ -17,6 +17,9 @@ Shader "Zu/Grass"
             #pragma multi_compile_instancing
             #pragma multi_compile_fog
             #pragma multi_compile _ _MAIN_LIGHT_SHADOWS _MAIN_LIGHT_SHADOWS_CASCADE _MAIN_LIGHT_SHADOWS_SCREEN
+            #pragma multi_compile _ _ADDITIONAL_LIGHTS_VERTEX _ADDITIONAL_LIGHTS
+            #pragma multi_compile_fragment _ _ADDITIONAL_LIGHT_SHADOWS
+            #pragma multi_compile_fragment _ _SCREEN_SPACE_OCCLUSION
             #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Core.hlsl"
             #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Lighting.hlsl"
 
@@ -56,10 +59,55 @@ Shader "Zu/Grass"
                 float3 n = normalize(i.normalWS);
                 Light L = GetMainLight(TransformWorldToShadowCoord(i.positionWS));
                 float nl = saturate(dot(n, L.direction)) * 0.45 + 0.55;
-                float3 c = i.color.rgb * 1.15 * (L.color * nl * L.shadowAttenuation + SampleSH(n));
+                float3 amb = SampleSH(n);
+                #if defined(_SCREEN_SPACE_OCCLUSION)
+                    AmbientOcclusionFactor ao = GetScreenSpaceAmbientOcclusion(GetNormalizedScreenSpaceUV(i.positionCS));
+                    amb *= ao.indirectAmbientOcclusion; float dao = ao.directAmbientOcclusion;
+                #else
+                    float dao = 1;
+                #endif
+                float3 lit = L.color * nl * L.shadowAttenuation * dao + amb;
+                // ek ışıklar (kamp ateşi, fenerler): kum ve çimen ateşin sıcak ışığını alır
+                #if defined(_ADDITIONAL_LIGHTS)
+                    uint cnt = GetAdditionalLightsCount();
+                        for (uint li = 0u; li < cnt; ++li)
+                        {
+                            Light A = GetAdditionalLight(li, i.positionWS, half4(1, 1, 1, 1));
+                            lit += A.color * A.distanceAttenuation * A.shadowAttenuation * (saturate(dot(n, A.direction)) * 0.6 + 0.4);
+                        }
+                #endif
+                float3 c = i.color.rgb * 1.15 * lit;
                 c = MixFog(c, i.fog);
                 return half4(c, 1);
             }
+            ENDHLSL
+        }
+        Pass
+        {
+            Name "DepthOnly"
+            Tags { "LightMode"="DepthOnly" }
+            ZWrite On ColorMask R
+            HLSLPROGRAM
+            #pragma vertex vert
+            #pragma fragment frag
+            #pragma multi_compile_instancing
+            #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Core.hlsl"
+            CBUFFER_START(UnityPerMaterial)
+                float _Wind;
+            CBUFFER_END
+            struct A { float4 positionOS : POSITION; UNITY_VERTEX_INPUT_INSTANCE_ID };
+            struct V { float4 positionCS : SV_POSITION; };
+            V vert (A i)
+            {
+                V o; UNITY_SETUP_INSTANCE_ID(i);
+                float3 root = TransformObjectToWorld(float3(0, 0, 0));
+                float h = saturate(i.positionOS.y); h = h * h * 1.4; float t = _Time.y;
+                float gust = sin(t * 0.6 + root.x * 0.05) * 0.5 + 0.5; float3 p = i.positionOS.xyz;
+                p.x += (sin(t * 1.9 + root.x * 0.45 + root.z * 0.25) * 0.09 + gust * 0.06) * h * _Wind;
+                p.z += cos(t * 1.5 + root.z * 0.4 + root.x * 0.1) * 0.05 * h * _Wind;
+                o.positionCS = TransformWorldToHClip(TransformObjectToWorld(p)); return o;
+            }
+            half frag (V i) : SV_Target { return 0; }
             ENDHLSL
         }
     }

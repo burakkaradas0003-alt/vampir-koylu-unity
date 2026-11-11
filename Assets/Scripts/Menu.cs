@@ -320,7 +320,7 @@ namespace VK
         RectTransform charList; Text nameTag, selT;
         RectTransform BuildCharacter()
         {
-            var s = UI.R("karakter", content); s.anchorMin = Vector2.zero; s.anchorMax = Vector2.one; s.offsetMin = new Vector2(-86, -10); s.offsetMax = new Vector2(12, 56);
+            var s = UI.R("karakter", content); s.anchorMin = Vector2.zero; s.anchorMax = Vector2.one; s.offsetMin = new Vector2(-86, -10); s.offsetMax = new Vector2(0, 56);
             // sahne (tam ekranın solu): stüdyodaki giyinme setini gösterir
             var raw = UI.R("sahne", s); raw.anchorMin = Vector2.zero; raw.anchorMax = new Vector2(0.62f, 1); raw.offsetMin = raw.offsetMax = Vector2.zero;
             show = raw.gameObject.AddComponent<RawImage>(); show.raycastTarget = true; raw.gameObject.AddComponent<DragRotate>();
@@ -329,15 +329,17 @@ namespace VK
             var tag = UI.Panel(raw, "isim", UI.A(UI.Ink, 0.75f), false, UI.Pill).At(new Vector2(0, 1), new Vector2(98, -60), new Vector2(190, 40), new Vector2(0, 1));
             nameTag = UI.Txt(tag, "", 16, null, UI.Display); nameTag.rectTransform.At(new Vector2(0, 1), new Vector2(14, -3), new Vector2(170, 20), new Vector2(0, 1));
             var tt = UI.Txt(tag, "", 9, UI.Gold, UI.Bold); tt.rectTransform.At(new Vector2(0, 0), new Vector2(14, 5), new Vector2(170, 14), new Vector2(0, 0)); tt.name = "unvan";
+            tag.gameObject.SetActive(false); // karakterin üstünde isim/unvan kutusu gösterilmez
             var hint = UI.Txt(raw, "Karakteri döndürmek için sağa sola kaydır", 10, UI.Fg, null, TextAnchor.MiddleCenter).Shadowed(0.7f); hint.rectTransform.At(new Vector2(0.5f, 0), new Vector2(40, 12), new Vector2(300, 16), new Vector2(0.5f, 0));
             // sağ panel
-            var pan = UI.Panel(s, "seçenekler", UI.A(UI.Ink, 0.9f)); pan.anchorMin = new Vector2(0.62f, 0); pan.anchorMax = Vector2.one; pan.offsetMin = new Vector2(4, 10); pan.offsetMax = new Vector2(-12, -60);
-            var tabs = UI.R("sekme", pan).At(new Vector2(0.5f, 1), new Vector2(0, -8), new Vector2(280, 28), new Vector2(0.5f, 1)); UI.HRow(tabs, 6, TextAnchor.MiddleCenter, null, true);
+            var pan = UI.Panel(s, "seçenekler", UI.A(UI.Ink, 0.9f)); pan.anchorMin = new Vector2(0.62f, 0); pan.anchorMax = Vector2.one; pan.offsetMin = new Vector2(4, 10); pan.offsetMax = new Vector2(-14, -60);
+            // sekmeler ve düğmeler panelin genişliğine sığar (dar ekranda dışarı taşmaz)
+            var tabs = UI.R("sekme", pan); tabs.anchorMin = new Vector2(0, 1); tabs.anchorMax = new Vector2(1, 1); tabs.pivot = new Vector2(0.5f, 1); tabs.offsetMin = new Vector2(10, -36); tabs.offsetMax = new Vector2(-10, -8); UI.HRow(tabs, 6, TextAnchor.MiddleCenter, null, true);
             UI.Chip(tabs, "Görünüm", true, () => { }, Hud.Emoji("shirt"));
             UI.Chip(tabs, "Mağaza", false, () => Show("magaza"), Hud.Emoji("shop"));
             var sc = UI.Scroll(pan, true, out charList, 6, UI.Pad(10, 10, 4, 8)); ((RectTransform)sc.transform).Fill(0, 76, 0, 42);
-            selT = UI.Txt(pan, "", 10, UI.Muted, null, TextAnchor.MiddleCenter); selT.rectTransform.At(new Vector2(0.5f, 0), new Vector2(0, 50), new Vector2(290, 22), new Vector2(0.5f, 0));
-            var brow = UI.R("düğmeler", pan).At(new Vector2(0.5f, 0), new Vector2(0, 10), new Vector2(296, 34), new Vector2(0.5f, 0)); UI.HRow(brow, 6, TextAnchor.MiddleCenter, null, true);
+            selT = UI.Txt(pan, "", 10, UI.Muted, null, TextAnchor.MiddleCenter); selT.rectTransform.anchorMin = new Vector2(0, 0); selT.rectTransform.anchorMax = new Vector2(1, 0); selT.rectTransform.pivot = new Vector2(0.5f, 0); selT.rectTransform.offsetMin = new Vector2(8, 50); selT.rectTransform.offsetMax = new Vector2(-8, 72);
+            var brow = UI.R("düğmeler", pan); brow.anchorMin = new Vector2(0, 0); brow.anchorMax = new Vector2(1, 0); brow.pivot = new Vector2(0.5f, 0); brow.offsetMin = new Vector2(8, 10); brow.offsetMax = new Vector2(-8, 44); UI.HRow(brow, 6, TextAnchor.MiddleCenter, null, true);
             UI.Button(brow, "Rastgele", UI.Style.Secondary, RandomLook, Hud.Emoji("dizzy"), 12).r.LE(-1, 34, 1);
             UI.Button(brow, "Sıfırla", UI.Style.Ghost, () => { draft = Store.P.look.Clone(); RefreshCharacter(); Toast("Kayıtlı görünüme dönüldü"); }, null, 12).r.LE(-1, 34, 0.8f);
             saveBtn = UI.Button(brow, "Onayla", UI.Style.Primary, SaveLook, Hud.Emoji("check"), 12, null); saveBtn.r.LE(-1, 34, 1.1f);
@@ -347,7 +349,9 @@ namespace VK
         void OpenCharacter()
         {
             draft = Store.P.look.Clone();
-            show.texture = Studio.I.Showcase(draft, 700, 640, true);
+            // görüntü alanının en-boy oranında çiz: karakter basık/yayvan görünmesin
+            Canvas.ForceUpdateCanvases(); var rr = show.rectTransform.rect; float asp = rr.height > 1 ? rr.width / rr.height : 1.1f;
+            show.texture = Studio.I.Showcase(draft, Mathf.Clamp(Mathf.RoundToInt(720 * asp), 400, 1600), 720, true);
             Tween.Fade(dimG, dimG.alpha, 0, 0.3f);
             RefreshCharacter();
         }

@@ -91,7 +91,7 @@ namespace VK
                 var p = new Pl { i = i, n = nm, me = i == 0, seat = seat, ang = a, oi = i, tint = SKT[i % SKT.Length], size = 0.96f + ((i * 37) % 9) / 100f, look = look };
                 p.ch = Rig.Make(p.look, p.size);
                 p.ch.transform.position = seat; p.ch.transform.LookAt(new Vector3(0, 0, 0));
-                if (p.me) p.ch.gameObject.SetActive(false); else { p.tag = ui.MakeTag(p.n); ui.TagFrame(p.tag, look.frame); }
+                if (p.me) p.ch.gameObject.SetActive(false); else { p.tag = ui.MakeTag(p.n); }
                 P.Add(p);
             }
             ME = P[0];
@@ -305,10 +305,15 @@ namespace VK
                 o.transform.localPosition = lp; o.transform.localScale = sc; o.transform.localEulerAngles = rot; o.GetComponent<MeshRenderer>().sharedMaterial = m; return o;
             }
             const float deck = 0.9f; // platform yüksekliği
-            Part(PrimitiveType.Cube, wood, new Vector3(0, deck - 0.06f, 0), new Vector3(2.2f, 0.12f, 1.8f));
+            // platform: ortasında kapak deliği olan dört tahta (asılan beden deliğin içinden sarkar, tahtaya gömülmez)
+            Part(PrimitiveType.Cube, wood, new Vector3(-0.75f, deck - 0.06f, 0), new Vector3(0.7f, 0.12f, 1.8f));
+            Part(PrimitiveType.Cube, wood, new Vector3(0.75f, deck - 0.06f, 0), new Vector3(0.7f, 0.12f, 1.8f));
+            Part(PrimitiveType.Cube, wood, new Vector3(0, deck - 0.06f, 0.675f), new Vector3(0.8f, 0.12f, 0.45f));
+            Part(PrimitiveType.Cube, wood, new Vector3(0, deck - 0.06f, -0.625f), new Vector3(0.8f, 0.12f, 0.55f));
             foreach (float x in new[] { -1f, 1f }) foreach (float z in new[] { -0.8f, 0.8f }) Part(PrimitiveType.Cube, dark, new Vector3(x, deck / 2 - 0.06f, z), new Vector3(0.14f, deck, 0.14f));
             for (int k = 0; k < 4; k++) Part(PrimitiveType.Cube, wood, new Vector3(0, 0.12f + k * 0.22f, 1.25f - k * 0.12f), new Vector3(0.8f, 0.07f, 0.28f)); // basamaklar
-            var trap = Part(PrimitiveType.Cube, dark, new Vector3(0, deck + 0.005f, 0.05f), new Vector3(0.8f, 0.03f, 0.8f));
+            var hinge = new GameObject("kapak menteşesi").transform; hinge.SetParent(g.transform, false); hinge.localPosition = new Vector3(0, deck - 0.01f, -0.35f);
+            var trap = Part(PrimitiveType.Cube, dark, Vector3.zero, new Vector3(0.8f, 0.04f, 0.8f)); trap.transform.SetParent(hinge, false); trap.transform.localPosition = new Vector3(0, 0, 0.4f);
             foreach (float x in new[] { -0.95f, 0.95f })
             {
                 Part(PrimitiveType.Cube, wood, new Vector3(x, deck + 1.65f, -0.5f), new Vector3(0.16f, 3.3f, 0.16f));
@@ -356,7 +361,7 @@ namespace VK
             Sfx.Play("tick", 0.8f, 0.6f);
             await Wait(0.8f);
             // kapak açılır: düşüş, sallanma
-            trap.SetActive(false); Sfx.Play("death", 0.7f, 0.6f); ch.limp = true;
+            Sfx.Play("death", 0.7f, 0.6f); ch.limp = true;
             var hang0 = ch.transform.position; var rot0 = ch.transform.rotation; var axis = g.transform.right;
             W.Burst(stand, new Color(0.6f, 0.52f, 0.42f), 16, 0.6f, 0.2f, 1f);
             // ip kirişteki bir noktadan sallanır: ip, ilmek ve beden birlikte o noktanın etrafında döner
@@ -367,6 +372,7 @@ namespace VK
             for (float a = 0; a < 1; a += Time.deltaTime / Mathf.Max(0.01f, 1.2f / SPEED))
             {
                 float drop = Mathf.Min(1, a * 9) * 0.32f;
+                hinge.localRotation = Quaternion.Euler(Mathf.Min(1, a * 7) * 100f, 0, 0); // kapak menteşesinden aşağı açılır
                 float l = len + drop; rope.transform.localPosition = new Vector3(0, -l / 2, 0); rope.transform.localScale = new Vector3(0.045f, l / 2, 0.045f); loop.transform.localPosition = new Vector3(0, -l, 0);
                 float sw = Mathf.Sin((Time.time - t0) * 2.6f) * Mathf.Lerp(7f, 3.5f, a);
                 var q = Quaternion.AngleAxis(sw, axis); pivot.transform.localRotation = Quaternion.AngleAxis(sw, Vector3.right);
@@ -433,7 +439,7 @@ namespace VK
             {
                 var (i, cause) = queue.Dequeue();
                 var p = P[i]; if (!p.alive) continue;
-                p.alive = false; p.pointAt = null;
+                p.alive = false; p.pointAt = null; cinematic = true;
                 string txt = p.me
                     ? cause switch { "night" => "Gece saldırıya uğradın", "poison" => "Zehirlenerek öldün", "exec" => "Köy kararıyla öldürüldün", "grief" => "Acına dayanamadın", _ => "Avcı'nın okuyla vuruldun" }
                     : cause switch { "night" => $"{p.n} gece saldırıya uğradı", "poison" => $"{p.n} zehirlenerek öldü", "exec" => $"{p.n} köy kararıyla öldürüldü", "grief" => $"{p.n} acısına dayanamadı", _ => $"{p.n} Avcı'nın okuyla vuruldu" };
@@ -451,6 +457,7 @@ namespace VK
                     await ui.RoleReveal(rr.ic, rr.n, rr.c, p.me ? "Senin" : p.n, rr.team == "v");
                 }
                 if (cause == "exec") shotUntil = 0;
+                cinematic = false;
                 if (p.lover) { var o = P.FirstOrDefault(q => q.lover && q != p && q.alive); if (o != null) { await Wait(0.4f); queue.Enqueue((o.i, "grief")); } }
                 if (p.role == "avci" && cause != "grief") { var t = await HunterShot(p); if (t != null) queue.Enqueue((t.Value, "shot")); }
                 if (mayor == p.i) await PassMayor(p);
@@ -923,7 +930,7 @@ namespace VK
         // kamerayı bir noktaya çevir (oyuncu kaydırırsa iptal olur)
         void Focus(Vector3 target, float sec, float fov = 48) { shotTarget = target; shotUntil = Now + sec / SPEED; shotFov = fov; shotPos = null; }
         void FocusFrom(Vector3 from, Vector3 target, float sec, float fov = 48) { Focus(target, sec, fov); shotPos = from; }
-        Vector3? shotPos; int dbgK = -2;
+        Vector3? shotPos; int dbgK = -2; bool cinematic;
         readonly List<Transform> ringObjs = new List<Transform>(); Material ringMat; Mesh ringMesh;
 
         float AngleTo(Pl p, Vector3 target) { var v = p.ch.transform.InverseTransformPoint(target); return Mathf.Atan2(v.x, v.z); }
@@ -1091,7 +1098,7 @@ namespace VK
                     if (p.talk > 0) icons.Add("speaker");
                 }
                 counts.TryGetValue(p.i, out int n);
-                ui.PlaceTag(p.tag, pos, cam, !p.alive, selected, icons.ToArray(), n > 0 ? n.ToString() : null, countMode == "wolf");
+                ui.PlaceTag(p.tag, pos, cam, !p.alive, selected, icons.ToArray(), n > 0 ? n.ToString() : null, countMode == "wolf", ME.role == "vampir" && p.role == "vampir");
             }
         }
 
@@ -1127,8 +1134,10 @@ namespace VK
             Vector2 mp = Input.mousePosition;
             bool overUI = EventSystem.current != null && (EventSystem.current.IsPointerOverGameObject() || (Input.touchCount > 0 && EventSystem.current.IsPointerOverGameObject(Input.GetTouch(0).fingerId)));
             if (down && !overUI) { drag = mp; downAt = mp; ui.HideHint(); }
-            if (held && drag != null && (mp - drag.Value).sqrMagnitude > 4) shotUntil = 0;
-            if (held && drag != null)
+            // ölüm/idam sahnesi izlenir: ekrana dokunmak veya kaydırmak sahneyi atlatmaz
+            if (cinematic) { if (held && drag != null) drag = mp; }
+            else if (held && drag != null && (mp - drag.Value).sqrMagnitude > 4) shotUntil = 0;
+            if (held && drag != null && !cinematic)
             {
                 var d = mp - drag.Value; float s = 844f / Screen.width;
                 yawT = Mathf.Clamp(yawT - d.x * s * 0.006f, -1.65f, 1.65f); pitchT = Mathf.Clamp(pitchT + d.y * s * 0.004f, -0.35f, 0.75f); drag = mp;
