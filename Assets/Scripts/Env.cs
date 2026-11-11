@@ -160,8 +160,8 @@ namespace VK
                 RenderSettings.sun = sun;
             }
             // uzak sis gökyüzünün ufkuyla aynı renkte: dağlar ufukta erir
-            RenderSettings.fogColor = Color.Lerp(new Color(0.72f, 0.8f, 0.88f), new Color(0.05f, 0.06f, 0.13f), k);
-            RenderSettings.fogDensity = Mathf.Lerp(0.006f, 0.0085f, k);
+            RenderSettings.fogColor = Color.Lerp(new Color(0.76f, 0.8f, 0.82f), new Color(0.05f, 0.06f, 0.13f), k); // gündüz hafif sıcak pus
+            RenderSettings.fogDensity = Mathf.Lerp(0.0085f, 0.0095f, k);
             foreach (var m in mountainMats) m.SetColor("_Tint", cool);
         }
 
