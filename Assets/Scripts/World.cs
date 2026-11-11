@@ -13,7 +13,7 @@ namespace VK
         public Camera cam;
         public float tod;              // 0 gündüz – 1 gece
         public bool low;
-        Light sun, fireLight;
+        Light sun, fireLight; public Light Sun => sun;
         Material matLit, matGrass, matFlame, matGlow, skyMat;
         Texture2D skyTex, dotTex;
         Volume volume; Bloom bloom;

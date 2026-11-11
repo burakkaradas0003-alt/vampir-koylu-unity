@@ -81,7 +81,7 @@ namespace VK
         public RenderTexture Showcase(Look look, int w = 512, int h = 640, bool withSet = false)
         {
             useSet = withSet; if (withSet) BuildSet(); if (set != null) set.SetActive(withSet);
-            vcam.backgroundColor = withSet ? new Color(0.66f, 0.78f, 0.88f) : new Color(0, 0, 0, 0);
+            vcam.backgroundColor = withSet ? new Color(0.05f, 0.05f, 0.12f) : new Color(0, 0, 0, 0);
             vcam.GetComponent<UniversalAdditionalCameraData>().renderShadows = withSet;
             if (showRT == null || showRT.width != w || showRT.height != h) { if (showRT != null) showRT.Release(); showRT = new RenderTexture(w, h, 16, RenderTextureFormat.ARGB32) { antiAliasing = 4, name = "vitrin" }; showRT.Create(); }
             SetShow(look);
@@ -97,7 +97,21 @@ namespace VK
             show.transform.position = ORIGIN; bob = 1;
         }
         // giyinme seti (bir kez kurulur): köy evinin önü, taş zemin, çimen, fener, fıçı
-        GameObject set; bool useSet;
+        GameObject set; bool useSet; Light lantern; MaterialPropertyBlock ringMpb; MeshRenderer ringR; float sunI; Color sunC; bool dimmed;
+        // vitrin kamerası çizerken güneş kısılır: set gece gibi aydınlanır (oyun sahnesi etkilenmez)
+        void OnEnable() { UnityEngine.Rendering.RenderPipelineManager.beginCameraRendering += BeginCam; UnityEngine.Rendering.RenderPipelineManager.endCameraRendering += EndCam; }
+        void OnDisable() { UnityEngine.Rendering.RenderPipelineManager.beginCameraRendering -= BeginCam; UnityEngine.Rendering.RenderPipelineManager.endCameraRendering -= EndCam; }
+        void BeginCam(UnityEngine.Rendering.ScriptableRenderContext ctx, Camera c)
+        {
+            if (c != vcam || !useSet || World.I == null || World.I.Sun == null) return;
+            var s = World.I.Sun; sunI = s.intensity; sunC = s.color; dimmed = true;
+            s.intensity = 0.22f; s.color = new Color(0.5f, 0.58f, 1f);
+        }
+        void EndCam(UnityEngine.Rendering.ScriptableRenderContext ctx, Camera c)
+        {
+            if (!dimmed || c != vcam || World.I == null || World.I.Sun == null) return;
+            dimmed = false; var s = World.I.Sun; s.intensity = sunI; s.color = sunC;
+        }
         void BuildSet()
         {
             if (set != null || World.I == null) return;
@@ -114,6 +128,45 @@ namespace VK
             P("Flower_Yellow", new Vector3(-1.2f, 0, 1.9f), 0, 2f); P("Flower_Purple", new Vector3(-0.9f, 0, 2.1f), 50, 2f); P("Flower_Blue", new Vector3(2.0f, 0, 2.0f), 0, 2f);
             P("Tree_01", new Vector3(-5.5f, 0, 7.5f), 0, 1.1f); P("Tree_02", new Vector3(6.5f, 0, 8.5f), 0, 1.6f); P("Tree_02", new Vector3(-8f, 0, 10f), 0, 1.8f);
             w.StudioGround(set.transform);
+            // gece seti: malzemeler kopyalanıp akşam mavisine çekilir, pencereler sıcak yanar
+            var nightTint = new Color(0.36f, 0.36f, 0.55f);
+            var copies = new Dictionary<Material, Material>();
+            foreach (var r in set.GetComponentsInChildren<Renderer>(true))
+            {
+                var ms = r.sharedMaterials;
+                for (int i = 0; i < ms.Length; i++)
+                {
+                    var m = ms[i]; if (m == null) continue;
+                    if (!copies.TryGetValue(m, out var c))
+                    {
+                        c = new Material(m);
+                        if (c.HasProperty("_BaseColor")) c.SetColor("_BaseColor", c.GetColor("_BaseColor") * nightTint);
+                        if (c.HasProperty("_Tint")) c.SetColor("_Tint", nightTint);
+                        if (c.IsKeywordEnabled("_EMISSION")) c.SetColor("_EmissionColor", new Color(1f, 0.58f, 0.24f) * 2.4f);
+                        copies[m] = c;
+                    }
+                    ms[i] = c;
+                }
+                r.sharedMaterials = ms;
+            }
+            // altın parıltılı taş kaide
+            var ped = GameObject.CreatePrimitive(PrimitiveType.Cylinder); Destroy(ped.GetComponent<Collider>()); ped.name = "kaide"; ped.transform.SetParent(set.transform, false);
+            ped.transform.localPosition = new Vector3(0, 0.03f, 0); ped.transform.localScale = new Vector3(2.1f, 0.03f, 2.1f);
+            var pm = new Material(Resources.Load<Material>("Mats/LitMatte") ?? Resources.Load<Material>("Mats/Lit")); pm.SetColor("_BaseColor", new Color(0.3f, 0.29f, 0.32f)); ped.GetComponent<MeshRenderer>().sharedMaterial = pm;
+            var ringGo = new GameObject("kaide ışığı"); ringGo.transform.SetParent(set.transform, false); ringGo.transform.localPosition = new Vector3(0, 0.07f, 0); ringGo.transform.localRotation = Quaternion.Euler(90, 0, 0); ringGo.transform.localScale = Vector3.one * 2.3f;
+            var qm = new Mesh(); qm.vertices = new[] { new Vector3(-0.5f, -0.5f, 0), new Vector3(0.5f, -0.5f, 0), new Vector3(-0.5f, 0.5f, 0), new Vector3(0.5f, 0.5f, 0) }; qm.uv = new[] { new Vector2(0, 0), new Vector2(1, 0), new Vector2(0, 1), new Vector2(1, 1) }; qm.triangles = new[] { 0, 2, 1, 1, 2, 3 }; qm.RecalculateBounds();
+            ringGo.AddComponent<MeshFilter>().sharedMesh = qm;
+            var gm = new Material(Resources.Load<Material>("Mats/Glow")); gm.SetTexture("_MainTex", Resources.Load<Texture2D>("UI/pedestal_ring")); gm.enableInstancing = true;
+            var rr = ringGo.AddComponent<MeshRenderer>(); rr.sharedMaterial = gm; var mpb = new MaterialPropertyBlock(); mpb.SetColor("_Color", new Color(1f, 0.78f, 0.38f, 0.95f)); rr.SetPropertyBlock(mpb); ringMpb = mpb; ringR = rr;
+            // ay (sol üstte, uzakta)
+            var moon = new GameObject("ay"); moon.transform.SetParent(set.transform, false); moon.transform.localPosition = new Vector3(-5.5f, 6.5f, 14f); moon.transform.localScale = Vector3.one * 2.2f;
+            moon.AddComponent<MeshFilter>().sharedMesh = qm; var mr = moon.AddComponent<MeshRenderer>(); var mm = new Material(Resources.Load<Material>("Mats/Glow")); mm.SetTexture("_MainTex", Resources.Load<Texture2D>("UI/moon") != null ? Resources.Load<Texture2D>("UI/moon") : null); mr.sharedMaterial = mm;
+            var mpb2 = new MaterialPropertyBlock(); mpb2.SetColor("_Color", new Color(0.85f, 0.88f, 1f, 0.9f)); mr.SetPropertyBlock(mpb2);
+            // fener ve pencerelerden gelen sıcak ışık, arkadan mor dolgu
+            lantern = new GameObject("fener ışığı").AddComponent<Light>(); lantern.transform.SetParent(set.transform, false); lantern.transform.localPosition = new Vector3(-2.0f, 2.3f, 1.4f);
+            lantern.type = LightType.Point; lantern.range = 7; lantern.intensity = 3.2f; lantern.color = new Color(1f, 0.62f, 0.3f); lantern.cullingMask = 1 << LAYER;
+            var fill = new GameObject("mor dolgu").AddComponent<Light>(); fill.transform.SetParent(set.transform, false); fill.transform.localPosition = new Vector3(2.5f, 3f, 3.5f);
+            fill.type = LightType.Point; fill.range = 9; fill.intensity = 2.2f; fill.color = new Color(0.55f, 0.4f, 1f); fill.cullingMask = 1 << LAYER;
             foreach (var t in set.GetComponentsInChildren<Transform>(true)) t.gameObject.layer = LAYER;
         }
         public void Cheer(float k) { if (show != null) show.cheer = k; }
@@ -129,7 +182,9 @@ namespace VK
             if (useSet)
             {
                 // giyinme seti: karakter evin kapısı önünde, kamera hafif aşağıdan ve soldan
-                vcam.transform.position = c + new Vector3(0.55f, 0.35f, -4.6f); vcam.transform.LookAt(c + new Vector3(0.15f, 0.05f, 0)); vcam.fieldOfView = 34;
+                vcam.transform.position = c + new Vector3(0.55f, 0.45f, -4.9f); vcam.transform.LookAt(c + new Vector3(0.15f, -0.05f, 0)); vcam.fieldOfView = 34;
+                if (ringMpb != null) { ringMpb.SetColor("_Color", new Color(1f, 0.78f, 0.38f, 0.75f + Mathf.Sin(Time.time * 2.2f) * 0.2f)); ringR.SetPropertyBlock(ringMpb); }
+                if (lantern != null) lantern.intensity = 3.2f + Mathf.Sin(Time.time * 9f) * 0.25f + Mathf.Sin(Time.time * 4.3f) * 0.2f;
             }
             else { vcam.transform.position = c + new Vector3(0, 0.12f, -4.3f); vcam.transform.LookAt(c); vcam.fieldOfView = 25; }
             Lamp(c, -1);

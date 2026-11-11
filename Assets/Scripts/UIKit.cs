@@ -28,14 +28,17 @@ namespace VK
         public static Color A(Color c, float a) { c.a = a; return c; }
 
         // ---------------------------------------------------------------- kaynaklar
-        public static Font Body, Bold, Title, Display; // Display: başlıklar için gotik yazı (Pirata One)
+        public static Font Body, Bold, Title, Display, Serif; // Display: oyun içi gotik başlık; Serif: menü başlıkları (Cinzel)
+        public static Sprite Ornate, Tile, TileOn, BtnPurple, BtnDark, PillDark, OrnTop, OrnLine; // altın çerçeveli tema
         public static Sprite Round, RoundSmall, Pill, Outline, OutlinePill, Circle, Ring, Grad, GradH, Glow, Soft;
         static bool ready;
         public static void Init()
         {
             if (ready) return; ready = true;
             var legacy = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
-            Body = Resources.Load<Font>("Fonts/Body") ?? legacy; Bold = Resources.Load<Font>("Fonts/BodyBold") ?? legacy; Title = Resources.Load<Font>("Fonts/Title") ?? Bold; Display = Resources.Load<Font>("Fonts/Display") ?? Title;
+            Body = Resources.Load<Font>("Fonts/Body") ?? legacy; Bold = Resources.Load<Font>("Fonts/BodyBold") ?? legacy; Title = Resources.Load<Font>("Fonts/Title") ?? Bold; Display = Resources.Load<Font>("Fonts/Display") ?? Title; Serif = Resources.Load<Font>("Fonts/Serif") ?? Display;
+            Sprite S(string n) => Resources.Load<Sprite>("UI/" + n);
+            Ornate = S("ornate"); Tile = S("tile"); TileOn = S("tile_on"); BtnPurple = S("btn_purple"); BtnDark = S("btn_dark"); PillDark = S("pill_dark"); OrnTop = S("orn_top"); OrnLine = S("orn_line");
             Round = RoundRect(64, 18, 0, true); RoundSmall = RoundRect(32, 9, 0, true); Pill = RoundRect(64, 31, 0, false);
             Outline = RoundRect(64, 18, 2.6f, false); OutlinePill = RoundRect(64, 31, 2.6f, false);
             Circle = Disc(128, 0); Ring = Disc(128, 5f); Grad = Gradient(false); GradH = Gradient(true); Glow = GlowS(); Soft = SoftRect();
@@ -146,6 +149,22 @@ namespace VK
             var r = R(n, p); shape = shape ?? Round;
             if (shadow) { var sh = Img(r, Soft, new Color(0, 0, 0, 0.42f), "gölge"); sh.rectTransform.Fill(-14, -18, -14, -10); }
             var bgI = r.gameObject.AddComponent<Image>(); bgI.sprite = shape; bgI.type = Image.Type.Sliced; bgI.pixelsPerUnitMultiplier = 2.2f; bgI.color = bg ?? Glass;
+            // altın çerçeveli tema: büyük paneller süslü çerçeve, küçük kutular altın kenarlı karo, haplar koyu altın kenarlı
+            Color c0 = bg ?? Glass;
+            if (shape == Round && shadow && Ornate != null)
+            {
+                bgI.sprite = Ornate; bgI.pixelsPerUnitMultiplier = 1.6f; bgI.color = new Color(1, 1, 1, Mathf.Max(0.9f, c0.a)); stroke = false;
+                if (OrnTop != null) { var ot = Img(r, OrnTop, Color.white, "süs"); ot.rectTransform.At(new Vector2(0.5f, 1), new Vector2(0, 4), new Vector2(64, 19), new Vector2(0.5f, 0.5f)); ot.raycastTarget = false; }
+            }
+            else if (shape == RoundSmall && Tile != null)
+            {
+                bool on = c0.a >= 0.12f && c0.b > c0.g; // seçili (mor) kutu
+                bgI.sprite = on ? TileOn : Tile; bgI.pixelsPerUnitMultiplier = 2.4f; bgI.color = Color.white; stroke = false;
+            }
+            else if (shape == Pill && PillDark != null && c0.a >= 0.5f && c0.r < 0.3f)
+            {
+                bgI.sprite = PillDark; bgI.pixelsPerUnitMultiplier = 1.6f; bgI.color = Color.white; stroke = false;
+            }
             if (stroke) { var o = Img(r, shape == Pill ? OutlinePill : Outline, Stroke, "kenar"); o.rectTransform.Fill(); }
             return r;
         }
@@ -155,10 +174,18 @@ namespace VK
             t.supportRichText = true; t.raycastTarget = false; t.horizontalOverflow = HorizontalWrapMode.Wrap; t.verticalOverflow = VerticalWrapMode.Overflow; t.lineSpacing = 0.95f;
             return t;
         }
+        // menü başlığı: altın degrade, koyu dış çizgi
+        public static Text GoldTitle(this Text t)
+        {
+            t.font = Serif; var g = t.gameObject.AddComponent<VGradient>(); g.top = new Color(1f, 0.93f, 0.66f); g.bottom = new Color(0.86f, 0.55f, 0.18f);
+            var o = t.gameObject.AddComponent<UnityEngine.UI.Outline>(); o.effectColor = new Color(0.16f, 0.07f, 0.02f, 0.9f); o.effectDistance = new Vector2(1.2f, -1.2f);
+            var s = t.gameObject.AddComponent<Shadow>(); s.effectColor = new Color(0, 0, 0, 0.6f); s.effectDistance = new Vector2(0, -2.5f);
+            return t;
+        }
         public static Text Shadowed(this Text t, float a = 0.5f) { var s = t.gameObject.AddComponent<Shadow>(); s.effectColor = new Color(0, 0, 0, a); s.effectDistance = new Vector2(0, -1.5f); return t; }
 
         public enum Style { Primary, Secondary, Gold, Ghost, Danger, Good }
-        public class Btn { public RectTransform r; public Image bg; public Text label; public Image icon; public Button b; public Style style; public bool on = true;
+        public class Btn { public RectTransform r; public Image bg; public Text label; public Image icon; public Button b; public Style style; public bool on = true; public Image hl, edge;
             public Btn Label(string s) { if (label != null) label.text = s; return this; }
             public Btn Enabled(bool e) { on = e; b.interactable = e; var cg = r.GetComponent<CanvasGroup>() ?? r.gameObject.AddComponent<CanvasGroup>(); cg.alpha = e ? 1 : 0.42f; return this; }
             public Btn Restyle(Style s) { style = s; Paint(this); return this; }
@@ -169,8 +196,8 @@ namespace VK
             var b = new Btn { r = r, style = st };
             var sh = Img(r, Soft, new Color(0, 0, 0, st == Style.Ghost ? 0 : 0.35f), "gölge"); sh.rectTransform.Fill(-8, -12, -8, -4);
             b.bg = r.gameObject.AddComponent<Image>(); b.bg.sprite = Pill; b.bg.type = Image.Type.Sliced; b.bg.pixelsPerUnitMultiplier = 2.2f;
-            var hl = Img(r, Pill, new Color(1, 1, 1, 0.12f), "parlak"); hl.rectTransform.Fill(2, 0, 2, 0); hl.rectTransform.anchorMin = new Vector2(0, 0.52f); hl.rectTransform.offsetMin = new Vector2(3, 0); hl.rectTransform.offsetMax = new Vector2(-3, -2);
-            var o = Img(r, OutlinePill, Stroke, "kenar"); o.rectTransform.Fill();
+            var hl = Img(r, Pill, new Color(1, 1, 1, 0.12f), "parlak"); b.hl = hl; hl.rectTransform.Fill(2, 0, 2, 0); hl.rectTransform.anchorMin = new Vector2(0, 0.52f); hl.rectTransform.offsetMin = new Vector2(3, 0); hl.rectTransform.offsetMax = new Vector2(-3, -2);
+            var o = Img(r, OutlinePill, Stroke, "kenar"); o.rectTransform.Fill(); b.edge = o;
             var row = R("içerik", r).Fill(12, 0, 12, 0); HRow(row, 6, TextAnchor.MiddleCenter);
             if (icon != null) { b.icon = Icon(row, icon, fontSize + 6); b.icon.rectTransform.LE(fontSize + 6, fontSize + 6); }
             if (!string.IsNullOrEmpty(label)) { b.label = Txt(row, label, fontSize, null, Bold, TextAnchor.MiddleCenter); b.label.horizontalOverflow = HorizontalWrapMode.Overflow; b.label.rectTransform.LE(-1, 24); }
@@ -192,6 +219,15 @@ namespace VK
                 default: bg = new Color(1, 1, 1, 0.09f); break;
             }
             b.bg.color = bg; if (b.label != null) b.label.color = fg;
+            // tema: mor ve koyu düğmeler altın kenarlı hazır görsellerle
+            Sprite sp = b.style == Style.Primary ? BtnPurple : (b.style == Style.Secondary || b.style == Style.Ghost) ? BtnDark : b.style == Style.Gold ? Resources.Load<Sprite>("UI/btn_gold") : null;
+            if (sp != null && b.bg != null && b.edge != null)
+            {
+                b.bg.sprite = sp; b.bg.pixelsPerUnitMultiplier = sp == BtnPurple || sp == BtnDark ? 2.4f : 2.2f; b.bg.color = b.style == Style.Ghost ? new Color(1, 1, 1, 0.75f) : Color.white;
+                b.edge.enabled = false; if (b.hl != null) b.hl.enabled = false;
+                if (b.label != null && b.style != Style.Gold) b.label.color = b.style == Style.Ghost ? Muted : Fg;
+            }
+            else { if (b.edge != null) b.edge.enabled = true; if (b.hl != null) b.hl.enabled = true; if (b.bg != null && b.bg.sprite != Pill) { b.bg.sprite = Pill; b.bg.pixelsPerUnitMultiplier = 2.2f; } }
         }
 
         // seçilebilir hap (filtre/kategori)
@@ -326,6 +362,20 @@ namespace VK
             if (!homePos.TryGetValue(r, out var p)) { p = r.anchoredPosition; homePos[r] = p; }
             Fade(cg, 0, 1, 0.22f);
             Run(r.gameObject, 0.28f, k => { if (r) r.anchoredPosition = new Vector2(p.x + Mathf.Lerp(dx, 0, k), p.y); }, OutCubic);
+        }
+    }
+
+    // metin için dikey renk geçişi
+    public class VGradient : BaseMeshEffect
+    {
+        public Color top = Color.white, bottom = Color.gray;
+        public override void ModifyMesh(VertexHelper vh)
+        {
+            if (!IsActive() || vh.currentVertCount == 0) return;
+            var v = new UIVertex(); float minY = float.MaxValue, maxY = float.MinValue;
+            for (int i = 0; i < vh.currentVertCount; i++) { vh.PopulateUIVertex(ref v, i); minY = Mathf.Min(minY, v.position.y); maxY = Mathf.Max(maxY, v.position.y); }
+            float h = Mathf.Max(0.001f, maxY - minY);
+            for (int i = 0; i < vh.currentVertCount; i++) { vh.PopulateUIVertex(ref v, i); var c = Color.Lerp(bottom, top, (v.position.y - minY) / h); c.a *= v.color.a / 255f; v.color = c; vh.SetUIVertex(v, i); }
         }
     }
 }

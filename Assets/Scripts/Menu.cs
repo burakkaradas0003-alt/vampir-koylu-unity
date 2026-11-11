@@ -51,7 +51,7 @@ namespace VK
         void OnDestroy() { Store.Changed -= RefreshTop; }
 
         // ---------------------------------------------------------------- sol menü şeridi
-        static readonly (string id, string label, string icon)[] TABS = { ("lobi", "Lobi", "village"), ("karakter", "Karakter", "shirt"), ("magaza", "Mağaza", "shop"), ("gorev", "Görevler", "target"), ("profil", "Profil", "user") };
+        static readonly (string id, string label, string icon)[] TABS = { ("lobi", "Lobi", "village"), ("karakter", "Karakter", "shirt"), ("magaza", "Mağaza", "chest"), ("gorev", "Görevler", "scroll"), ("profil", "Profil", "user") };
         void BuildRail()
         {
             rail = UI.Panel(root, "şerit", UI.A(UI.Ink, 0.82f)).At(new Vector2(0, 0.5f), new Vector2(10, 0), new Vector2(66, 360), new Vector2(0, 0.5f));
@@ -60,23 +60,23 @@ namespace VK
             foreach (var t in TABS)
             {
                 var id = t.id;
-                var cell = UI.R(t.id, col); cell.LE(-1, 52);
-                var bg = UI.Img(cell, UI.Round, new Color(1, 1, 1, 0), "vurgu"); bg.rectTransform.Fill();
-                UI.Img(cell, UI.Outline, UI.Stroke, "kenar").rectTransform.Fill();
-                var ic = UI.Icon(cell, Hud.Emoji(t.icon), 22); ic.rectTransform.At(new Vector2(0.5f, 1), new Vector2(0, -8), new Vector2(22, 22), new Vector2(0.5f, 1));
+                var cell = UI.R(t.id, col); cell.LE(-1, 54);
+                var bg = UI.Img(cell, UI.Tile ?? UI.Round, Color.white, "vurgu"); bg.type = Image.Type.Sliced; bg.pixelsPerUnitMultiplier = 2.4f; bg.rectTransform.Fill(); bg.raycastTarget = true;
+                var ic = UI.Icon(cell, Hud.Emoji(t.icon), 26); ic.rectTransform.At(new Vector2(0.5f, 1), new Vector2(0, -6), new Vector2(26, 26), new Vector2(0.5f, 1));
                 var lb = UI.Txt(cell, t.label, 10, UI.Muted, UI.Bold, TextAnchor.MiddleCenter); lb.rectTransform.At(new Vector2(0.5f, 0), new Vector2(0, 5), new Vector2(60, 14), new Vector2(0.5f, 0));
                 var dot = UI.Img(cell, UI.Circle, UI.Gold, "nokta"); dot.rectTransform.At(new Vector2(1, 1), new Vector2(-6, -6), new Vector2(8, 8)); dot.enabled = false; railDots[id] = dot;
                 UI.Click(cell, () => Show(id));
                 railBtns[id] = new UI.Btn { r = cell, bg = bg, label = lb, icon = ic };
             }
-            var exit = UI.R("çık", rail).At(new Vector2(0.5f, 0), new Vector2(0, 8), new Vector2(50, 38), new Vector2(0.5f, 0));
-            UI.Img(exit, UI.Outline, UI.Stroke, "kenar").rectTransform.Fill();
-            var ex = UI.Txt(exit, "Çık", 11, UI.Muted, UI.Bold, TextAnchor.MiddleCenter); ex.rectTransform.Fill();
+            var exit = UI.R("çık", rail).At(new Vector2(0.5f, 0), new Vector2(0, 8), new Vector2(54, 44), new Vector2(0.5f, 0));
+            var exb = UI.Img(exit, UI.Tile ?? UI.Round, Color.white, "zemin"); exb.type = Image.Type.Sliced; exb.pixelsPerUnitMultiplier = 2.4f; exb.rectTransform.Fill(); exb.raycastTarget = true;
+            UI.Icon(exit, Hud.Emoji("door"), 18).rectTransform.At(new Vector2(0.5f, 1), new Vector2(0, -4), new Vector2(18, 18), new Vector2(0.5f, 1));
+            var ex = UI.Txt(exit, "Çık", 10, UI.Muted, UI.Bold, TextAnchor.MiddleCenter); ex.rectTransform.At(new Vector2(0.5f, 0), new Vector2(0, 3), new Vector2(50, 14), new Vector2(0.5f, 0));
             UI.Click(exit, () => Bridge.Send("{\"type\":\"exit\"}"));
         }
 
         // ---------------------------------------------------------------- üst çubuk
-        Text screenTitle;
+        Text screenTitle; Image titleCrown, titleLine;
         void BuildTopBar()
         {
             var bar = UI.R("üst", root); bar.anchorMin = new Vector2(0, 1); bar.anchorMax = new Vector2(1, 1); bar.pivot = new Vector2(0.5f, 1); bar.offsetMin = new Vector2(86, -50); bar.offsetMax = new Vector2(-12, -8);
@@ -87,9 +87,17 @@ namespace VK
             levelT = UI.Txt(me, "", 10, UI.Lilac, UI.Bold, TextAnchor.MiddleRight); levelT.rectTransform.At(new Vector2(1, 1), new Vector2(-12, -6), new Vector2(60, 16), new Vector2(1, 1));
             xpBar = UI.ProgressBar(me, UI.Purple, 5); xpBar.r.At(new Vector2(0, 0), new Vector2(46, 9), new Vector2(156, 5), new Vector2(0, 0));
             UI.Click(me, () => Show("profil"));
-            screenTitle = UI.Txt(bar, "", 24, null, UI.Display, TextAnchor.MiddleCenter); screenTitle.rectTransform.At(new Vector2(0.5f, 0.5f), new Vector2(20, 0), new Vector2(300, 34)); screenTitle.Shadowed();
+            screenTitle = UI.Txt(bar, "", 25, null, UI.Serif, TextAnchor.MiddleCenter); screenTitle.rectTransform.At(new Vector2(0.5f, 0.5f), new Vector2(20, -2), new Vector2(320, 34)); screenTitle.GoldTitle();
+            titleCrown = UI.Icon(bar, Hud.Emoji("crown"), 16); titleCrown.rectTransform.At(new Vector2(0.5f, 0.5f), new Vector2(20, 19), new Vector2(16, 16));
+            titleLine = UI.Img(bar, UI.OrnLine, Color.white, "başlık süsü"); titleLine.rectTransform.At(new Vector2(0.5f, 0.5f), new Vector2(20, -21), new Vector2(240, 15)); titleLine.raycastTarget = false;
             // altın
-            var coin = UI.Panel(bar, "altın", UI.A(UI.Ink, 0.7f), false, UI.Pill).At(new Vector2(1, 0.5f), Vector2.zero, new Vector2(118, 34), new Vector2(1, 0.5f));
+            var gem = UI.Panel(bar, "elmas", UI.A(UI.Ink, 0.7f), false, UI.Pill).At(new Vector2(1, 0.5f), Vector2.zero, new Vector2(104, 34), new Vector2(1, 0.5f));
+            UI.Icon(gem, Hud.Emoji("gem"), 20).rectTransform.At(new Vector2(0, 0.5f), new Vector2(10, 0), new Vector2(20, 20), new Vector2(0, 0.5f));
+            UI.Txt(gem, "0", 15, new Color(0.6f, 0.85f, 1f), UI.Title, TextAnchor.MiddleLeft).rectTransform.At(new Vector2(0, 0.5f), new Vector2(36, 1), new Vector2(40, 26), new Vector2(0, 0.5f));
+            var gplus = UI.Img(gem, UI.Circle, UI.Purple, "artı"); gplus.rectTransform.At(new Vector2(1, 0.5f), new Vector2(-5, 0), new Vector2(24, 24), new Vector2(1, 0.5f));
+            UI.Txt(gplus.rectTransform, "+", 16, null, UI.Bold, TextAnchor.MiddleCenter).rectTransform.Fill(0, 2, 0, 0);
+            UI.Click(gem, () => Toast("Elmaslar yakında: özel kostümler ve sezon kartı için"));
+            var coin = UI.Panel(bar, "altın", UI.A(UI.Ink, 0.7f), false, UI.Pill).At(new Vector2(1, 0.5f), new Vector2(-112, 0), new Vector2(118, 34), new Vector2(1, 0.5f));
             UI.Icon(coin, Hud.Emoji("coin"), 20).rectTransform.At(new Vector2(0, 0.5f), new Vector2(8, 0), new Vector2(20, 20), new Vector2(0, 0.5f));
             coinsT = UI.Txt(coin, "0", 15, UI.Gold, UI.Title, TextAnchor.MiddleLeft); coinsT.rectTransform.At(new Vector2(0, 0.5f), new Vector2(34, 1), new Vector2(76, 26), new Vector2(0, 0.5f));
             var plus = UI.Img(coin, UI.Circle, UI.Purple, "artı"); plus.rectTransform.At(new Vector2(1, 0.5f), new Vector2(-5, 0), new Vector2(24, 24), new Vector2(1, 0.5f));
@@ -122,8 +130,8 @@ namespace VK
             if (current != null && screens.TryGetValue(current, out var old)) old.gameObject.SetActive(false);
             if (current == "karakter" && id != "karakter") CommitDraftPreviewOff();
             bool toChar = id == "karakter";
-            current = id; screenTitle.text = TITLES[id];
-            foreach (var kv in railBtns) { bool on = kv.Key == id; kv.Value.bg.color = on ? UI.A(UI.Purple, 0.28f) : new Color(1, 1, 1, 0); kv.Value.label.color = on ? UI.Fg : UI.Muted; }
+            current = id; screenTitle.text = TITLES[id]; bool hasT = !string.IsNullOrEmpty(TITLES[id]); titleCrown.enabled = hasT; titleLine.enabled = hasT && UI.OrnLine != null;
+            foreach (var kv in railBtns) { bool on = kv.Key == id; kv.Value.bg.sprite = on && UI.TileOn != null ? UI.TileOn : (UI.Tile ?? UI.Round); kv.Value.bg.color = Color.white; kv.Value.label.color = on ? UI.Fg : UI.Muted; }
             var s = screens[id]; Tween.ShowScreen(s);
             Studio.I?.HideShowcase();
             if (id == "karakter") OpenCharacter();
@@ -317,7 +325,7 @@ namespace VK
         // ================================================================ KARAKTER
         Look draft; Cat cat = Cat.Hair; RawImage show; RectTransform catRow, itemGrid, colorRow; Text footT; UI.Btn saveBtn;
         // Agrou tarzı: solda köy evinin önünde duran 3B karakter, sağda bölümlere ayrılmış seçenekler
-        RectTransform charList; Text nameTag, selT;
+        RectTransform charList, charTabs; Text nameTag, selT; string charTab;
         RectTransform BuildCharacter()
         {
             var s = UI.R("karakter", content); s.anchorMin = Vector2.zero; s.anchorMax = Vector2.one; s.offsetMin = new Vector2(-86, -10); s.offsetMax = new Vector2(0, 56);
@@ -337,7 +345,10 @@ namespace VK
             var tabs = UI.R("sekme", pan); tabs.anchorMin = new Vector2(0, 1); tabs.anchorMax = new Vector2(1, 1); tabs.pivot = new Vector2(0.5f, 1); tabs.offsetMin = new Vector2(10, -36); tabs.offsetMax = new Vector2(-10, -8); UI.HRow(tabs, 6, TextAnchor.MiddleCenter, null, true);
             UI.Chip(tabs, "Görünüm", true, () => { }, Hud.Emoji("shirt"));
             UI.Chip(tabs, "Mağaza", false, () => Show("magaza"), Hud.Emoji("shop"));
-            var sc = UI.Scroll(pan, true, out charList, 6, UI.Pad(10, 10, 4, 8)); ((RectTransform)sc.transform).Fill(0, 76, 0, 42);
+            // alt sekmeler (Genel / Aksesuar / Efekt ...): bir anda tek bölüm gösterilir
+            charTabs = UI.R("alt sekmeler", pan); charTabs.anchorMin = new Vector2(0, 1); charTabs.anchorMax = new Vector2(1, 1); charTabs.pivot = new Vector2(0.5f, 1); charTabs.offsetMin = new Vector2(10, -70); charTabs.offsetMax = new Vector2(-10, -42);
+            UI.HRow(charTabs, 4, TextAnchor.MiddleCenter, null, true);
+            var sc = UI.Scroll(pan, true, out charList, 6, UI.Pad(10, 10, 4, 8)); ((RectTransform)sc.transform).Fill(0, 76, 0, 74);
             selT = UI.Txt(pan, "", 10, UI.Muted, null, TextAnchor.MiddleCenter); selT.rectTransform.anchorMin = new Vector2(0, 0); selT.rectTransform.anchorMax = new Vector2(1, 0); selT.rectTransform.pivot = new Vector2(0.5f, 0); selT.rectTransform.offsetMin = new Vector2(8, 50); selT.rectTransform.offsetMax = new Vector2(-8, 72);
             var brow = UI.R("düğmeler", pan); brow.anchorMin = new Vector2(0, 0); brow.anchorMax = new Vector2(1, 0); brow.pivot = new Vector2(0.5f, 0); brow.offsetMin = new Vector2(8, 10); brow.offsetMax = new Vector2(-8, 44); UI.HRow(brow, 6, TextAnchor.MiddleCenter, null, true);
             UI.Button(brow, "Rastgele", UI.Style.Secondary, RandomLook, Hud.Emoji("dizzy"), 12).r.LE(-1, 34, 1);
@@ -364,6 +375,15 @@ namespace VK
             draft = l; Sfx.Play("magic", 0.7f); RefreshCharacter();
         }
         // bölümler: başlık + ikon ızgarası (+ renk sırası)
+        // kahraman modunda bölümler
+        static readonly (string title, Cat[] cats)[] HERO_SECTIONS =
+        {
+            ("GENEL", new[] { Cat.Hero }),
+            ("AKSESUAR", new[] { Cat.Frame, Cat.Title }),
+            ("EFEKT", new[] { Cat.Effect, Cat.Victory }),
+        };
+        static readonly Dictionary<string, string> TAB_LABEL = new Dictionary<string, string> { { "GENEL", "Genel" }, { "BAŞ", "Baş" }, { "GÖVDE", "Gövde" }, { "EKSTRA", "Ekstra" }, { "AKSESUAR", "Aksesuar" }, { "EFEKT", "Efekt" } };
+        static readonly Dictionary<string, string> TAB_ICON = new Dictionary<string, string> { { "GENEL", "shirt" }, { "BAŞ", "crown" }, { "GÖVDE", "shirt" }, { "EKSTRA", "sparkles" }, { "AKSESUAR", "crown" }, { "EFEKT", "sparkles" } };
         static readonly (string title, Cat[] cats)[] SECTIONS =
         {
             ("GENEL", new[] { Cat.Hero, Cat.Costume }),
@@ -375,17 +395,23 @@ namespace VK
         {
             Studio.I.SetShow(draft);
             nameTag.text = Store.P.name; var ti = Catalog.Get(draft.title); nameTag.transform.parent.Find("unvan").GetComponent<Text>().text = ti != null ? ti.name : "";
-            UI.Clear(charList);
+            UI.Clear(charList); UI.Clear(charTabs);
             bool hero = !string.IsNullOrEmpty(draft.synty) || Rig.SyntyAvailable;
-            foreach (var sec in SECTIONS)
+            var secs = (hero ? HERO_SECTIONS : SECTIONS).Select(sc => (sc.title, cats: sc.cats.Where(c => c != Cat.Hero || Rig.SyntyAvailable).Where(c => !hero || c == Cat.Hero || c >= Cat.Effect).ToArray())).Where(sc => sc.cats.Length > 0).ToList();
+            if (charTab == null || !secs.Any(x => x.title == charTab)) charTab = secs.Count > 0 ? secs[0].title : null;
+            foreach (var x in secs)
             {
-                var cats = sec.cats.Where(c => c != Cat.Hero || Rig.SyntyAvailable).Where(c => !hero || c == Cat.Hero || c >= Cat.Effect).ToArray();
-                if (cats.Length == 0) continue;
-                Ribbon(charList, sec.title);
+                var t0 = x.title; var chip = UI.Chip(charTabs, TAB_LABEL.TryGetValue(t0, out var tl) ? tl : t0, t0 == charTab, () => { charTab = t0; RefreshCharacter(); }, Hud.Emoji(TAB_ICON.TryGetValue(t0, out var ti0) ? ti0 : "star"));
+                chip.r.LE(-1, 28, 1);
+            }
+            foreach (var sec in secs)
+            {
+                if (sec.title != charTab) continue;
+                var cats = sec.cats;
                 if (sec.title == "GENEL" && !hero) Swatches(charList, "Ten rengi", Look.SKINS, () => draft.skin, v => draft.skin = v, true);
                 foreach (var c in cats)
                 {
-                    SubTitle(charList, Catalog.CAT_NAME[c]);
+                    Ribbon(charList, Catalog.CAT_NAME[c]);
                     IconRow(charList, c);
                     if (!hero && c == Cat.Top) Swatches(charList, "Üst rengi", Look.TINTS, () => draft.topColor, v => draft.topColor = v, false);
                     if (!hero && c == Cat.Bottom) Swatches(charList, "Alt rengi", Look.TINTS, () => draft.bottomColor, v => draft.bottomColor = v, false);
@@ -400,9 +426,8 @@ namespace VK
         void Ribbon(Transform p, string t)
         {
             var r = UI.R("bölüm", p); r.LE(-1, 24);
-            var bg = UI.Img(r, UI.Pill, UI.A(UI.Purple, 0.85f), "şerit"); bg.rectTransform.At(new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(180, 20));
-            UI.Img(r, null, UI.A(UI.Lilac, 0.25f), "çizgi").rectTransform.At(new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(300, 1)).SetAsFirstSibling();
-            UI.Txt(bg.rectTransform, t, 13, null, UI.Display, TextAnchor.MiddleCenter).rectTransform.Fill(0, 1, 0, 0);
+            if (UI.OrnLine != null) UI.Img(r, UI.OrnLine, Color.white, "süs").rectTransform.At(new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(280, 16));
+            UI.Txt(r, t, 13, new Color(1f, 0.9f, 0.7f), UI.Serif, TextAnchor.MiddleCenter).Shadowed(0.7f).rectTransform.Fill(0, 1, 0, 0);
         }
         void SubTitle(Transform p, string t)
         {
