@@ -179,8 +179,17 @@ namespace VK
             UI.Txt(map, "Harita: <b>Köy Meydanı</b>", 11).rectTransform.At(new Vector2(0, 0.5f), new Vector2(30, 0), new Vector2(150, 20), new Vector2(0, 0.5f));
             var soon = UI.Txt(map, "Sisli Orman · yakında", 10, UI.Muted, null, TextAnchor.MiddleRight); soon.rectTransform.At(new Vector2(1, 0.5f), new Vector2(-8, 0), new Vector2(120, 20), new Vector2(1, 0.5f));
             UI.Click(map, () => Toast("Yeni harita yakında geliyor"));
+            // oda ayarı: ölünce rol açıklansın
+            var rset = UI.Panel(pan, "rol ayarı", new Color(1, 1, 1, 0.05f), false, UI.RoundSmall).At(new Vector2(0, 1), new Vector2(12, -124), new Vector2(276, 28), new Vector2(0, 1));
+            UI.Icon(rset, Hud.Emoji("skull"), 16).rectTransform.At(new Vector2(0, 0.5f), new Vector2(8, 0), new Vector2(16, 16), new Vector2(0, 0.5f));
+            UI.Txt(rset, "Ölenin rolü açıklansın", 11).rectTransform.At(new Vector2(0, 0.5f), new Vector2(30, 0), new Vector2(170, 20), new Vector2(0, 0.5f));
+            var sw = UI.Panel(rset, "anahtar", Color.white, false, UI.Pill).At(new Vector2(1, 0.5f), new Vector2(-8, 0), new Vector2(38, 18), new Vector2(1, 0.5f));
+            var knob = UI.Img(sw, UI.Circle, Color.white, "düğme"); knob.rectTransform.At(new Vector2(0, 0.5f), Vector2.zero, new Vector2(14, 14));
+            void Paint() { bool on = Game.RevealRoles; sw.GetComponent<Image>().color = on ? new Color(0.2f, 0.7f, 0.42f) : new Color(1, 1, 1, 0.18f); knob.rectTransform.anchoredPosition = new Vector2(on ? 22 : 2, 0); }
+            Paint();
+            UI.Click(rset, () => { Game.RevealRoles = !Game.RevealRoles; Paint(); Toast(Game.RevealRoles ? "Ölen kişinin rolü herkese gösterilecek" : "Roller gizli kalacak"); });
             // oyuncular
-            var sc = UI.Scroll(pan, true, out lobbyList, 4); ((RectTransform)sc.transform).Fill(10, 52, 10, 126);
+            var sc = UI.Scroll(pan, true, out lobbyList, 4); ((RectTransform)sc.transform).Fill(10, 52, 10, 158);
             // alt düğmeler
             var brow = UI.R("düğmeler", pan).At(new Vector2(0.5f, 0), new Vector2(0, 10), new Vector2(276, 36), new Vector2(0.5f, 0)); UI.HRow(brow, 8, TextAnchor.MiddleCenter, null, true);
             var inv = UI.Button(brow, "Davet et", UI.Style.Secondary, Invite, Hud.Emoji("link"), 13); inv.r.LE(-1, 36, 1);

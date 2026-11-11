@@ -325,6 +325,76 @@ namespace VK
             bannerG.alpha = 0; br.localScale = Vector3.one;
         }
 
+        // ölen kişinin rolü: madalyon dönerek açılır, arkasında dönen ışık hüzmeleri, kıvılcımlar, rol adı ve takım şeridi
+        public async Task RoleReveal(string icon, string role, Color c, string who, bool vamp)
+        {
+            var root = Rect("rol açıklama", canvas, Vector2.zero, Vector2.one, Vector2.zero, Vector2.zero); root.SetAsLastSibling();
+            var g = root.gameObject.AddComponent<CanvasGroup>(); g.blocksRaycasts = false; g.alpha = 0;
+            var dim = root.gameObject.AddComponent<Image>(); dim.sprite = UI.Soft; dim.color = new Color(0, 0, 0, 0.45f); dim.raycastTarget = false;
+            var mid = Rect("orta", root, new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(0, 22), new Vector2(10, 10));
+            var rays = Rect("hüzmeler", mid, new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(10, 10));
+            for (int i = 0; i < 12; i++)
+            {
+                var ray = Img("h" + i, rays, UI.Pill, new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(18, 250)); ray.preserveAspect = false;
+                ray.color = new Color(Mathf.Lerp(c.r, 1, 0.4f), Mathf.Lerp(c.g, 0.9f, 0.4f), Mathf.Lerp(c.b, 0.6f, 0.4f), 0.16f); ray.rectTransform.localEulerAngles = new Vector3(0, 0, i * 15);
+            }
+            var halo = Img("hale", mid, UI.Glow, new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(300, 300)); halo.color = new Color(c.r, c.g, c.b, 0.75f); halo.preserveAspect = false;
+            var med = Rect("madalyon", mid, new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(132, 132));
+            var ring = Img("altın", med, UI.Circle, new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(132, 132)); ring.color = new Color(0.86f, 0.64f, 0.24f);
+            var ring2 = Img("altın iç", med, UI.Circle, new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(122, 122)); ring2.color = new Color(1f, 0.86f, 0.5f);
+            var disc = Img("zemin", med, UI.Circle, new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(112, 112)); disc.color = vamp ? new Color(0.3f, 0.06f, 0.12f) : new Color(0.17f, 0.09f, 0.28f);
+            var inner = Img("iç ışık", med, UI.Glow, new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(110, 110)); inner.color = new Color(c.r, c.g, c.b, 0.55f); inner.preserveAspect = false;
+            var q = Label("?", med, "?", 58, FontStyle.Bold, TextAnchor.MiddleCenter, new Vector2(0.5f, 0.5f), new Vector2(0, 2), new Vector2(100, 100)); q.font = UI.Display; q.color = new Color(1f, 0.86f, 0.5f);
+            var ic = Img("rol", med, Emoji(icon), new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(86, 86)); ic.enabled = false;
+            var whoT = Label("kim", mid, (who == "Senin" ? "Senin rolün" : who + " · rolü"), 14, FontStyle.Bold, TextAnchor.MiddleCenter, new Vector2(0.5f, 0.5f), new Vector2(0, 92), new Vector2(400, 22)); whoT.color = new Color(0.92f, 0.9f, 1f);
+            var nameT = Label("ad", mid, role, 40, FontStyle.Bold, TextAnchor.MiddleCenter, new Vector2(0.5f, 0.5f), new Vector2(0, -92), new Vector2(420, 48)); nameT.font = UI.Display;
+            nameT.color = new Color(Mathf.Lerp(c.r, 1, 0.35f), Mathf.Lerp(c.g, 1, 0.35f), Mathf.Lerp(c.b, 1, 0.35f));
+            var nsh = nameT.GetComponent<Shadow>(); nsh.effectColor = new Color(0, 0, 0, 0.85f); nsh.effectDistance = new Vector2(0, -3);
+            var rib = Img("şerit", mid, Resources.Load<Sprite>(vamp ? "UI/ribbon_r" : "UI/ribbon_g"), new Vector2(0.5f, 0.5f), new Vector2(0, -126), new Vector2(124, 27)); rib.preserveAspect = false;
+            if (rib.sprite != null && rib.sprite.border != Vector4.zero) { rib.type = Image.Type.Sliced; rib.pixelsPerUnitMultiplier = 2f; }
+            Label("takım", rib.rectTransform, vamp ? "VAMPİRLER" : "KÖY", 12, FontStyle.Bold, TextAnchor.MiddleCenter, new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(124, 22));
+            var sparks = new List<(RectTransform r, Vector2 v, float spin)>();
+            var rnd = new System.Random();
+            Sfx.Play("whoosh");
+            bool flipped = false, burst = false; float T = 0;
+            while (T < 3.1f)
+            {
+                T += Time.deltaTime;
+                g.alpha = T < 0.25f ? T / 0.25f : T > 2.7f ? Mathf.Clamp01((3.1f - T) / 0.4f) : 1;
+                rays.localEulerAngles = new Vector3(0, 0, T * 22f);
+                rays.localScale = Vector3.one * Mathf.Lerp(0.3f, 1.05f, Tween.OutCubic(Mathf.Clamp01((T - 0.45f) / 0.5f)));
+                halo.rectTransform.localScale = Vector3.one * (0.85f + Mathf.Sin(T * 5) * 0.06f);
+                // madalyon: düşerek gelir, iki tur döner, rol yüzü açılır
+                float drop = Mathf.Clamp01(T / 0.35f);
+                med.anchoredPosition = new Vector2(0, Mathf.Lerp(60, 0, Tween.OutBack(drop)));
+                float spinK = Mathf.Clamp01((T - 0.15f) / 0.75f), ang = spinK * Mathf.PI * 4;
+                med.localScale = new Vector3(Mathf.Max(0.03f, Mathf.Abs(Mathf.Cos(ang))), 1, 1) * (T < 0.9f ? 1 : 1 + Mathf.Sin(Mathf.Clamp01((T - 0.9f) / 0.3f) * Mathf.PI) * 0.12f);
+                if (!flipped && spinK > 0.88f) { flipped = true; q.enabled = false; ic.enabled = true; Sfx.Play("magic"); }
+                if (!burst && T > 0.9f)
+                {
+                    burst = true; Sfx.Play("pop", 0.9f, 0.8f);
+                    for (int i = 0; i < 16; i++)
+                    {
+                        var s = Img("kıvılcım", mid, Emoji(i % 3 == 0 ? "sparkles" : "sparkle"), new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(18, 18));
+                        float a = (float)rnd.NextDouble() * Mathf.PI * 2, sp = 120 + (float)rnd.NextDouble() * 160;
+                        sparks.Add((s.rectTransform, new Vector2(Mathf.Cos(a), Mathf.Sin(a)) * sp, ((float)rnd.NextDouble() - 0.5f) * 400));
+                    }
+                }
+                foreach (var sp in sparks)
+                {
+                    float life = T - 0.9f; sp.r.anchoredPosition = sp.v * life * (1 - life * 0.35f); sp.r.localEulerAngles = new Vector3(0, 0, sp.spin * life);
+                    sp.r.localScale = Vector3.one * Mathf.Clamp01(1.2f - life * 0.75f);
+                }
+                // yazılar
+                float tk = Mathf.Clamp01((T - 0.95f) / 0.35f);
+                nameT.color = new Color(nameT.color.r, nameT.color.g, nameT.color.b, tk); nameT.rectTransform.anchoredPosition = new Vector2(0, Mathf.Lerp(-110, -92, Tween.OutCubic(tk)));
+                rib.color = new Color(1, 1, 1, Mathf.Clamp01((T - 1.15f) / 0.3f)); rib.rectTransform.localScale = Vector3.one * Mathf.Lerp(0.6f, 1, Tween.OutBack(Mathf.Clamp01((T - 1.15f) / 0.35f)));
+                whoT.color = new Color(whoT.color.r, whoT.color.g, whoT.color.b, Mathf.Clamp01((T - 0.2f) / 0.3f));
+                await Awaitable.NextFrameAsync();
+            }
+            Destroy(root.gameObject);
+        }
+
         float toastUntil;
         public void Toast(string t, float sec = 2.4f) { toastT.text = t; toastG.alpha = 1; toastUntil = Time.time + sec; Scale((RectTransform)toastG.transform, new Vector3(0.9f, 0.9f, 1), Vector3.one, 0.25f); Sfx.Play("notify"); }
 

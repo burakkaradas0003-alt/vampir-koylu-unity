@@ -46,6 +46,8 @@ namespace VK
         class Claim { public int by, target, day; public bool vamp; }
 
         // ---- durum
+        // oda ayarı: ölen kişinin rolü herkese açıklansın mı
+        public static bool RevealRoles { get => PlayerPrefs.GetInt("vk_rolac", 1) == 1; set { PlayerPrefs.SetInt("vk_rolac", value ? 1 : 0); PlayerPrefs.Save(); } }
         public static int Players = 9; static int N => Players; const float R = 4.3f;
         readonly List<Pl> P = new List<Pl>();
         Pl ME;
@@ -318,7 +320,9 @@ namespace VK
             var rope = Part(PrimitiveType.Cylinder, ropeM, new Vector3(0, beamY - 0.3f, 0.05f), new Vector3(0.045f, 0.3f, 0.045f));
             var loop = Part(PrimitiveType.Cylinder, ropeM, new Vector3(0, beamY - 0.62f, 0.05f), new Vector3(0.2f, 0.025f, 0.2f), new Vector3(70, 0, 0));
             foreach (var rr in g.GetComponentsInChildren<MeshRenderer>()) rr.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.On;
-            Focus(GALLOWS + Vector3.up * 2.2f, 9.5f, 44);
+            // kamera darağacının önüne yaklaşır (meydan tarafından, hafif yandan)
+            var inward = -GALLOWS.normalized; var sideV = Vector3.Cross(Vector3.up, inward);
+            FocusFrom(GALLOWS + inward * 5.4f + sideV * 1.4f + Vector3.up * 2.1f, GALLOWS + Vector3.up * 1.9f, 14f, 46);
             // yükselme
             Sfx.Play("whoosh", 0.8f, 0.7f);
             for (float a = 0; a < 1; a += Time.deltaTime / Mathf.Max(0.01f, 0.9f / SPEED))
@@ -416,6 +420,12 @@ namespace VK
                 var anim = KillAnim(p, cause);
                 await ui.Banner(cause == "grief" ? "broken" : "skull", Who(p), txt, 2.2f);
                 await anim;
+                if (RevealRoles && p.role != null && ROLES.TryGetValue(p.role, out var rr))
+                {
+                    ME.known[p.i] = p.role;
+                    await ui.RoleReveal(rr.ic, rr.n, rr.c, p.me ? "Senin" : p.n, rr.team == "v");
+                }
+                if (cause == "exec") shotUntil = 0;
                 if (p.lover) { var o = P.FirstOrDefault(q => q.lover && q != p && q.alive); if (o != null) { await Wait(0.4f); queue.Enqueue((o.i, "grief")); } }
                 if (p.role == "avci" && cause != "grief") { var t = await HunterShot(p); if (t != null) queue.Enqueue((t.Value, "shot")); }
                 if (mayor == p.i) await PassMayor(p);
@@ -886,7 +896,9 @@ namespace VK
         float nextLookAt, fpsT0, goodSecs, armSide = 1; int fpsN, lowCount;
         Quaternion camRot = Quaternion.identity; float camEase = 1, shotUntil, shotFov = 62; Vector3 shotTarget; bool endOrbit;
         // kamerayı bir noktaya çevir (oyuncu kaydırırsa iptal olur)
-        void Focus(Vector3 target, float sec, float fov = 48) { shotTarget = target; shotUntil = Now + sec / SPEED; shotFov = fov; }
+        void Focus(Vector3 target, float sec, float fov = 48) { shotTarget = target; shotUntil = Now + sec / SPEED; shotFov = fov; shotPos = null; }
+        void FocusFrom(Vector3 from, Vector3 target, float sec, float fov = 48) { Focus(target, sec, fov); shotPos = from; }
+        Vector3? shotPos;
         readonly List<Transform> ringObjs = new List<Transform>(); Material ringMat; Mesh ringMesh;
 
         float AngleTo(Pl p, Vector3 target) { var v = p.ch.transform.InverseTransformPoint(target); return Mathf.Atan2(v.x, v.z); }
@@ -988,6 +1000,7 @@ namespace VK
             // ---- sinematik kamera: olaylarda yumuşakça hedefe döner, sonra oyuncunun bakışına geri süzülür
             Vector3 seatEye = new Vector3(ME.seat.x * 1.04f, 1.45f, ME.seat.z * 1.04f);
             Vector3 wantPos = ghostCam ? new Vector3(ME.seat.x * 1.3f, 2.5f, ME.seat.z * 1.3f) : seatEye;
+            if (!endOrbit && shotPos != null && Now < shotUntil) wantPos = shotPos.Value;
             if (endOrbit) { float oa = ME.ang + t * 0.12f; wantPos = new Vector3(Mathf.Cos(oa) * 7.2f, 3.1f + Mathf.Sin(t * 0.3f) * 0.3f, Mathf.Sin(oa) * 7.2f); }
             cam.transform.position = Vector3.Lerp(cam.transform.position, wantPos, 1 - Mathf.Exp(-dt * (endOrbit ? 1.2f : 2.5f)));
             float follow = 1 - Mathf.Exp(-dt * 18f);
