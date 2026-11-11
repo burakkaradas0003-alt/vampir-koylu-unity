@@ -215,6 +215,8 @@ namespace VK
         // ---------------------------------------------------------------- kozmetik: maske, kafa aksesuarı, efekt, zafer pozu
         public float cheer;            // 0..1 zafer pozu ağırlığı
         public bool preview;           // vitrin/portre karakteri: efekt parçacığı üretmez
+        public bool hang;              // darağacında: ayakta sarkık poz
+        public Transform Bone(string n) => B.TryGetValue(n, out var t) ? t : transform;
         public float seatHeight;       // taburesiz (ayakta değil, gösterim) kalça yüksekliği
         readonly List<GameObject> acc = new List<GameObject>();
         GameObject AccPrim(PrimitiveType t, Transform parent, Material m, Vector3 pos, Vector3 scale, Vector3 rot = default)
@@ -546,7 +548,7 @@ namespace VK
                 Bend("RightHandThumb1", 0.5f); Bend("RightHandThumb2", 0.6f);
                 return;
             }
-            if (!ghost && !stool)
+            if (!ghost && (!stool || hang))
             {
                 Aim("LeftUpLeg", "LeftLeg", W(-0.07f, -1, 0.02f)); Aim("RightUpLeg", "RightLeg", W(0.07f, -1, 0.02f));
                 Aim("LeftLeg", "LeftFoot", W(-0.04f, -1, -0.03f)); Aim("RightLeg", "RightFoot", W(0.04f, -1, -0.03f));
@@ -614,7 +616,14 @@ namespace VK
             Bend("RightHandIndex1", 0.35f * (1 - r)); Bend("RightHandIndex2", 0.4f * (1 - r));
             for (int i = 1; i < 4; i++) { Bend("RightHand" + FING[i] + "1", 0.35f + r * 1.15f); Bend("RightHand" + FING[i] + "2", 0.4f + r * 1.2f); }
             Bend("RightHandThumb1", r * 0.5f); Bend("RightHandThumb2", r * 0.6f);
-            if (cheer > 0.01f && !ghost) Victory(time, Mathf.Clamp01(cheer));
+            if (cheer > 0.01f && !ghost && !hang) Victory(time, Mathf.Clamp01(cheer));
+            if (hang)
+            {
+                // idam: kollar yanda sarkık, baş öne ve yana düşmüş
+                Aim("LeftArm", "LeftForeArm", W(-0.14f, -1, 0.03f)); Aim("LeftForeArm", "LeftHand", W(-0.06f, -1, 0.06f));
+                Aim("RightArm", "RightForeArm", W(0.14f, -1, 0.03f)); Aim("RightForeArm", "RightHand", W(0.06f, -1, 0.06f));
+                CharRot("Head", 0.5f, 0, 0.32f);
+            }
             // yüz: kızgın / mutlu / normal; konuşurken ağız açılıp kapanır
             string fc = cheer > 0.5f ? "happy" : "usual";
             if (cheer > 0.5f) { }
