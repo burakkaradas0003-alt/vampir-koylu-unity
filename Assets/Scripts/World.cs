@@ -7,7 +7,7 @@ using UnityEngine.Rendering.Universal;
 
 namespace VK
 {
-    public class World : MonoBehaviour
+    public partial class World : MonoBehaviour
     {
         public static World I;
         public Camera cam;
@@ -57,8 +57,8 @@ namespace VK
                 var prof = ScriptableObject.CreateInstance<VolumeProfile>();
                 bloom = prof.Add<Bloom>(true); bloom.intensity.Override(0.6f); bloom.threshold.Override(0.9f); bloom.scatter.Override(0.65f);
                 var tm = prof.Add<Tonemapping>(true); tm.mode.Override(TonemappingMode.ACES);
-                var ca = prof.Add<ColorAdjustments>(true); ca.postExposure.Override(0.25f); ca.contrast.Override(12f); ca.saturation.Override(12f);
-                var vg = prof.Add<Vignette>(true); vg.intensity.Override(0.28f); vg.smoothness.Override(0.45f);
+                var ca = prof.Add<ColorAdjustments>(true); grade = ca; ca.postExposure.Override(0.25f); ca.contrast.Override(12f); ca.saturation.Override(12f); ca.colorFilter.Override(Color.white);
+                var vg = prof.Add<Vignette>(true); vign = vg; vg.intensity.Override(0.28f); vg.smoothness.Override(0.45f);
                 volume.profile = prof;
             }
 
@@ -70,6 +70,9 @@ namespace VK
             BuildVillage();
             BuildCampfire();
             BuildGrass();
+            BuildAtmos();
+            // hareketsiz sahne parçalarını aynı malzemeye göre birleştir (çizim çağrısı azalır)
+            foreach (var n in new[] { "Köy", "Taşlar" }) { var g = transform.Find(n); if (g != null) StaticBatchingUtility.Combine(g.gameObject); }
             SetLevel(low ? 2 : 0);
             ApplyTOD(0);
         }
@@ -192,11 +195,13 @@ namespace VK
         void BuildStones()
         {
             var ico = Ico(1); var parent = new GameObject("Taşlar").transform; parent.SetParent(transform, false);
+            // 4 ortak malzeme: taşlar tek tek değil, birleşik çizilsin
+            var sm = new Material[4]; for (int k = 0; k < 4; k++) sm[k] = Lit(Color.HSVToRGB(0.07f, 0.24f, 0.62f + k * 0.04f));
             for (int i = 0; i < 140; i++)
             {
                 float a = R(0, 6.283f), d = Mathf.Sqrt(R(0, 1)) * 8.6f; if (d < 1.4f) { i--; continue; }
                 float s = R(0.08f, 0.26f);
-                var g = MeshGO("taş", ico, Lit(Color.HSVToRGB(0.07f, 0.24f, R(0.62f, 0.75f))), parent, true);
+                var g = MeshGO("taş", ico, sm[i % 4], parent, true);
                 g.transform.localPosition = new Vector3(Mathf.Cos(a) * d, 0.02f, Mathf.Sin(a) * d);
                 g.transform.localScale = new Vector3(s * R(1, 1.6f), s * 0.28f, s * R(0.8f, 1.3f)); g.transform.localEulerAngles = new Vector3(0, R(0, 360), 0);
             }
@@ -264,7 +269,11 @@ namespace VK
                 Prim(PrimitiveType.Cylinder, post, p + new Vector3(0, 1.3f, 0), new Vector3(0.12f, 1.3f, 0.12f), root);
                 var lm = new Material(Resources.Load<Material>("Mats/LitEmissive")); lm.SetColor("_BaseColor", new Color(0.9f, 0.8f, 0.5f)); windowMats.Add(lm);
                 Prim(PrimitiveType.Cube, lm, p + new Vector3(0, 2.75f, 0), new Vector3(0.3f, 0.36f, 0.3f), root);
+                Prim(PrimitiveType.Cube, post, p + new Vector3(0, 2.98f, 0), new Vector3(0.42f, 0.08f, 0.42f), root);
+                Prim(PrimitiveType.Cube, post, p + new Vector3(0, 2.52f, 0), new Vector3(0.36f, 0.06f, 0.36f), root);
+                lanternPos.Add(p + new Vector3(0, 2.75f, 0));
             }
+            BuildProps(root, stone, timber, roofs[1]);
             // ağaçlar: çam ve meşe
             var trunk = Lit(new Color(0.35f, 0.24f, 0.17f));
             var pines = new[] { Lit(new Color(0.18f, 0.36f, 0.22f)), Lit(new Color(0.22f, 0.42f, 0.25f)) };
@@ -519,7 +528,7 @@ namespace VK
         {
             tod = k;
             sun.color = Color.Lerp(new Color(1f, 0.9f, 0.76f), new Color(0.5f, 0.6f, 0.95f), k);
-            sun.intensity = Mathf.Lerp(1.45f, 0.22f, k);
+            sun.intensity = Mathf.Lerp(1.45f, 0.3f, k); // gece: soğuk ay ışığı
             sun.transform.rotation = Quaternion.Euler(Mathf.Lerp(34, 38, k), Mathf.Lerp(-40, 150, k), 0);
             RenderSettings.ambientSkyColor = Color.Lerp(new Color(0.55f, 0.66f, 0.82f), new Color(0.07f, 0.08f, 0.17f), k);
             RenderSettings.ambientEquatorColor = Color.Lerp(new Color(0.6f, 0.58f, 0.5f), new Color(0.06f, 0.06f, 0.12f), k);
@@ -531,6 +540,7 @@ namespace VK
             foreach (var m in windowMats) m.SetColor("_EmissionColor", new Color(1f, 0.75f, 0.4f) * (k * 2.2f));
             moon.SetActive(false);
             env?.ApplyTOD(k, sun);
+            GradeTOD(k);
         }
         float fireBase = 0.6f;
 
@@ -573,6 +583,7 @@ namespace VK
             chimAcc += dt * chimneys.Count * 0.9f;
             while (chimAcc > 1 && chimneys.Count > 0) { chimAcc--; var cp = chimneys[Random.Range(0, chimneys.Count)]; Emit(cp, new Vector3(0.15f + Random.value * 0.1f, 0.5f + Random.value * 0.3f, (Random.value - 0.5f) * 0.1f), 4f, 0.4f, 2.2f, new Color(0.45f, 0.44f, 0.43f), 0, 0.12f * (1 - tod * 0.6f)); }
             DrawParticles(dt, camPos);
+            UpdateAtmos(t, camPos);
             env?.Update(cam, tod);
             if (Sfx.I != null) Sfx.I.SetTod(tod);
             // yıldızlar

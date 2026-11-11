@@ -350,7 +350,7 @@ namespace VK
             t.name.color = dead ? new Color(1, 1, 1, 0.45f) : selected ? new Color(0.96f, 0.77f, 0.26f) : Color.white;
             for (int i = 0; i < t.icons.Count; i++) { var k = i < iconKeys.Length ? iconKeys[i] : null; var s = Emoji(k); if (t.icons[i].sprite != s) t.icons[i].sprite = s; t.icons[i].enabled = s != null; }
             bool hasB = !string.IsNullOrEmpty(badge); if (t.badgeBox.gameObject.activeSelf != hasB) t.badgeBox.gameObject.SetActive(hasB);
-            if (hasB) { if (t.badge.text != badge) Scale(t.badgeBox, Vector3.one * 1.45f, Vector3.one, 0.3f); t.badge.text = badge; t.badgeBox.GetComponent<Image>().color = wolfBadge ? new Color(1f, 0.3f, 0.43f, 0.95f) : new Color(0.96f, 0.77f, 0.26f, 0.95f); }
+            if (hasB) { if (t.badge.text != badge) { Scale(t.badgeBox, Vector3.one * 1.45f, Vector3.one, 0.3f); Sfx.Play("pop", 0.35f, 1.5f); } t.badge.text = badge; t.badgeBox.GetComponent<Image>().color = wolfBadge ? new Color(1f, 0.3f, 0.43f, 0.95f) : new Color(0.96f, 0.77f, 0.26f, 0.95f); }
             if (t.bubbleBox.gameObject.activeSelf && Time.time > t.bubbleUntil) t.bubbleBox.gameObject.SetActive(false);
             if (t.emo.enabled && Time.time > t.emoUntil) t.emo.enabled = false;
             if (t.seerBox.gameObject.activeSelf && Time.time > t.seerUntil) t.seerBox.gameObject.SetActive(false);
