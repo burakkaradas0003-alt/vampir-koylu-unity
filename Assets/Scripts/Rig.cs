@@ -588,7 +588,7 @@ namespace VK
             AimK("RightHandMiddle1", "RightHandMiddle2", palm * 0.85f + dir * 0.25f, r);
             AimK("RightHandMiddle2", "RightHandMiddle3", -dir + palm * 0.35f, r);
             AimK("RightHandMiddle3", "RightHandMiddle4", -dir - palm * 0.6f, r);
-            AimK("RightHandThumb1", "RightHandThumb2", dir * 0.8f + palm * 0.45f, r); AimK("RightHandThumb2", "RightHandThumb3", dir * 0.5f + palm * 0.8f, r);
+            AimK("RightHandThumb1", "RightHandThumb2", dir * 0.9f + palm * 0.22f, r); AimK("RightHandThumb2", "RightHandThumb3", dir * 0.85f + palm * 0.4f, r);
         }
         void Bend(string bone, float ang)
         {
