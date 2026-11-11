@@ -491,6 +491,13 @@ namespace VK
             return model;
         }
 
+        // şu anki pozda ayakkabı tabanının yüksekliği (darağacında ayağı tahtaya oturtmak için)
+        public float FeetY()
+        {
+            var l = new List<Renderer>(); foreach (var r in GetComponentsInChildren<SkinnedMeshRenderer>()) if (r.enabled && r.gameObject.activeInHierarchy) l.Add(r);
+            float fb = Mathf.Min(B["LeftToeBase"].position.y, B["RightToeBase"].position.y) - 0.03f;
+            return MeshBottom(l, fb);
+        }
         // pozlanmış mesh'in en alt noktası (ayakkabı tabanı); bulunamazsa kemik tahmini
         static Mesh bakeTmp;
         float MeshBottom(List<Renderer> vis, float fallback)

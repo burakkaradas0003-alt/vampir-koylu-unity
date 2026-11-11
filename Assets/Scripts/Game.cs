@@ -338,7 +338,7 @@ namespace VK
             var chair = ch.transform.Find("sandalye"); if (chair != null) chair.gameObject.SetActive(false);
             ch.hang = true; ch.limp = false; ch.transform.rotation = Quaternion.LookRotation(-GALLOWS.normalized);
             await Awaitable.NextFrameAsync(); await Awaitable.NextFrameAsync();
-            float foot = Mathf.Min(ch.Bone("LeftToeBase").position.y, ch.Bone("RightToeBase").position.y) - 0.03f;
+            float foot = ch.FeetY();
             var stand = g.transform.TransformPoint(new Vector3(0, deck + 0.02f, 0.05f));
             ch.transform.position += new Vector3(stand.x - ch.transform.position.x, stand.y - foot, stand.z - ch.transform.position.z);
             W.Burst(stand + Vector3.up * 0.9f, new Color(0.7f, 0.68f, 0.64f), 18, 0.5f, 0.2f, 1f); Sfx.Play("pop", 0.6f, 0.7f);

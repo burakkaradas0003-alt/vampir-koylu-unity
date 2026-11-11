@@ -16,7 +16,7 @@ namespace VK
         public static readonly Color Anthracite = new Color(0.09f, 0.094f, 0.125f);
         public static readonly Color Glass = new Color(0.075f, 0.078f, 0.11f, 0.78f);
         public static readonly Color GlassLight = new Color(0.14f, 0.14f, 0.2f, 0.72f);
-        public static readonly Color Stroke = new Color(1f, 1f, 1f, 0.09f);
+        public static readonly Color Stroke = new Color(0.93f, 0.72f, 0.3f, 0.8f); // tüm düğme ve panel kenarları altın sarısı
         public static readonly Color Purple = new Color(0.545f, 0.36f, 0.965f);       // #8B5CF6
         public static readonly Color PurpleDeep = new Color(0.36f, 0.2f, 0.75f);
         public static readonly Color Lilac = new Color(0.72f, 0.62f, 1f);
@@ -37,7 +37,7 @@ namespace VK
             var legacy = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
             Body = Resources.Load<Font>("Fonts/Body") ?? legacy; Bold = Resources.Load<Font>("Fonts/BodyBold") ?? legacy; Title = Resources.Load<Font>("Fonts/Title") ?? Bold; Display = Resources.Load<Font>("Fonts/Display") ?? Title;
             Round = RoundRect(64, 18, 0, true); RoundSmall = RoundRect(32, 9, 0, true); Pill = RoundRect(64, 31, 0, false);
-            Outline = RoundRect(64, 18, 1.6f, false); OutlinePill = RoundRect(64, 31, 1.6f, false);
+            Outline = RoundRect(64, 18, 2.6f, false); OutlinePill = RoundRect(64, 31, 2.6f, false);
             Circle = Disc(128, 0); Ring = Disc(128, 5f); Grad = Gradient(false); GradH = Gradient(true); Glow = GlowS(); Soft = SoftRect();
         }
 

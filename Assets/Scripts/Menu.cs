@@ -62,6 +62,7 @@ namespace VK
                 var id = t.id;
                 var cell = UI.R(t.id, col); cell.LE(-1, 52);
                 var bg = UI.Img(cell, UI.Round, new Color(1, 1, 1, 0), "vurgu"); bg.rectTransform.Fill();
+                UI.Img(cell, UI.Outline, UI.Stroke, "kenar").rectTransform.Fill();
                 var ic = UI.Icon(cell, Hud.Emoji(t.icon), 22); ic.rectTransform.At(new Vector2(0.5f, 1), new Vector2(0, -8), new Vector2(22, 22), new Vector2(0.5f, 1));
                 var lb = UI.Txt(cell, t.label, 10, UI.Muted, UI.Bold, TextAnchor.MiddleCenter); lb.rectTransform.At(new Vector2(0.5f, 0), new Vector2(0, 5), new Vector2(60, 14), new Vector2(0.5f, 0));
                 var dot = UI.Img(cell, UI.Circle, UI.Gold, "nokta"); dot.rectTransform.At(new Vector2(1, 1), new Vector2(-6, -6), new Vector2(8, 8)); dot.enabled = false; railDots[id] = dot;
@@ -69,6 +70,7 @@ namespace VK
                 railBtns[id] = new UI.Btn { r = cell, bg = bg, label = lb, icon = ic };
             }
             var exit = UI.R("çık", rail).At(new Vector2(0.5f, 0), new Vector2(0, 8), new Vector2(50, 38), new Vector2(0.5f, 0));
+            UI.Img(exit, UI.Outline, UI.Stroke, "kenar").rectTransform.Fill();
             var ex = UI.Txt(exit, "Çık", 11, UI.Muted, UI.Bold, TextAnchor.MiddleCenter); ex.rectTransform.Fill();
             UI.Click(exit, () => Bridge.Send("{\"type\":\"exit\"}"));
         }

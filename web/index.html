@@ -54,7 +54,7 @@
   var canvas = document.getElementById("c");
   var tips = ["Köy uyanıyor…", "Ateş yakılıyor…", "Vampirler gölgelerde bekliyor…", "Sandalyeler diziliyor…"];
   var ti = 0, tipTimer = setInterval(function () { ti = (ti + 1) % tips.length; document.getElementById("lt").textContent = tips[ti]; }, 2600);
-  function setP(p) { var v = Math.round(p * 100); document.getElementById("pb").style.width = v + "%"; document.getElementById("pc").textContent = v + "%"; }
+  function setP(p) { p = Math.max(0, Math.min(1, p || 0)); var v = Math.round(p * 100); document.getElementById("pb").style.width = v + "%"; document.getElementById("pc").textContent = v + "%"; }
   var s = document.createElement("script");
   s.src = "Build/WebGL.loader.js";
   s.onload = function () {
