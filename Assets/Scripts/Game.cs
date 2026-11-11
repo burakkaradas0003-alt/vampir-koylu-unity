@@ -446,6 +446,9 @@ namespace VK
         {
             var deck = Shuffle(DECK.ToList());
             for (int i = 0; i < N; i++) P[i].role = deck[i];
+            // test/önizleme için: ?rol=koruma gibi bir adresle kendi rolünü seç
+            var want0 = Bridge.Param("rol"); int wi = want0 == null ? -1 : deck.IndexOf(want0);
+            if (wi >= 0 && P[wi] != ME) { var tmp = ME.role; ME.role = P[wi].role; P[wi].role = tmp; }
             InitMinds();
             var r = ROLES[ME.role];
             ui.RoleChip(r.ic, r.n, r.c);

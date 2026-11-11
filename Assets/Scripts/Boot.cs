@@ -40,7 +40,7 @@ namespace VK
                 prm[System.Uri.UnescapeDataString(kv.Substring(0, i))] = System.Uri.UnescapeDataString(kv.Substring(i + 1));
             }
         }
-        public static string Param(string k) { if (prm == null) SetParams(""); return prm.TryGetValue(k, out var v) ? v : null; }
+        public static string Param(string k) { if (prm == null) { var u = UnityEngine.Application.absoluteURL ?? ""; int q = u.IndexOf('?'); SetParams(q >= 0 ? u.Substring(q + 1) : ""); } return prm.TryGetValue(k, out var v) ? v : null; }
         public static void Send(string json)
         {
             Debug.Log("[Zu] " + json);

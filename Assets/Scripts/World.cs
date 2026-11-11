@@ -537,7 +537,7 @@ namespace VK
             PaintSky(k);
             fireBase = Mathf.Lerp(0.6f, 5.5f, k * k); fireLight.range = Mathf.Lerp(4, 18, k);
             fireLight.shadows = !low && fireShadowAllowed && k > 0.5f ? LightShadows.Hard : LightShadows.None;
-            foreach (var m in windowMats) m.SetColor("_EmissionColor", new Color(1f, 0.75f, 0.4f) * (k * 2.2f));
+            foreach (var m in windowMats) m.SetColor("_EmissionColor", new Color(1f, 0.52f, 0.18f) * (k * 1.5f)); // sıcak turuncu, beyaza patlamasın
             moon.SetActive(false);
             env?.ApplyTOD(k, sun);
             GradeTOD(k);
