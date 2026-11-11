@@ -93,8 +93,8 @@ namespace VK
             if (sy) SyntyAlias(); isSynty = sy;
 
             // malzemeler
-            var lit = Resources.Load<Material>("Mats/Lit");
-            Material Cloth(float shift) { var m = new Material(lit); m.SetTexture("_BaseMap", ATLAS); m.SetTextureOffset("_BaseMap", new Vector2(shift, 0)); m.SetFloat("_Smoothness", 0.25f); return m; }
+            var lit = Resources.Load<Material>("Mats/Lit"); var matte = Resources.Load<Material>("Mats/LitMatte") ?? lit;
+            Material Cloth(float shift) { var m = new Material(matte); m.SetTexture("_BaseMap", ATLAS); m.SetTextureOffset("_BaseMap", new Vector2(shift, 0)); m.SetFloat("_Smoothness", 0.14f); return m; }
             var skin = Cloth(0); skin.SetColor("_BaseColor", skinTint);
             var cloth = Cloth(0); cloth.SetColor("_BaseColor", topT); var plain = Cloth(0);
             var clothB = Cloth(0); clothB.SetColor("_BaseColor", botT); var clothH = Cloth(0); clothH.SetColor("_BaseColor", hatT);
@@ -353,7 +353,7 @@ namespace VK
                 {
                     chairMat = new Material(Resources.Load<Material>("Mats/LitNormal"));
                     chairMat.SetTexture("_BaseMap", Resources.Load<Texture2D>("Chair/chair_base")); chairMat.SetColor("_BaseColor", new Color(1.15f, 1.08f, 1f));
-                    chairMat.SetTexture("_BumpMap", Resources.Load<Texture2D>("Chair/chair_normal")); chairMat.SetFloat("_BumpScale", 1f); chairMat.SetFloat("_Smoothness", 0.22f);
+                    chairMat.SetTexture("_BumpMap", Resources.Load<Texture2D>("Chair/chair_normal")); chairMat.SetFloat("_BumpScale", 1f); chairMat.SetFloat("_Smoothness", 0.12f);
                     chairMat.SetColor("_EmissionColor", Color.black); chairMat.SetTexture("_OcclusionMap", null);
                 }
             }
@@ -471,7 +471,7 @@ namespace VK
             string tk = TEX[pi % TEX.Length];
             if (!sMats.TryGetValue(tk, out var mat))
             {
-                mat = new Material(Resources.Load<Material>("Mats/Lit")); mat.SetTexture("_BaseMap", Resources.Load<Texture2D>("Synty/Tex_" + tk)); mat.SetColor("_BaseColor", Color.white); mat.SetFloat("_Smoothness", 0.18f);
+                mat = new Material(Resources.Load<Material>("Mats/LitMatte") ?? Resources.Load<Material>("Mats/Lit")); mat.SetTexture("_BaseMap", Resources.Load<Texture2D>("Synty/Tex_" + tk)); mat.SetColor("_BaseColor", new Color(0.96f, 0.95f, 0.93f)); mat.SetFloat("_Smoothness", 0.12f);
                 sMats[tk] = mat;
             }
             foreach (var name in want)
@@ -575,7 +575,7 @@ namespace VK
             b.rotation = Quaternion.FromToRotation(cur, dirW) * b.rotation;
         }
         readonly Dictionary<string, Vector3> palmLocal = new Dictionary<string, Vector3>();
-        bool isSynty;
+        bool isSynty; float glance, glanceTo, glanceT, glanceTilt, glanceNext;
         // kemiği çocuğuna doğru verilen dünya yönüne çevir, k oranında (0 = olduğu gibi)
         void AimK(string bone, string child, Vector3 dirW, float k)
         {
@@ -654,7 +654,13 @@ namespace VK
             if (!ghost) { CharRot("LeftShoulder", 0, 0, -breath * 1.5f); CharRot("RightShoulder", 0, 0, breath * 1.5f); }
             float hx = headPitch + bSad * 0.3f - c.up * 0.08f - bSurp * 0.12f + bAngry * 0.06f - laugh * (0.18f + Mathf.Sin(time * 13) * 0.05f) + bThink * 0.1f + bChin * 0.08f;
             float hr = bThink * 0.16f + bChin * 0.1f + bTalk * Mathf.Sin(time * 1.7f + phase) * 0.06f;
-            CharRot("Neck", hx * 0.35f, headYaw * 0.35f, hr * 0.4f); CharRot("Head", hx * 0.65f, headYaw * 0.65f, hr * 0.6f);
+            // bekleme canlılığı: ara sıra etrafa göz gezdirir (baş yavaşça döner, hafif eğilir), ağırlığını değiştirir
+            if (time > glanceNext) { glanceNext = time + 2.2f + Random.value * 4.5f; glanceTo = Random.value < 0.35f ? 0 : (Random.value - 0.5f) * 0.9f; glanceTilt = (Random.value - 0.5f) * 0.12f; }
+            float calm = (1 - bTalk) * (1 - laugh) * (ghost ? 0.3f : 1);
+            glance += (glanceTo * calm - glance) * (1 - Mathf.Exp(-dt * 2.2f)); glanceT += (glanceTilt * calm - glanceT) * (1 - Mathf.Exp(-dt * 1.5f));
+            float hy2 = headYaw + glance; float hr2 = hr + glanceT;
+            CharRot("Neck", hx * 0.35f, hy2 * 0.35f, hr2 * 0.4f); CharRot("Head", hx * 0.65f, hy2 * 0.65f, hr2 * 0.6f);
+            if (!ghost) { float ws = Mathf.Sin(time * 0.27f + phase * 1.3f) * 0.03f * calm; CharRot("Spine", 0, ws * 0.5f, ws); }
             // sol kol: dinlenme / el sallama / konuşurken jest
             float w = Mathf.Clamp01(wave);
             float ges = !ghost && w < 0.05f && c.open > 0.12f ? 0.35f + Mathf.Sin(time * 5.3f) * 0.15f : 0;

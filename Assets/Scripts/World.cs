@@ -58,6 +58,7 @@ namespace VK
                 bloom = prof.Add<Bloom>(true); bloom.intensity.Override(0.6f); bloom.threshold.Override(0.9f); bloom.scatter.Override(0.65f);
                 var tm = prof.Add<Tonemapping>(true); tm.mode.Override(TonemappingMode.ACES);
                 var ca = prof.Add<ColorAdjustments>(true); grade = ca; ca.postExposure.Override(0.25f); ca.contrast.Override(12f); ca.saturation.Override(12f); ca.colorFilter.Override(Color.white);
+                wb = prof.Add<WhiteBalance>(true); split = prof.Add<SplitToning>(true); smh = prof.Add<ShadowsMidtonesHighlights>(true);
                 var vg = prof.Add<Vignette>(true); vign = vg; vg.intensity.Override(0.28f); vg.smoothness.Override(0.45f);
                 volume.profile = prof;
             }
@@ -386,11 +387,17 @@ namespace VK
         }
 
         // ---------------------------------------------------------------- parçacıklar
-        class Part { public Vector3 p, v; public float age, life, s0, s1, g, a; public Color c; public bool drag; }
+        class Part { public Vector3 p, v; public float age, life, s0, s1, g, a; public Color c; public bool drag, smoke; public float spin; }
+        Matrix4x4[] sm = new Matrix4x4[1023]; Vector4[] sc = new Vector4[1023]; MaterialPropertyBlock smpb; Material smokeMat;
+        public void EmitSmoke(Vector3 pos, Vector3 vel, float life, float size, float size1, Color col, float alpha)
+        {
+            if (parts.Count > 900) return;
+            parts.Add(new Part { p = pos, v = vel, life = life, s0 = size, s1 = size1, c = col, a = alpha, smoke = true, spin = Random.value * 6.28f });
+        }
         readonly List<Part> parts = new List<Part>();
         Matrix4x4[] pm = new Matrix4x4[1023]; Vector4[] pc = new Vector4[1023]; MaterialPropertyBlock pmpb;
         Mesh dotQuad; Material glowMat, starMat;
-        float fireAcc, smokeAcc, emberAcc, chimAcc; readonly List<Vector3> chimneys = new List<Vector3>();
+        float fireAcc, smokeAcc, emberAcc, chimAcc, sparkAcc; readonly List<Vector3> chimneys = new List<Vector3>();
 
         public void Emit(Vector3 pos, Vector3 vel, float life, float size, float size1, Color col, float gravity = 0, float alpha = 0.85f, bool drag = false)
         {
@@ -533,7 +540,7 @@ namespace VK
             // gündüz: bulutlu, soluk, kasvetli bir sabah; gece: koyu lacivert, tek sıcak ışık ateş ve pencereler
             sun.color = Color.Lerp(new Color(0.93f, 0.9f, 0.84f), new Color(0.42f, 0.52f, 0.92f), k);
             sun.intensity = Mathf.Lerp(0.95f, 0.16f, k);
-            sun.shadowStrength = Mathf.Lerp(0.55f, 0.8f, k);
+            sun.shadowStrength = Mathf.Lerp(0.72f, 0.8f, k);
             sun.transform.rotation = Quaternion.Euler(Mathf.Lerp(34, 38, k), Mathf.Lerp(-40, 150, k), 0);
             RenderSettings.ambientSkyColor = Color.Lerp(new Color(0.46f, 0.5f, 0.56f), new Color(0.045f, 0.055f, 0.12f), k);
             RenderSettings.ambientEquatorColor = Color.Lerp(new Color(0.44f, 0.45f, 0.44f), new Color(0.03f, 0.035f, 0.075f), k);
@@ -546,7 +553,8 @@ namespace VK
             env?.ApplyTOD(k, sun);
             GradeTOD(k);
             if (villageMat != null) villageMat.SetColor("_EmissionColor", new Color(1f, 0.6f, 0.26f) * (0.12f + k * 2.4f)); // köy paketi: pencereler parlasın
-            if (bloom != null) { bloom.threshold.Override(Mathf.Lerp(0.95f, 0.72f, k)); bloom.intensity.Override(Mathf.Lerp(0.45f, 1.15f, k)); }
+            // parlama ölçülü: gündüz neredeyse yok, gece yalnız ateş ve pencereler hafifçe taşar
+            if (bloom != null) { bloom.threshold.Override(Mathf.Lerp(1.15f, 0.85f, k)); bloom.intensity.Override(Mathf.Lerp(0.15f, 0.6f, k)); bloom.scatter.Override(0.55f); }
         }
         float fireBase = 0.6f;
 
@@ -590,10 +598,17 @@ namespace VK
             while (fireAcc > 1) { fireAcc--; float r = Random.value * 0.16f, a = Random.value * 6.283f; Emit(new Vector3(Mathf.Cos(a) * r, 0.2f, Mathf.Sin(a) * r), new Vector3((Random.value - 0.5f) * 0.15f, 0.9f + Random.value * 0.7f, (Random.value - 0.5f) * 0.15f), 0.45f + Random.value * 0.35f, 0.3f, 0.05f, Random.value < 0.5f ? new Color(1, 0.54f, 0.16f) : new Color(1, 0.76f, 0.29f), 0, 0.5f); }
             emberAcc += dt * 7;
             while (emberAcc > 1) { emberAcc--; Emit(new Vector3((Random.value - 0.5f) * 0.25f, 0.4f, (Random.value - 0.5f) * 0.25f), new Vector3((Random.value - 0.5f) * 0.3f, 0.7f + Random.value * 0.8f, (Random.value - 0.5f) * 0.3f), 2 + Random.value, 0.05f, 0.02f, new Color(1, 0.7f, 0.35f), 0, 1); }
-            smokeAcc += dt * (low ? 1.5f : 3);
-            while (smokeAcc > 1) { smokeAcc--; Emit(new Vector3((Random.value - 0.5f) * 0.2f, 1.1f, (Random.value - 0.5f) * 0.2f), new Vector3(0.12f + Random.value * 0.1f, 0.45f + Random.value * 0.2f, (Random.value - 0.5f) * 0.1f), 3.2f, 0.35f, 1.6f, new Color(0.35f, 0.34f, 0.33f), 0, 0.1f * (1 - tod * 0.7f)); }
+            smokeAcc += dt * (low ? 2f : 4f);
+            while (smokeAcc > 1)
+            {
+                smokeAcc--; float sg = Mathf.Lerp(0.42f, 0.16f, tod);
+                EmitSmoke(new Vector3((Random.value - 0.5f) * 0.25f, 1.15f, (Random.value - 0.5f) * 0.25f), new Vector3(0.1f + Random.value * 0.1f, 0.5f + Random.value * 0.25f, (Random.value - 0.5f) * 0.12f), 4.2f + Random.value, 0.4f, 2.4f, new Color(sg, sg * 0.97f, sg * 0.95f), Mathf.Lerp(0.3f, 0.2f, tod));
+            }
+            // kıvılcım: ara sıra çıtırtıyla yukarı fırlayan, titreyerek sönen parlak noktalar
+            sparkAcc += dt * 2.2f;
+            while (sparkAcc > 1) { sparkAcc--; int cnt = Random.value < 0.25f ? 5 : 1; for (int q = 0; q < cnt; q++) Emit(new Vector3((Random.value - 0.5f) * 0.3f, 0.55f, (Random.value - 0.5f) * 0.3f), new Vector3((Random.value - 0.5f) * 0.9f, 1.6f + Random.value * 1.6f, (Random.value - 0.5f) * 0.9f), 0.7f + Random.value * 0.8f, 0.045f, 0.012f, new Color(1f, 0.62f + Random.value * 0.25f, 0.25f), 1.2f, 1, true); }
             chimAcc += dt * chimneys.Count * 0.9f;
-            while (chimAcc > 1 && chimneys.Count > 0) { chimAcc--; var cp = chimneys[Random.Range(0, chimneys.Count)]; Emit(cp, new Vector3(0.15f + Random.value * 0.1f, 0.5f + Random.value * 0.3f, (Random.value - 0.5f) * 0.1f), 4f, 0.4f, 2.2f, new Color(0.45f, 0.44f, 0.43f), 0, 0.12f * (1 - tod * 0.6f)); }
+            while (chimAcc > 1 && chimneys.Count > 0) { chimAcc--; var cp = chimneys[Random.Range(0, chimneys.Count)]; EmitSmoke(cp, new Vector3(0.15f + Random.value * 0.1f, 0.5f + Random.value * 0.3f, (Random.value - 0.5f) * 0.1f), 5f, 0.5f, 2.8f, new Color(0.5f, 0.5f, 0.5f) * Mathf.Lerp(1f, 0.35f, tod), 0.22f); }
             zstep = 6;
             DrawParticles(dt, camPos);
             zstep = 7;
@@ -624,7 +639,7 @@ namespace VK
         void DrawParticles(float dt, Vector3 camPos)
         {
             if (pmpb == null) pmpb = new MaterialPropertyBlock();
-            int n = 0; var rot = Quaternion.LookRotation(cam.transform.forward);
+            int n = 0, ns = 0; var rot = Quaternion.LookRotation(cam.transform.forward);
             for (int i = parts.Count - 1; i >= 0; i--)
             {
                 var p = parts[i]; p.age += dt;
@@ -632,6 +647,19 @@ namespace VK
                 float u = p.age / p.life;
                 p.v.y -= p.g * dt; if (p.drag) p.v *= 1 - 1.2f * dt;
                 p.p += p.v * dt;
+                if (p.smoke)
+                {
+                    if (ns < 1023)
+                    {
+                        // duman: rüzgârla hafif savrulur, büyür, yumuşakça silinir
+                        p.v.x += Mathf.Sin(p.age * 1.3f + p.spin) * 0.05f * dt; p.v *= 1 - 0.15f * dt;
+                        float szs = Mathf.Lerp(p.s0, p.s1, Mathf.Sqrt(u));
+                        sm[ns] = Matrix4x4.TRS(p.p, rot * Quaternion.Euler(0, 0, (p.spin + p.age * 12f)), Vector3.one * szs);
+                        float aa = p.a * (u < 0.2f ? u / 0.2f : 1 - (u - 0.2f) / 0.8f);
+                        sc[ns] = new Vector4(p.c.r, p.c.g, p.c.b, aa); ns++;
+                    }
+                    continue;
+                }
                 if (n < 1023)
                 {
                     float sz = Mathf.Lerp(p.s0, p.s1, u);
@@ -639,6 +667,13 @@ namespace VK
                     float a = p.a * (u < 0.15f ? u / 0.15f : 1 - (u - 0.15f) / 0.85f);
                     pc[n] = new Vector4(p.c.r, p.c.g, p.c.b, a); n++;
                 }
+            }
+            if (ns > 0)
+            {
+                if (smpb == null) smpb = new MaterialPropertyBlock();
+                if (smokeMat == null) { smokeMat = new Material(Resources.Load<Material>("Mats/Cloud") ?? matGlow); smokeMat.SetTexture("_MainTex", MistTex()); smokeMat.enableInstancing = true; }
+                smpb.SetVectorArray("_Color", sc);
+                Graphics.RenderMeshInstanced(new RenderParams(smokeMat) { matProps = smpb, worldBounds = new Bounds(Vector3.zero, Vector3.one * 100) }, Quad(), 0, sm, ns);
             }
             if (n == 0) return;
             pmpb.SetVectorArray("_Color", pc);
@@ -662,17 +697,33 @@ namespace VK
             if (urp != null)
             {
                 urp.renderScale = SCALE[L];
-                urp.msaaSampleCount = L == 0 ? 2 : 1;
+                urp.msaaSampleCount = L == 0 ? 4 : L == 1 ? 2 : 1;
                 urp.shadowDistance = L >= 3 ? 18 : L >= 2 ? 24 : 30;
             }
             if (volume != null) volume.enabled = L <= 2;
-            if (bloom != null) bloom.active = L == 0;
+            if (bloom != null) bloom.active = L <= 1;
+            // kenar yumuşatma: iyi telefonda MSAA yeterli (bulanıklaştıran FXAA yok), zayıfta FXAA
+            var cdata = cam != null ? cam.GetComponent<UniversalAdditionalCameraData>() : null;
+            if (cdata != null) cdata.antialiasing = L <= 1 ? AntialiasingMode.None : AntialiasingMode.FastApproximateAntialiasing;
+            SetSSAO(L == 0);
             sun.shadows = L >= 4 ? LightShadows.Hard : L >= 2 ? LightShadows.Hard : LightShadows.Soft;
             if (grassFull == null) grassFull = grassBatches.ConvertAll(b => (int[])b.count.Clone()).ToArray();
             for (int k = 0; k < grassBatches.Count; k++) for (int c = 0; c < grassBatches[k].count.Length; c++) grassBatches[k].count[c] = grassFull[k][c] * GRASS[L] / 100;
             Debug.Log("[Zuplay] kalite seviyesi " + L);
         }
         public void Degrade() { SetLevel(level + 1); }
+        // ortam perdelemesi yalnız en iyi seviyede (telefonu yormasın)
+        void SetSSAO(bool on)
+        {
+            try
+            {
+                var cdata = cam != null ? cam.GetComponent<UniversalAdditionalCameraData>() : null; var r = cdata != null ? cdata.scriptableRenderer : null; if (r == null) return;
+                var pi = typeof(ScriptableRenderer).GetProperty("rendererFeatures", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Public);
+                if (pi?.GetValue(r) is System.Collections.Generic.List<ScriptableRendererFeature> list)
+                    foreach (var f in list) if (f != null && f.GetType().Name == "ScreenSpaceAmbientOcclusion") f.SetActive(on);
+            }
+            catch (System.Exception e) { Debug.Log("[Zuplay] SSAO ayarlanamadı: " + e.Message); }
+        }
         public bool fireShadowAllowed => level <= 1;
     }
 }

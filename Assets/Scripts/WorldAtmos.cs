@@ -10,7 +10,7 @@ namespace VK
 {
     public partial class World
     {
-        ColorAdjustments grade; Vignette vign;
+        ColorAdjustments grade; Vignette vign; WhiteBalance wb; SplitToning split; ShadowsMidtonesHighlights smh;
         readonly List<Vector3> lanternPos = new List<Vector3>();
 
         // ------------------------------------------------------------ renk derecelendirme
@@ -20,11 +20,15 @@ namespace VK
             {
                 // gündüz: soğuk-gri, az doygun (kasvet); gece: lacivert, kontrastlı
                 grade.colorFilter.Override(Color.Lerp(new Color(0.93f, 0.95f, 0.98f), new Color(0.78f, 0.86f, 1.08f), k));
-                grade.saturation.Override(Mathf.Lerp(-14f, -8f, k));
-                grade.contrast.Override(Mathf.Lerp(16f, 26f, k));
+                grade.saturation.Override(Mathf.Lerp(-6f, -6f, k));
+                grade.contrast.Override(Mathf.Lerp(12f, 20f, k));
                 grade.postExposure.Override(Mathf.Lerp(0.05f, 0.1f, k));
             }
-            if (vign != null) vign.intensity.Override(Mathf.Lerp(0.36f, 0.48f, k));
+            if (vign != null) vign.intensity.Override(Mathf.Lerp(0.3f, 0.42f, k));
+            // sinematik renk: gölgeler soğuk, ışıklar sıcak; gündüz hafif sıcak beyaz dengesi, gece soğuk
+            if (wb != null) { wb.temperature.Override(Mathf.Lerp(6f, -12f, k)); wb.tint.Override(Mathf.Lerp(2f, 4f, k)); }
+            if (split != null) { split.shadows.Override(Color.Lerp(new Color(0.42f, 0.5f, 0.62f), new Color(0.32f, 0.38f, 0.62f), k)); split.highlights.Override(Color.Lerp(new Color(0.66f, 0.58f, 0.46f), new Color(0.7f, 0.55f, 0.38f), k)); split.balance.Override(-10f); }
+            if (smh != null) { smh.shadows.Override(new Vector4(0.95f, 0.98f, 1.06f, Mathf.Lerp(-0.04f, -0.08f, k))); smh.midtones.Override(new Vector4(1f, 1f, 1f, 0f)); smh.highlights.Override(new Vector4(1.04f, 1.0f, 0.95f, 0f)); }
         }
 
         // ------------------------------------------------------------ low-poly kum meydan
@@ -54,7 +58,13 @@ namespace VK
             {
                 var c = (p + q + w) / 3f; float d = new Vector2(c.x, c.z).magnitude;
                 float k = F(0.9f, 1.05f); float warm = F(-0.025f, 0.025f);
-                var baseC = Color.Lerp(new Color(0.88f, 0.76f, 0.56f), new Color(0.8f, 0.68f, 0.5f), Mathf.Clamp01(d / R0) * 0.6f);
+                var baseC = Color.Lerp(new Color(0.8f, 0.69f, 0.52f), new Color(0.72f, 0.62f, 0.47f), Mathf.Clamp01(d / R0) * 0.6f);
+                // doğal toprak: büyük lekeler (nemli/kuru), ateş çevresi isli, kenarda çimene karışan yeşilimsi toprak, ayak izi yolları
+                float n1 = Mathf.PerlinNoise(c.x * 0.16f + 3.1f, c.z * 0.16f + 7.3f), n2 = Mathf.PerlinNoise(c.x * 0.55f + 11f, c.z * 0.55f + 2f);
+                baseC *= Mathf.Lerp(0.82f, 1.06f, n1) * Mathf.Lerp(0.95f, 1.03f, n2);
+                baseC = Color.Lerp(baseC, new Color(0.5f, 0.45f, 0.38f), Mathf.Clamp01(1 - d / 2.4f) * 0.55f);
+                baseC = Color.Lerp(baseC, new Color(0.56f, 0.56f, 0.38f), Mathf.Clamp01((d - (R0 - 2.6f)) / 2.6f) * 0.55f * n1);
+                float ring = Mathf.Abs(d - 4.3f); baseC *= 1 - Mathf.Clamp01(1 - ring / 0.9f) * 0.08f; // oturanların ayak izi halkası
                 var cc = new Color(baseC.r * k + warm, baseC.g * k, baseC.b * k - warm, 1);
                 int i0 = v.Count; v.Add(p); v.Add(q); v.Add(w); col.Add(cc); col.Add(cc); col.Add(cc);
                 // üst yüz görünsün (saat yönü kontrolü)

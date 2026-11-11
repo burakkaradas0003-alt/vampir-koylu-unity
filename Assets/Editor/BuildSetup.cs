@@ -86,6 +86,7 @@ public static class BuildSetup
         SetI("m_AdditionalLightsShadowmapResolution", 1024);
         so.ApplyModifiedPropertiesWithoutUndo();
         EditorUtility.SetDirty(urp);
+        AddSSAO(AssetDatabase.LoadAssetAtPath<UniversalRendererData>(rdPath));
         GraphicsSettings.defaultRenderPipeline = urp;
         int cur = QualitySettings.GetQualityLevel();
         for (int i = 0; i < QualitySettings.names.Length; i++)
@@ -95,6 +96,33 @@ public static class BuildSetup
         }
         QualitySettings.SetQualityLevel(cur, false);
         return urp;
+    }
+
+    // ortam perdelemesi (SSAO): mobil için yarım çözünürlük, yalnız derinlikten, düşük örnek
+    static void AddSSAO(UniversalRendererData rd)
+    {
+        if (rd == null) return;
+        var t = System.Type.GetType("UnityEngine.Rendering.Universal.ScreenSpaceAmbientOcclusion, Unity.RenderPipelines.Universal.Runtime");
+        if (t == null) { Debug.LogWarning("[Zuplay] SSAO sınıfı bulunamadı"); return; }
+        ScriptableRendererFeature f = rd.rendererFeatures.Find(x => x != null && x.GetType() == t);
+        if (f == null)
+        {
+            f = (ScriptableRendererFeature)ScriptableObject.CreateInstance(t); f.name = "SSAO";
+            AssetDatabase.AddObjectToAsset(f, rd); rd.rendererFeatures.Add(f);
+            var rso = new SerializedObject(rd); var map = rso.FindProperty("m_RendererFeatureMap");
+            if (map != null && AssetDatabase.TryGetGUIDAndLocalFileIdentifier(f, out string _, out long lid)) { map.arraySize++; map.GetArrayElementAtIndex(map.arraySize - 1).longValue = lid; rso.ApplyModifiedPropertiesWithoutUndo(); }
+        }
+        var so = new SerializedObject(f);
+        void B(string n, bool v) { var p = so.FindProperty("m_Settings." + n); if (p != null) p.boolValue = v; }
+        void F(string n, float v) { var p = so.FindProperty("m_Settings." + n); if (p != null) p.floatValue = v; }
+        void E(string n, int v) { var p = so.FindProperty("m_Settings." + n); if (p != null) p.enumValueIndex = v; }
+        B("Downsample", true); B("AfterOpaque", false); E("Source", 0); E("NormalSamples", 0);
+        F("Intensity", 1.1f); F("DirectLightingStrength", 0.3f); F("Radius", 0.45f); F("Falloff", 40f);
+        E("Samples", 2); E("BlurQuality", 2); E("AOMethod", 0);
+        so.ApplyModifiedPropertiesWithoutUndo();
+        f.SetActive(true);
+        EditorUtility.SetDirty(f); EditorUtility.SetDirty(rd);
+        Debug.Log("[Zuplay] SSAO eklendi");
     }
 
     // Çalışma anında Shader.Find yerine bu malzemeler kopyalanır (gölgelendiriciler derlemeye kesin girsin)
@@ -125,6 +153,10 @@ public static class BuildSetup
             m.SetColor("_EmissionColor", new Color(0.35f, 0.47f, 1f) * 0.55f);
         });
         MakeMat("LitEmissive", "Universal Render Pipeline/Lit", m => m.EnableKeyword("_EMISSION"));
+        // mat yüzeyler: parlak yansıma ve plastik parlama yok (kumaş, ahşap, sıva)
+        System.Action<Material> matte = m => { m.SetFloat("_SpecularHighlights", 0f); m.EnableKeyword("_SPECULARHIGHLIGHTS_OFF"); m.SetFloat("_EnvironmentReflections", 0f); m.EnableKeyword("_ENVIRONMENTREFLECTIONS_OFF"); m.SetFloat("_Smoothness", 0.1f); };
+        MakeMat("LitMatte", "Universal Render Pipeline/Lit", matte);
+        MakeMat("LitMatteEmissive", "Universal Render Pipeline/Lit", m => { matte(m); m.EnableKeyword("_EMISSION"); });
         MakeMat("LitNormal", "Universal Render Pipeline/Lit", m => { m.EnableKeyword("_NORMALMAP"); m.EnableKeyword("_EMISSION"); m.EnableKeyword("_OCCLUSIONMAP"); });
     }
 

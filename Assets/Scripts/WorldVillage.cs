@@ -50,10 +50,10 @@ namespace VK
             foreach (var t in villageSrc.GetComponentsInChildren<Transform>(true))
                 if (t.GetComponent<MeshFilter>() != null && !vparts.ContainsKey(t.name)) vparts[t.name] = t;
             if (vparts.Count < 10) return false;
-            villageMat = new Material(Resources.Load<Material>("Mats/LitEmissive"));
+            villageMat = new Material(Resources.Load<Material>("Mats/LitMatteEmissive") ?? Resources.Load<Material>("Mats/LitEmissive"));
             villageMat.SetTexture("_BaseMap", Resources.Load<Texture2D>("Village/palette")); villageMat.SetColor("_BaseColor", Color.white);
             villageMat.SetTexture("_EmissionMap", Resources.Load<Texture2D>("Village/emission")); villageMat.SetColor("_EmissionColor", Color.black);
-            villageMat.EnableKeyword("_EMISSION"); villageMat.SetFloat("_Smoothness", 0.12f); villageMat.SetFloat("_Metallic", 0);
+            villageMat.EnableKeyword("_EMISSION"); villageMat.SetFloat("_Smoothness", 0.06f); villageMat.SetFloat("_Metallic", 0);
             windowMats.Add(villageMat); // gece pencere ışığı ApplyTOD'da ayarlanır
             return true;
         }
@@ -126,7 +126,7 @@ namespace VK
                 case "Mat7": c = new Color(0.9f, 0.55f, 0.18f); glow = true; break; // fener
                 default: c = new Color(0.7f, 0.68f, 0.64f); break;
             }
-            m = new Material(Resources.Load<Material>(glow ? "Mats/LitEmissive" : "Mats/Lit")); m.SetColor("_BaseColor", c); m.SetFloat("_Smoothness", sm); m.SetFloat("_Metallic", 0);
+            m = new Material(Resources.Load<Material>(glow ? "Mats/LitEmissive" : "Mats/LitMatte") ?? Resources.Load<Material>("Mats/Lit")); m.SetColor("_BaseColor", c); m.SetFloat("_Smoothness", sm); m.SetFloat("_Metallic", 0);
             if (glow) { m.EnableKeyword("_EMISSION"); m.SetColor("_EmissionColor", Color.black); windowMats.Add(m); }
             medMats[k] = m; return m;
         }
