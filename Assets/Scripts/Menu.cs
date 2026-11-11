@@ -37,6 +37,7 @@ namespace VK
             content = UI.R("içerik", root).Fill(86, 10, 12, 56);
             screens["lobi"] = BuildLobby(); screens["karakter"] = BuildCharacter(); screens["magaza"] = BuildShop(); screens["gorev"] = BuildQuests(); screens["profil"] = BuildProfile();
             foreach (var s in screens.Values) s.gameObject.SetActive(false);
+            content.SetAsFirstSibling(); // şerit ve üst çubuk sahnenin üstünde kalsın
             // bildirim ve geçiş perdesi
             toastR = UI.Panel(root, "bildirim", UI.A(UI.Anthracite, 0.95f), true, UI.Pill).At(new Vector2(0, 0), new Vector2(96, 16), new Vector2(380, 36), new Vector2(0, 0));
             toastG = toastR.gameObject.AddComponent<CanvasGroup>(); toastG.alpha = 0; toastG.blocksRaycasts = false;
@@ -118,6 +119,7 @@ namespace VK
             if (current == id) return;
             if (current != null && screens.TryGetValue(current, out var old)) old.gameObject.SetActive(false);
             if (current == "karakter" && id != "karakter") CommitDraftPreviewOff();
+            bool toChar = id == "karakter";
             current = id; screenTitle.text = TITLES[id];
             foreach (var kv in railBtns) { bool on = kv.Key == id; kv.Value.bg.color = on ? UI.A(UI.Purple, 0.28f) : new Color(1, 1, 1, 0); kv.Value.label.color = on ? UI.Fg : UI.Muted; }
             var s = screens[id]; Tween.ShowScreen(s);
@@ -128,7 +130,7 @@ namespace VK
             if (id == "profil") RefreshProfile();
             if (id == "lobi") RefreshLobby();
             camTarget = id == "lobi" ? 0 : 1;
-            Tween.Fade(dimG, dimG.alpha, id == "lobi" ? 0 : 1, 0.3f);
+            Tween.Fade(dimG, dimG.alpha, id == "lobi" || id == "karakter" ? 0 : 1, 0.3f);
         }
 
         // ---------------------------------------------------------------- 3B kamera
@@ -303,84 +305,146 @@ namespace VK
 
         // ================================================================ KARAKTER
         Look draft; Cat cat = Cat.Hair; RawImage show; RectTransform catRow, itemGrid, colorRow; Text footT; UI.Btn saveBtn;
+        // Agrou tarzı: solda köy evinin önünde duran 3B karakter, sağda bölümlere ayrılmış seçenekler
+        RectTransform charList; Text nameTag, selT;
         RectTransform BuildCharacter()
         {
-            var s = UI.R("karakter", content).Fill();
-            // vitrin
-            var stage = UI.R("vitrin", s).At(new Vector2(0, 0.5f), new Vector2(0, 0), new Vector2(270, 324), new Vector2(0, 0.5f));
-            var gl = UI.Img(stage, UI.Glow, UI.A(UI.Purple, 0.45f), "ışık"); gl.rectTransform.At(new Vector2(0.5f, 0.5f), new Vector2(0, 10), new Vector2(300, 300));
-            var floor = UI.Img(stage, UI.Circle, new Color(0, 0, 0, 0.35f), "zemin"); floor.rectTransform.At(new Vector2(0.5f, 0), new Vector2(0, 34), new Vector2(170, 26), new Vector2(0.5f, 0.5f));
-            var fr = UI.Img(stage, UI.Ring, UI.A(UI.Lilac, 0.35f), "halka"); fr.rectTransform.At(new Vector2(0.5f, 0), new Vector2(0, 34), new Vector2(180, 30), new Vector2(0.5f, 0.5f));
-            var raw = UI.R("karakter", stage).Fill(0, 18, 0, 0); show = raw.gameObject.AddComponent<RawImage>(); show.raycastTarget = true;
-            var drag = raw.gameObject.AddComponent<DragRotate>();
-            var hint = UI.Txt(stage, "Döndürmek için sağa sola kaydır", 10, UI.Lilac, null, TextAnchor.MiddleCenter); hint.rectTransform.At(new Vector2(0.5f, 0), new Vector2(0, 4), new Vector2(240, 16), new Vector2(0.5f, 0));
-            // seçenekler paneli
-            var pan = UI.Panel(s, "seçenekler"); pan.anchorMin = new Vector2(0, 0); pan.anchorMax = Vector2.one; pan.offsetMin = new Vector2(280, 0); pan.offsetMax = Vector2.zero;
-            var cs = UI.Scroll(pan, false, out catRow, 6); ((RectTransform)cs.transform).anchorMin = new Vector2(0, 1); ((RectTransform)cs.transform).anchorMax = new Vector2(1, 1); ((RectTransform)cs.transform).pivot = new Vector2(0.5f, 1); ((RectTransform)cs.transform).offsetMin = new Vector2(10, -48); ((RectTransform)cs.transform).offsetMax = new Vector2(-10, -8);
-            var gs = UI.Scroll(pan, true, out itemGrid, 8); ((RectTransform)gs.transform).Fill(10, 86, 10, 54);
-            UI.Grid(itemGrid, new Vector2(82, 92), new Vector2(8, 8), 5);
-            colorRow = UI.R("renkler", pan).At(new Vector2(0, 0), new Vector2(12, 50), new Vector2(430, 28), new Vector2(0, 0)); UI.HRow(colorRow, 6, TextAnchor.MiddleLeft);
-            footT = UI.Txt(pan, "", 11, UI.Muted); footT.rectTransform.At(new Vector2(0, 0), new Vector2(14, 12), new Vector2(200, 28), new Vector2(0, 0));
-            var brow = UI.R("düğmeler", pan).At(new Vector2(1, 0), new Vector2(-10, 10), new Vector2(270, 34), new Vector2(1, 0)); UI.HRow(brow, 8, TextAnchor.MiddleRight);
-            var reset = UI.Button(brow, "Sıfırla", UI.Style.Ghost, () => { draft = Store.P.look.Clone(); RefreshCharacter(); Toast("Kayıtlı görünüme dönüldü"); }); reset.r.LE(86, 34);
-            saveBtn = UI.Button(brow, "Kaydet ve uygula", UI.Style.Primary, SaveLook, Hud.Emoji("check"), 13, null); saveBtn.r.LE(170, 34);
+            var s = UI.R("karakter", content); s.anchorMin = Vector2.zero; s.anchorMax = Vector2.one; s.offsetMin = new Vector2(-86, -10); s.offsetMax = new Vector2(12, 56);
+            // sahne (tam ekranın solu): stüdyodaki giyinme setini gösterir
+            var raw = UI.R("sahne", s); raw.anchorMin = Vector2.zero; raw.anchorMax = new Vector2(0.62f, 1); raw.offsetMin = raw.offsetMax = Vector2.zero;
+            show = raw.gameObject.AddComponent<RawImage>(); show.raycastTarget = true; raw.gameObject.AddComponent<DragRotate>();
+            var fade = UI.Img(raw, UI.GradH, new Color(0.04f, 0.04f, 0.06f, 0.55f), "geçiş"); fade.rectTransform.anchorMin = new Vector2(0.8f, 0); fade.rectTransform.anchorMax = Vector2.one; fade.rectTransform.offsetMin = fade.rectTransform.offsetMax = Vector2.zero; fade.rectTransform.localScale = new Vector3(-1, 1, 1);
+            // isim etiketi (sol üst)
+            var tag = UI.Panel(raw, "isim", UI.A(UI.Ink, 0.75f), false, UI.Pill).At(new Vector2(0, 1), new Vector2(98, -60), new Vector2(190, 40), new Vector2(0, 1));
+            nameTag = UI.Txt(tag, "", 13, null, UI.Title); nameTag.rectTransform.At(new Vector2(0, 1), new Vector2(14, -3), new Vector2(170, 20), new Vector2(0, 1));
+            var tt = UI.Txt(tag, "", 9, UI.Gold, UI.Bold); tt.rectTransform.At(new Vector2(0, 0), new Vector2(14, 5), new Vector2(170, 14), new Vector2(0, 0)); tt.name = "unvan";
+            var hint = UI.Txt(raw, "Karakteri döndürmek için sağa sola kaydır", 10, UI.Fg, null, TextAnchor.MiddleCenter).Shadowed(0.7f); hint.rectTransform.At(new Vector2(0.5f, 0), new Vector2(40, 12), new Vector2(300, 16), new Vector2(0.5f, 0));
+            // sağ panel
+            var pan = UI.Panel(s, "seçenekler", UI.A(UI.Ink, 0.9f)); pan.anchorMin = new Vector2(0.62f, 0); pan.anchorMax = Vector2.one; pan.offsetMin = new Vector2(4, 10); pan.offsetMax = new Vector2(-12, -60);
+            var tabs = UI.R("sekme", pan).At(new Vector2(0.5f, 1), new Vector2(0, -8), new Vector2(280, 28), new Vector2(0.5f, 1)); UI.HRow(tabs, 6, TextAnchor.MiddleCenter, null, true);
+            UI.Chip(tabs, "Görünüm", true, () => { }, Hud.Emoji("shirt"));
+            UI.Chip(tabs, "Mağaza", false, () => Show("magaza"), Hud.Emoji("shop"));
+            var sc = UI.Scroll(pan, true, out charList, 6, UI.Pad(10, 10, 4, 8)); ((RectTransform)sc.transform).Fill(0, 76, 0, 42);
+            selT = UI.Txt(pan, "", 10, UI.Muted, null, TextAnchor.MiddleCenter); selT.rectTransform.At(new Vector2(0.5f, 0), new Vector2(0, 50), new Vector2(290, 22), new Vector2(0.5f, 0));
+            var brow = UI.R("düğmeler", pan).At(new Vector2(0.5f, 0), new Vector2(0, 10), new Vector2(296, 34), new Vector2(0.5f, 0)); UI.HRow(brow, 6, TextAnchor.MiddleCenter, null, true);
+            UI.Button(brow, "Rastgele", UI.Style.Secondary, RandomLook, Hud.Emoji("dizzy"), 12).r.LE(-1, 34, 1);
+            UI.Button(brow, "Sıfırla", UI.Style.Ghost, () => { draft = Store.P.look.Clone(); RefreshCharacter(); Toast("Kayıtlı görünüme dönüldü"); }, null, 12).r.LE(-1, 34, 0.8f);
+            saveBtn = UI.Button(brow, "Onayla", UI.Style.Primary, SaveLook, Hud.Emoji("check"), 12, null); saveBtn.r.LE(-1, 34, 1.1f);
+            footT = selT;
             return s;
         }
         void OpenCharacter()
         {
-            draft = Store.P.look.Clone(); if (Rig.SyntyAvailable && !string.IsNullOrEmpty(draft.synty)) cat = Cat.Hero;
-            show.texture = Studio.I.Showcase(draft, 432, 520);
+            draft = Store.P.look.Clone();
+            show.texture = Studio.I.Showcase(draft, 700, 640, true);
+            Tween.Fade(dimG, dimG.alpha, 0, 0.3f);
             RefreshCharacter();
         }
         void CommitDraftPreviewOff() { }
-        static readonly Cat[] HERO_CATS = { Cat.Hero, Cat.Effect, Cat.Victory, Cat.Frame, Cat.Title };
-        Cat[] CharCats() => !string.IsNullOrEmpty(draft.synty) ? HERO_CATS : Rig.SyntyAvailable ? new[] { Cat.Hero }.Concat(CHAR_CATS).ToArray() : CHAR_CATS;
-        static readonly Cat[] CHAR_CATS = { Cat.Hair, Cat.Hat, Cat.Top, Cat.Bottom, Cat.Shoes, Cat.Glasses, Cat.Face, Cat.Mask, Cat.Head, Cat.Hands, Cat.Ears, Cat.Costume, Cat.Effect, Cat.Victory, Cat.Frame, Cat.Title };
+        void RandomLook()
+        {
+            var r = new System.Random(); var l = Catalog.Random(r);
+            l.effect = draft.effect; l.victory = draft.victory; l.frame = draft.frame; l.title = draft.title;
+            if (!string.IsNullOrEmpty(draft.synty)) l.synty = Rig.SYNTY_PRESETS[r.Next(Rig.SYNTY_PRESETS.Length)]; else l.synty = "";
+            draft = l; Sfx.Play("magic", 0.7f); RefreshCharacter();
+        }
+        // bölümler: başlık + ikon ızgarası (+ renk sırası)
+        static readonly (string title, Cat[] cats)[] SECTIONS =
+        {
+            ("GENEL", new[] { Cat.Hero, Cat.Costume }),
+            ("BAŞ", new[] { Cat.Hair, Cat.Hat, Cat.Glasses, Cat.Face, Cat.Mask, Cat.Head, Cat.Ears }),
+            ("GÖVDE", new[] { Cat.Top, Cat.Bottom, Cat.Shoes, Cat.Hands }),
+            ("EKSTRA", new[] { Cat.Effect, Cat.Victory, Cat.Frame, Cat.Title }),
+        };
         void RefreshCharacter()
         {
             Studio.I.SetShow(draft);
-            UI.Clear(catRow);
-            var cats = CharCats(); if (System.Array.IndexOf(cats, cat) < 0) cat = cats[0];
-            foreach (var c in cats)
+            nameTag.text = Store.P.name; var ti = Catalog.Get(draft.title); nameTag.transform.parent.Find("unvan").GetComponent<Text>().text = ti != null ? ti.name : "";
+            UI.Clear(charList);
+            bool hero = !string.IsNullOrEmpty(draft.synty);
+            foreach (var sec in SECTIONS)
             {
-                var cc = c; var b = UI.Chip(catRow, Catalog.CAT_NAME[c], c == cat, () => { cat = cc; RefreshCharacter(); }, Hud.Emoji(Catalog.CAT_ICON[c]) ?? Resources.Load<Sprite>("Items/" + Catalog.CAT_ICON[c]));
-                b.r.LE(-1, 32);
-            }
-            UI.Clear(itemGrid);
-            if (Catalog.Optional(cat)) ItemCard(itemGrid, null, Catalog.Get(draft, cat) == "" || Catalog.Get(draft, cat) == null, () => { Catalog.Set(draft, cat, ""); RefreshCharacter(); });
-            foreach (var it in Catalog.Of(cat))
-            {
-                var i2 = it; ItemCard(itemGrid, it, Catalog.Get(draft, cat) == it.id, () =>
+                var cats = sec.cats.Where(c => c != Cat.Hero || Rig.SyntyAvailable).Where(c => !hero || c == Cat.Hero || c >= Cat.Effect).ToArray();
+                if (cats.Length == 0) continue;
+                Ribbon(charList, sec.title);
+                if (sec.title == "GENEL" && !hero) Swatches(charList, "Ten rengi", Look.SKINS, () => draft.skin, v => draft.skin = v, true);
+                foreach (var c in cats)
                 {
-                    Catalog.Set(draft, cat, i2.id);
-                    if (cat == Cat.Costume) Toast("Kostüm giyildi: üst, alt, saç ve şapka gizlenir");
-                    if (cat == Cat.Victory) Studio.I.Cheer(1); else Studio.I.Cheer(0);
-                    Sfx.Play("select", 0.7f); RefreshCharacter();
-                });
-            }
-            // renk seçimi (kategoriye göre)
-            UI.Clear(colorRow);
-            Func<int> getC = null; Action<int> setC = null; Color[] pal = Look.TINTS; string lbl = "Renk";
-            if (cat == Cat.Top) { getC = () => draft.topColor; setC = v => draft.topColor = v; }
-            else if (cat == Cat.Bottom) { getC = () => draft.bottomColor; setC = v => draft.bottomColor = v; }
-            else if (cat == Cat.Hat) { getC = () => draft.hatColor; setC = v => draft.hatColor = v; }
-            else if (cat == Cat.Hair) { getC = () => draft.skin; setC = v => draft.skin = v; pal = Look.SKINS; lbl = "Ten"; }
-            if (getC != null)
-            {
-                UI.Txt(colorRow, lbl, 11, UI.Muted, UI.Bold).rectTransform.LE(34, 24);
-                for (int k = 0; k < pal.Length; k++)
-                {
-                    int kk = k; var sw = UI.R("renk", colorRow); sw.LE(24, 24);
-                    var d = UI.Img(sw, UI.Circle, pal[k] == Color.white && lbl == "Renk" ? new Color(0.85f, 0.85f, 0.88f) : pal[k], "dolgu"); d.rectTransform.Fill(3, 3, 3, 3);
-                    if (getC() == k) { var rg = UI.Img(sw, UI.Ring, UI.Fg, "seçili"); rg.rectTransform.Fill(); }
-                    UI.Click(sw, () => { setC(kk); RefreshCharacter(); });
+                    SubTitle(charList, Catalog.CAT_NAME[c]);
+                    IconRow(charList, c);
+                    if (!hero && c == Cat.Top) Swatches(charList, "Üst rengi", Look.TINTS, () => draft.topColor, v => draft.topColor = v, false);
+                    if (!hero && c == Cat.Bottom) Swatches(charList, "Alt rengi", Look.TINTS, () => draft.bottomColor, v => draft.bottomColor = v, false);
+                    if (!hero && c == Cat.Hat && !string.IsNullOrEmpty(draft.hat)) Swatches(charList, "Şapka rengi", Look.TINTS, () => draft.hatColor, v => draft.hatColor = v, false);
                 }
             }
-            // eksik ürünler
             var missing = MissingItems(draft);
             int cost = missing.Sum(m => m.price);
-            footT.text = missing.Count == 0 ? (draft.Json() == Store.P.look.Json() ? "Kayıtlı görünüm" : "Değişiklikler kaydedilmedi") : $"{missing.Count} ürün satın alınmamış · <color=#F7C74A>{cost} altın</color>";
-            saveBtn.Label(missing.Count == 0 ? "Kaydet ve uygula" : $"Satın al ve uygula").Restyle(missing.Count == 0 ? UI.Style.Primary : UI.Style.Gold);
+            selT.text = missing.Count == 0 ? (draft.Json() == Store.P.look.Json() ? "Kayıtlı görünüm" : "Değişiklikler kaydedilmedi") : $"{missing.Count} ürün satın alınmamış · <color=#F7C74A>{cost} altın</color>";
+            saveBtn.Label(missing.Count == 0 ? "Onayla" : "Al ve onayla").Restyle(missing.Count == 0 ? UI.Style.Primary : UI.Style.Gold);
+        }
+        void Ribbon(Transform p, string t)
+        {
+            var r = UI.R("bölüm", p); r.LE(-1, 24);
+            var bg = UI.Img(r, UI.Pill, UI.A(UI.Purple, 0.85f), "şerit"); bg.rectTransform.At(new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(180, 20));
+            UI.Img(r, null, UI.A(UI.Lilac, 0.25f), "çizgi").rectTransform.At(new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(300, 1)).SetAsFirstSibling();
+            UI.Txt(bg.rectTransform, t, 11, null, UI.Title, TextAnchor.MiddleCenter).rectTransform.Fill(0, 1, 0, 0);
+        }
+        void SubTitle(Transform p, string t)
+        {
+            var r = UI.R("başlık", p); r.LE(-1, 16);
+            UI.Txt(r, t, 10, UI.Lilac, UI.Bold, TextAnchor.MiddleCenter).rectTransform.Fill();
+        }
+        void IconRow(Transform p, Cat c)
+        {
+            var row = UI.R("ızgara", p); var g = row.gameObject.AddComponent<GridLayoutGroup>(); g.cellSize = new Vector2(46, 46); g.spacing = new Vector2(6, 6); g.childAlignment = TextAnchor.UpperCenter;
+            g.constraint = GridLayoutGroup.Constraint.FixedColumnCount; g.constraintCount = 5;
+            var items = new List<Item>(); if (Catalog.Optional(c) || c == Cat.Hero) items.Add(null); items.AddRange(Catalog.Of(c));
+            int rows = (items.Count + 4) / 5; row.LE(-1, rows * 46 + (rows - 1) * 6);
+            string cur = Catalog.Get(draft, c);
+            foreach (var it in items)
+            {
+                var i2 = it; bool sel = it == null ? string.IsNullOrEmpty(cur) : cur == it.id;
+                var b = UI.Panel(row, "seçenek", sel ? UI.A(UI.Purple, 0.32f) : new Color(1, 1, 1, 0.06f), false, UI.RoundSmall);
+                if (it == null)
+                {
+                    var x = UI.Img(b, UI.Ring, new Color(1, 1, 1, 0.25f), "yok"); x.rectTransform.At(new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(26, 26));
+                    UI.Txt(b, c == Cat.Hero ? "Klasik" : "Yok", 8, UI.Muted, UI.Bold, TextAnchor.MiddleCenter).rectTransform.Fill();
+                }
+                else
+                {
+                    var rc = Catalog.RarityColor(it.rarity);
+                    UI.Img(b, UI.Pill, UI.A(rc, 0.9f), "nadirlik").rectTransform.At(new Vector2(0.5f, 0), new Vector2(0, 2), new Vector2(18, 2), new Vector2(0.5f, 0));
+                    var ic = UI.Icon(b, it.Icon(), 36); ic.rectTransform.At(new Vector2(0.5f, 0.5f), new Vector2(0, 1), new Vector2(36, 36));
+                    if (it.cat == Cat.Frame) UI.Img(b, UI.Ring, it.tint, "çerçeve").rectTransform.At(new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(38, 38));
+                    if (!Store.P.Owns(it.id))
+                    {
+                        var lk = UI.Img(b, UI.Pill, new Color(0.08f, 0.07f, 0.04f, 0.85f), "fiyat"); lk.rectTransform.At(new Vector2(0.5f, 1), new Vector2(0, 1), new Vector2(40, 13), new Vector2(0.5f, 1));
+                        UI.Txt(lk.rectTransform, it.price.ToString(), 8, UI.Gold, UI.Bold, TextAnchor.MiddleCenter).rectTransform.Fill();
+                    }
+                }
+                if (sel) UI.Img(b, UI.Outline, UI.Lilac, "seçili").rectTransform.Fill(-1, -1, -1, -1);
+                UI.Click(b, () =>
+                {
+                    Catalog.Set(draft, c, i2 == null ? "" : i2.id);
+                    if (c == Cat.Costume && i2 != null) Toast("Kostüm giyildi: üst, alt, saç ve şapka gizlenir");
+                    Studio.I.Cheer(c == Cat.Victory && i2 != null ? 1 : 0);
+                    if (i2 != null) selT.text = i2.name + (Store.P.Owns(i2.id) ? "" : " · <color=#F7C74A>" + i2.price + " altın</color>");
+                    Sfx.Play("select", 0.6f); RefreshCharacter();
+                    if (i2 != null) selT.text = i2.name + " · " + i2.rarity + (Store.P.Owns(i2.id) ? "" : " · <color=#F7C74A>" + i2.price + " altın</color>");
+                }, null);
+            }
+        }
+        void Swatches(Transform p, string label, Color[] pal, Func<int> get, Action<int> set, bool skin)
+        {
+            var row = UI.R("renkler", p); row.LE(-1, 26); UI.HRow(row, 5, TextAnchor.MiddleCenter);
+            UI.Txt(row, label, 9, UI.Muted, UI.Bold, TextAnchor.MiddleRight).rectTransform.LE(64, 20);
+            for (int k = 0; k < pal.Length; k++)
+            {
+                int kk = k; var sw = UI.R("renk", row); sw.LE(22, 22);
+                UI.Img(sw, UI.Circle, !skin && pal[k] == Color.white ? new Color(0.85f, 0.85f, 0.88f) : pal[k], "dolgu").rectTransform.Fill(3, 3, 3, 3);
+                if (get() == k) UI.Img(sw, UI.Ring, UI.Fg, "seçili").rectTransform.Fill();
+                UI.Click(sw, () => { set(kk); Sfx.Play("select", 0.5f, 1.2f); RefreshCharacter(); }, null);
+            }
         }
         static List<Item> MissingItems(Look l)
         {

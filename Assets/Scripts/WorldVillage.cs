@@ -14,6 +14,33 @@ namespace VK
         System.Random vr = new System.Random(11);
         float VR(float a, float b) => a + (float)vr.NextDouble() * (b - a);
 
+        public GameObject PutVillage(string name, Transform parent, Vector3 localPos, float yaw, float scale) { var g = Put(name, parent, localPos, yaw, scale); return g; }
+        // giyinme seti zemini: düz gölgeli taş döşeme + çevresinde çimen
+        public void StudioGround(Transform parent)
+        {
+            var rnd = new System.Random(3); float F(float a, float b) => a + (float)rnd.NextDouble() * (b - a);
+            var v = new List<Vector3>(); var col = new List<Color>(); var tr = new List<int>();
+            void Quad(Vector3 c, float sx, float sz, float rot, Color cc)
+            {
+                var q = Quaternion.Euler(0, rot, 0); int i0 = v.Count;
+                foreach (var o in new[] { new Vector3(-sx, 0, -sz), new Vector3(-sx, 0, sz), new Vector3(sx, 0, sz), new Vector3(sx, 0, -sz) }) { v.Add(c + q * o + new Vector3(0, F(0, 0.02f), 0)); col.Add(cc); }
+                tr.Add(i0); tr.Add(i0 + 1); tr.Add(i0 + 2); tr.Add(i0); tr.Add(i0 + 2); tr.Add(i0 + 3);
+            }
+            // zemin: koyu toprak
+            int s0 = v.Count; foreach (var o in new[] { new Vector3(-14, 0, -6), new Vector3(-14, 0, 14), new Vector3(14, 0, 14), new Vector3(14, 0, -6) }) { v.Add(o); col.Add(new Color(0.42f, 0.55f, 0.28f)); }
+            tr.Add(s0); tr.Add(s0 + 1); tr.Add(s0 + 2); tr.Add(s0); tr.Add(s0 + 2); tr.Add(s0 + 3);
+            // kaldırım taşları (kapıya giden yol ve meydan)
+            for (int i = 0; i < 70; i++)
+            {
+                float x = F(-3.2f, 3.2f), z = F(-2.2f, 2.6f); if (Mathf.Abs(x) > 1.4f && z > 1.2f) continue;
+                float g = F(0.42f, 0.6f); Quad(new Vector3(x, 0.015f, z), F(0.22f, 0.38f), F(0.18f, 0.3f), F(0, 90), new Color(g, g * 0.98f, g * 0.95f));
+            }
+            for (int i = 0; i < 26; i++) { float z = F(2.0f, 4.2f), x = F(-0.8f, 0.8f); float g = F(0.45f, 0.6f); Quad(new Vector3(x, 0.018f, z), F(0.2f, 0.32f), F(0.16f, 0.26f), F(0, 90), new Color(g, g, g * 0.95f)); }
+            var m = new Mesh { indexFormat = IndexFormat.UInt32 }; m.SetVertices(v); m.SetColors(col); m.SetTriangles(tr, 0); m.RecalculateNormals(); m.RecalculateBounds();
+            var mat = new Material(matGrass); mat.enableInstancing = false; mat.SetFloat("_Wind", 0); mat.SetColor("_Tint", Color.white);
+            var go = MeshGO("set zemini", m, mat, parent, false); go.GetComponent<MeshRenderer>().receiveShadows = true;
+            go.transform.localPosition = Vector3.zero;
+        }
         bool LoadVillage()
         {
             villageSrc = Resources.Load<GameObject>("Village/VillageUnity");

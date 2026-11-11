@@ -75,7 +75,7 @@ namespace VK
             Btn(hist, ShowVoteLog);
 
             // sohbet günlüğü
-            logBox = Rect("log", canvas, new Vector2(0, 0), new Vector2(0, 0), new Vector2(12, 58), new Vector2(310, 150)); logBox.pivot = Vector2.zero;
+            logBox = Rect("log", canvas, new Vector2(0, 0), new Vector2(0, 0), new Vector2(12, 56), new Vector2(250, 110)); logBox.pivot = Vector2.zero;
             var vl = logBox.gameObject.AddComponent<VerticalLayoutGroup>(); vl.childAlignment = TextAnchor.LowerLeft; vl.spacing = 3; vl.childControlHeight = true; vl.childControlWidth = true; vl.childForceExpandHeight = false; vl.childForceExpandWidth = false;
             // yazma alanı
             var emoBtn = Panel("emo", canvas, BG, Vector2.zero, Vector2.zero, new Vector2(32, 28), new Vector2(40, 40), true);
@@ -271,17 +271,18 @@ namespace VK
             var bgi = row.gameObject.AddComponent<Image>(); bgi.sprite = UI.Pill; bgi.type = Image.Type.Sliced; bgi.pixelsPerUnitMultiplier = 3.2f; bgi.raycastTarget = false;
             bgi.color = cls == "sys" ? new Color(0.3f, 0.22f, 0.05f, 0.5f) : cls == "wolf" ? new Color(0.35f, 0.05f, 0.1f, 0.5f) : new Color(0.04f, 0.04f, 0.07f, 0.42f);
             var col = cls == "wolf" ? "#FF8FA3" : cls == "sys" ? "#F5C542" : "#B9A8FF";
-            var t = Label("t", row, (string.IsNullOrEmpty(name) ? "" : $"<color={col}><b>{Esc(name)}</b></color>  ") + Esc(text), 11, FontStyle.Normal, TextAnchor.MiddleLeft, new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(286, 18));
+            var t = Label("t", row, (string.IsNullOrEmpty(name) ? "" : $"<color={col}><b>{Esc(name)}</b></color>  ") + Esc(text), 10, FontStyle.Normal, TextAnchor.MiddleLeft, new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(226, 15));
             t.horizontalOverflow = HorizontalWrapMode.Overflow; t.verticalOverflow = VerticalWrapMode.Truncate;
             if (cls == "sys") t.color = new Color(1f, 0.92f, 0.7f);
             // genişlik metne göre elle hesaplanır (yerleşim grubu tek kaynak)
-            t.rectTransform.anchorMin = Vector2.zero; t.rectTransform.anchorMax = Vector2.one; t.rectTransform.offsetMin = new Vector2(10, 1); t.rectTransform.offsetMax = new Vector2(-10, -1);
-            bool two = (name ?? "").Length + text.Length > 44;
-            float w = two ? 300 : Mathf.Clamp(t.preferredWidth + 22, 60, 300);
+            t.rectTransform.anchorMin = Vector2.zero; t.rectTransform.anchorMax = Vector2.one; t.rectTransform.offsetMin = new Vector2(8, 0); t.rectTransform.offsetMax = new Vector2(-8, 0);
+            bool two = (name ?? "").Length + text.Length > 40;
+            float w = two ? 240 : Mathf.Clamp(t.preferredWidth + 18, 50, 240);
             if (two) t.horizontalOverflow = HorizontalWrapMode.Wrap;
-            var le = row.gameObject.AddComponent<LayoutElement>(); le.preferredWidth = w; le.minWidth = w; le.preferredHeight = le.minHeight = two ? 34 : 20;
-            while (logBox.childCount > 5) DestroyImmediate(logBox.GetChild(0).gameObject);
-            for (int i = 0; i < logBox.childCount; i++) { var g = logBox.GetChild(i).GetComponent<CanvasGroup>() ?? logBox.GetChild(i).gameObject.AddComponent<CanvasGroup>(); g.alpha = Mathf.Lerp(0.55f, 1f, (i + 1f) / logBox.childCount); }
+            var le = row.gameObject.AddComponent<LayoutElement>(); le.preferredWidth = w; le.minWidth = w; le.preferredHeight = le.minHeight = two ? 28 : 17;
+            logRows.Add((row, Time.time));
+            while (logBox.childCount > 4) { var first = logBox.GetChild(0); logRows.RemoveAll(x => x.r == first); DestroyImmediate(first.gameObject); }
+            row.gameObject.AddComponent<CanvasGroup>();
             Scale(row, new Vector3(0.94f, 0.94f, 1), Vector3.one, 0.22f);
         }
         static string Esc(string s) => s.Replace("<", "(").Replace(">", ")");
@@ -502,6 +503,18 @@ namespace VK
             if (t.seerBox.gameObject.activeSelf && Time.time > t.seerUntil) t.seerBox.gameObject.SetActive(false);
         }
 
+        // sohbet satırları bir süre yeni mesaj gelmezse yavaşça kaybolur (3B alan açık kalsın)
+        readonly List<(RectTransform r, float t)> logRows = new List<(RectTransform r, float t)>();
+        void FadeLog()
+        {
+            for (int i = logRows.Count - 1; i >= 0; i--)
+            {
+                var (r, t0) = logRows[i]; if (r == null) { logRows.RemoveAt(i); continue; }
+                float age = Time.time - t0, a = age < 7f ? 1f : 1f - (age - 7f) / 1.5f;
+                var g = r.GetComponent<CanvasGroup>(); if (g != null) g.alpha = Mathf.Clamp01(a);
+                if (a <= 0) { logRows.RemoveAt(i); Destroy(r.gameObject); }
+            }
+        }
         public void HideHint() { if (hint != null) hint.enabled = false; }
 
         void Update() { try { UpdateInner(); } catch (System.Exception e) { ZuLog.Err("Hud.Update", e); } }
@@ -513,6 +526,7 @@ namespace VK
                 timer.text = (s / 60) + ":" + (s % 60).ToString("00"); timer.color = left < 10 ? new Color(1f, 0.4f, 0.45f) : GOLD;
                 if (s != lastSec) { lastSec = s; if (s <= 5 && s > 0) { Sfx.Play("tick"); Scale(timer.rectTransform, Vector3.one * 1.3f, Vector3.one, 0.25f); } }
             }
+            FadeLog();
             if (toastG.alpha > 0 && Time.time > toastUntil) toastG.alpha = Mathf.Max(0, toastG.alpha - Time.deltaTime * 3);
             lid = Mathf.MoveTowards(lid, eyesClosed ? 1 : 0, Time.deltaTime * 2.2f);
             float h = canvas.rect.height * 0.58f * lid;

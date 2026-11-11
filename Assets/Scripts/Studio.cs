@@ -78,8 +78,11 @@ namespace VK
 
         // ---------------------------------------------------------------- canlı vitrin (özelleştirme ve profil)
         Rig show; RenderTexture showRT; public float yaw = 0; Look showLook; float bob;
-        public RenderTexture Showcase(Look look, int w = 512, int h = 640)
+        public RenderTexture Showcase(Look look, int w = 512, int h = 640, bool withSet = false)
         {
+            useSet = withSet; if (withSet) BuildSet(); if (set != null) set.SetActive(withSet);
+            vcam.backgroundColor = withSet ? new Color(0.66f, 0.78f, 0.88f) : new Color(0, 0, 0, 0);
+            vcam.GetComponent<UniversalAdditionalCameraData>().renderShadows = withSet;
             if (showRT == null || showRT.width != w || showRT.height != h) { if (showRT != null) showRT.Release(); showRT = new RenderTexture(w, h, 16, RenderTextureFormat.ARGB32) { antiAliasing = 4, name = "vitrin" }; showRT.Create(); }
             SetShow(look);
             vcam.targetTexture = showRT; vcam.enabled = true;
@@ -93,6 +96,25 @@ namespace VK
             show = Rig.Make(showLook, 1, false, false, false); show.preview = true; SetLayer(show.gameObject);
             show.transform.position = ORIGIN; bob = 1;
         }
+        // giyinme seti (bir kez kurulur): köy evinin önü, taş zemin, çimen, fener, fıçı
+        GameObject set; bool useSet;
+        void BuildSet()
+        {
+            if (set != null || World.I == null) return;
+            set = new GameObject("giyinme seti"); set.transform.SetParent(transform, false); set.transform.position = ORIGIN;
+            var w = World.I;
+            void P(string n, Vector3 local, float yaw, float sc) { var g = w.PutVillage(n, set.transform, local, yaw, sc); }
+            P("House_01", new Vector3(0.6f, 0, 4.9f), 180, 0.88f);
+            P("Street_Lamp", new Vector3(-2.2f, 0, 1.6f), 90, 0.95f);
+            P("Vooden_Barrel", new Vector3(1.9f, 0, 1.3f), 30, 1.15f);
+            P("Wooden_Case", new Vector3(2.5f, 0, 0.6f), 10, 1.1f);
+            P("Bushes_01", new Vector3(-3.4f, 0, 2.6f), 0, 1.5f);
+            P("Bushes_03", new Vector3(3.6f, 0, 2.9f), 40, 1.4f);
+            P("Flower_Yellow", new Vector3(-1.2f, 0, 1.9f), 0, 2f); P("Flower_Purple", new Vector3(-0.9f, 0, 2.1f), 50, 2f); P("Flower_Blue", new Vector3(2.0f, 0, 2.0f), 0, 2f);
+            P("Tree_01", new Vector3(-5.5f, 0, 7.5f), 0, 1.1f); P("Tree_02", new Vector3(6.5f, 0, 8.5f), 0, 1.6f); P("Tree_02", new Vector3(-8f, 0, 10f), 0, 1.8f);
+            w.StudioGround(set.transform);
+            foreach (var t in set.GetComponentsInChildren<Transform>(true)) t.gameObject.layer = LAYER;
+        }
         public void Cheer(float k) { if (show != null) show.cheer = k; }
         public void HideShowcase() { vcam.enabled = false; if (show != null) { Destroy(show.gameObject); show = null; showLook = null; } }
         void LateUpdate() { try { LateUpdateInner(); } catch (System.Exception e) { ZuLog.Err("Studio.LateUpdate", e); } }
@@ -103,7 +125,12 @@ namespace VK
             show.transform.rotation = Quaternion.Euler(0, 180 + yaw, 0);
             show.transform.position = ORIGIN + Vector3.up * (Mathf.Sin(bob * Mathf.PI) * 0.06f);
             var c = ORIGIN + new Vector3(0, 0.88f, 0);
-            vcam.transform.position = c + new Vector3(0, 0.12f, -4.3f); vcam.transform.LookAt(c); vcam.fieldOfView = 25;
+            if (useSet)
+            {
+                // giyinme seti: karakter evin kapısı önünde, kamera hafif aşağıdan ve soldan
+                vcam.transform.position = c + new Vector3(0.55f, 0.35f, -4.6f); vcam.transform.LookAt(c + new Vector3(0.15f, 0.05f, 0)); vcam.fieldOfView = 34;
+            }
+            else { vcam.transform.position = c + new Vector3(0, 0.12f, -4.3f); vcam.transform.LookAt(c); vcam.fieldOfView = 25; }
             Lamp(c, -1);
         }
     }
