@@ -131,7 +131,7 @@ namespace VK
             float headH = B["Head"].position.y - B["LeftToeBase"].position.y;
             if (headH > 0.01f) model.transform.localScale *= 1.49f * size / headH;
             foreach (var t in model.GetComponentsInChildren<Transform>()) if (t != model.transform) rest.Add(new KeyValuePair<Transform, Quaternion>(t, t.localRotation));
-            ComputeCurlAxes();
+            ComputeCurlAxes(); if (sy) SyntyLog();
 
             // kafaya bağlı çerçeve: göz parıltısı ve taç
             var hb = new GameObject("kafa çerçevesi").transform; hb.SetParent(B["Head"], false);
@@ -438,6 +438,13 @@ namespace VK
                     }
                 }
             }
+        }
+        static bool sLogged;
+        void SyntyLog()
+        {
+            if (sLogged) return; sLogged = true;
+            var ks = new[] { "RightArm", "RightForeArm", "RightHand", "RightHandIndex1", "RightHandIndex2", "RightHandMiddle1", "RightHandThumb1" };
+            Debug.Log("[Zuplay] synty kemik: " + string.Join(" ", System.Array.ConvertAll(ks, k => k + "=" + (B.TryGetValue(k, out var t) ? t.name : "-") + (t != null && curlAxis.ContainsKey(t) ? "*" : ""))));
         }
         // hazır kombinler: gövde, kol, el, kalça, bacak aynı numaralı takım; baş, saç, kaş, sakal ayrı
         public static readonly string[] SYNTY_PRESETS = { "m3", "m13", "m6", "m8", "m27", "m14", "m26", "m4", "f5", "f13", "f28", "f7" };

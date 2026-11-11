@@ -53,6 +53,9 @@ namespace VK
 
     public static class Catalog
     {
+        // kahraman karakterler varken eski (klasik) karakter parçaları satılmaz/gösterilmez
+        public static bool Usable(Item i) => i.cat == Cat.Hero ? Rig.SyntyAvailable : !(Rig.SyntyAvailable && i.cat < Cat.Effect);
+        public static bool UsableCat(Cat c) => c == Cat.Hero ? Rig.SyntyAvailable : !(Rig.SyntyAvailable && c < Cat.Effect);
         public static readonly Dictionary<Cat, string> CAT_NAME = new Dictionary<Cat, string>
         {
             { Cat.Hair, "Saç" }, { Cat.Hat, "Şapka" }, { Cat.Top, "Üst" }, { Cat.Bottom, "Alt" }, { Cat.Shoes, "Ayakkabı" }, { Cat.Glasses, "Gözlük" },

@@ -898,7 +898,7 @@ namespace VK
         // kamerayı bir noktaya çevir (oyuncu kaydırırsa iptal olur)
         void Focus(Vector3 target, float sec, float fov = 48) { shotTarget = target; shotUntil = Now + sec / SPEED; shotFov = fov; shotPos = null; }
         void FocusFrom(Vector3 from, Vector3 target, float sec, float fov = 48) { Focus(target, sec, fov); shotPos = from; }
-        Vector3? shotPos;
+        Vector3? shotPos; int dbgK = -2;
         readonly List<Transform> ringObjs = new List<Transform>(); Material ringMat; Mesh ringMesh;
 
         float AngleTo(Pl p, Vector3 target) { var v = p.ch.transform.InverseTransformPoint(target); return Mathf.Atan2(v.x, v.z); }
@@ -1000,6 +1000,12 @@ namespace VK
             // ---- sinematik kamera: olaylarda yumuşakça hedefe döner, sonra oyuncunun bakışına geri süzülür
             Vector3 seatEye = new Vector3(ME.seat.x * 1.04f, 1.45f, ME.seat.z * 1.04f);
             Vector3 wantPos = ghostCam ? new Vector3(ME.seat.x * 1.3f, 2.5f, ME.seat.z * 1.3f) : seatEye;
+            if (dbgK == -2) dbgK = int.TryParse(Bridge.Param("yakin") ?? "", out var dk) ? dk : -1;
+            if (dbgK >= 0 && dbgK < P.Length)
+            {   // test: kamerayı bir oyuncunun önüne yakından koy (işaret etmeyi incelemek için)
+                var qq = P[dbgK]; var inw = (-qq.seat).normalized; var sd = Vector3.Cross(Vector3.up, inw);
+                shotPos = qq.seat + inw * 1.9f + sd * 1.1f + Vector3.up * 1.35f; shotTarget = qq.seat + inw * 0.4f + Vector3.up * 1.05f; shotUntil = Now + 1; shotFov = 55;
+            }
             if (!endOrbit && shotPos != null && Now < shotUntil) wantPos = shotPos.Value;
             if (endOrbit) { float oa = ME.ang + t * 0.12f; wantPos = new Vector3(Mathf.Cos(oa) * 7.2f, 3.1f + Mathf.Sin(t * 0.3f) * 0.3f, Mathf.Sin(oa) * 7.2f); }
             cam.transform.position = Vector3.Lerp(cam.transform.position, wantPos, 1 - Mathf.Exp(-dt * (endOrbit ? 1.2f : 2.5f)));

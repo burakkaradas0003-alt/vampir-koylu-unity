@@ -370,7 +370,7 @@ namespace VK
             Studio.I.SetShow(draft);
             nameTag.text = Store.P.name; var ti = Catalog.Get(draft.title); nameTag.transform.parent.Find("unvan").GetComponent<Text>().text = ti != null ? ti.name : "";
             UI.Clear(charList);
-            bool hero = !string.IsNullOrEmpty(draft.synty);
+            bool hero = !string.IsNullOrEmpty(draft.synty) || Rig.SyntyAvailable;
             foreach (var sec in SECTIONS)
             {
                 var cats = sec.cats.Where(c => c != Cat.Hero || Rig.SyntyAvailable).Where(c => !hero || c == Cat.Hero || c >= Cat.Effect).ToArray();
@@ -529,7 +529,7 @@ namespace VK
             tabShop.Restyle(!invTab ? UI.Style.Primary : UI.Style.Secondary); tabInv.Restyle(invTab ? UI.Style.Primary : UI.Style.Secondary);
             // öne çıkan ürün (her gün değişir)
             UI.Clear(featured);
-            var pool = Catalog.ALL.Where(i => (i.rarity == "Efsanevi" || i.rarity == "Destansı") && (i.cat != Cat.Hero || Rig.SyntyAvailable)).ToList();
+            var pool = Catalog.ALL.Where(i => (i.rarity == "Efsanevi" || i.rarity == "Destansı") && Catalog.Usable(i)).ToList(); if (pool.Count == 0) pool = Catalog.ALL.Where(Catalog.Usable).ToList();
             var f = pool[DateTime.Now.DayOfYear % pool.Count];
             var fc = Catalog.RarityColor(f.rarity);
             var bg = UI.Img(featured, UI.Glow, UI.A(fc, 0.4f), "ışık"); bg.rectTransform.At(new Vector2(0.5f, 1), new Vector2(0, -40), new Vector2(220, 220), new Vector2(0.5f, 1));
@@ -543,9 +543,9 @@ namespace VK
             // filtreler
             UI.Clear(shopFilters);
             UI.Chip(shopFilters, "Tümü", shopCat == null, () => { shopCat = null; RefreshShop(); }).r.LE(-1, 26);
-            foreach (var c in SHOP_CATS) { if (c == Cat.Hero && !Rig.SyntyAvailable) continue; var cc = c; UI.Chip(shopFilters, Catalog.CAT_NAME[c], shopCat == c, () => { shopCat = cc; RefreshShop(); }).r.LE(-1, 26); }
+            foreach (var c in SHOP_CATS) { if (!Catalog.UsableCat(c)) continue; var cc = c; UI.Chip(shopFilters, Catalog.CAT_NAME[c], shopCat == c, () => { shopCat = cc; RefreshShop(); }).r.LE(-1, 26); }
             UI.Clear(shopGrid);
-            var items = Catalog.ALL.Where(i => (i.cat != Cat.Hero || Rig.SyntyAvailable) && (shopCat == null || i.cat == shopCat) && (invTab ? Store.P.Owns(i.id) : !i.Free)).OrderBy(i => Store.P.Owns(i.id)).ThenBy(i => i.price).ToList();
+            var items = Catalog.ALL.Where(i => Catalog.Usable(i) && (shopCat == null || i.cat == shopCat) && (invTab ? Store.P.Owns(i.id) : !i.Free)).OrderBy(i => Store.P.Owns(i.id)).ThenBy(i => i.price).ToList();
             if (items.Count == 0) { var e = UI.Txt(shopGrid, invTab ? "Bu kategoride ürünün yok" : "Ürün yok", 12, UI.Muted, null, TextAnchor.MiddleCenter); e.rectTransform.LE(400, 60); }
             int n = 0;
             foreach (var it in items)
@@ -603,7 +603,9 @@ namespace VK
 
         // ================================================================ GÖREVLER
         string qTab = "gunluk"; RectTransform qList, season; UI.Btn qd, qw, qa;
-        public static readonly (int level, string item)[] SEASON = { (2, "fr_ice"), (4, "vic_clap"), (6, "head_cat"), (8, "fx_hearts"), (11, "mask_gold"), (15, "fx_stars"), (20, "t_legend") };
+        static readonly (int level, string item)[] SEASON_CLASSIC = { (2, "fr_ice"), (4, "vic_clap"), (6, "head_cat"), (8, "fx_hearts"), (11, "mask_gold"), (15, "fx_stars"), (20, "t_legend") };
+        static readonly (int level, string item)[] SEASON_HERO = { (2, "fr_ice"), (4, "vic_clap"), (6, "hero_m8"), (8, "fx_hearts"), (11, "hero_f13"), (15, "fx_stars"), (20, "t_legend") };
+        public static (int level, string item)[] SEASON => Rig.SyntyAvailable ? SEASON_HERO : SEASON_CLASSIC;
         static int SeasonClaimable() => Store.P == null ? 0 : SEASON.Count(s => Store.P.level >= s.level && !Store.P.owned.Contains(s.item));
         RectTransform BuildQuests()
         {
