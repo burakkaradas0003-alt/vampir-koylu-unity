@@ -548,18 +548,21 @@ namespace VK
         float fireBase = 0.6f;
 
         // ---------------------------------------------------------------- her kare
-        void Update() { try { UpdateInner(); } catch (System.Exception e) { ZuLog.Err("World.Update", e); } }
+        int zstep; void Update() { zstep = 0; try { UpdateInner(); } catch (System.Exception e) { ZuLog.Err("World.Update adım " + zstep, e); } }
         void UpdateInner()
         {
             float t = Time.time, dt = Mathf.Min(0.1f, Time.deltaTime);
             if (todDur > 0)
             {
                 float u = Mathf.Clamp01((t - todT0) / todDur); u = u * u * (3 - 2 * u);
+                zstep = 1;
                 ApplyTOD(Mathf.Lerp(todFrom, todTo, u));
                 if (t - todT0 >= todDur) todDur = -1;
             }
+            zstep = 2;
             fireLight.intensity = fireBase * (1 + Mathf.Sin(t * 11) * 0.08f + Mathf.Sin(t * 5.3f) * 0.06f);
             if (emberMat != null) emberMat.SetColor("_EmissionColor", Color.white * (1.3f + Mathf.Sin(t * 2.3f) * 0.35f + Mathf.Sin(t * 7.1f) * 0.2f));
+            zstep = 3;
             // alevler
             var camPos = cam.transform.position;
             foreach (var f in flames)
@@ -571,12 +574,14 @@ namespace VK
                 var look = camPos - f.t.position; look.y = 0; if (look.sqrMagnitude > 0.001f) f.t.rotation = Quaternion.LookRotation(-look);
                 f.t.localScale = new Vector3(f.w * (0.7f + q * 0.4f), f.h * (0.75f + q * 0.4f), 1);
             }
+            zstep = 4;
             if (glow != null)
             {
                 glow.position = new Vector3(0, -0.2f, 0); var lk = camPos - glow.position; glow.rotation = Quaternion.LookRotation(-lk); glow.localScale = new Vector3(1.4f, 1.4f, 1);
                 glowMpb.SetVector("_Color", new Vector4(1f, 0.55f, 0.2f, (0.04f + tod * 0.12f) * (1 + Mathf.Sin(t * 9) * 0.12f)));
                 glow.GetComponent<MeshRenderer>().SetPropertyBlock(glowMpb);
             }
+            zstep = 5;
             // köz, kıvılcım, duman
             fireAcc += dt * (low ? 5 : 10);
             while (fireAcc > 1) { fireAcc--; float r = Random.value * 0.16f, a = Random.value * 6.283f; Emit(new Vector3(Mathf.Cos(a) * r, 0.2f, Mathf.Sin(a) * r), new Vector3((Random.value - 0.5f) * 0.15f, 0.9f + Random.value * 0.7f, (Random.value - 0.5f) * 0.15f), 0.45f + Random.value * 0.35f, 0.3f, 0.05f, Random.value < 0.5f ? new Color(1, 0.54f, 0.16f) : new Color(1, 0.76f, 0.29f), 0, 0.5f); }
@@ -586,12 +591,17 @@ namespace VK
             while (smokeAcc > 1) { smokeAcc--; Emit(new Vector3((Random.value - 0.5f) * 0.2f, 1.1f, (Random.value - 0.5f) * 0.2f), new Vector3(0.12f + Random.value * 0.1f, 0.45f + Random.value * 0.2f, (Random.value - 0.5f) * 0.1f), 3.2f, 0.35f, 1.6f, new Color(0.35f, 0.34f, 0.33f), 0, 0.1f * (1 - tod * 0.7f)); }
             chimAcc += dt * chimneys.Count * 0.9f;
             while (chimAcc > 1 && chimneys.Count > 0) { chimAcc--; var cp = chimneys[Random.Range(0, chimneys.Count)]; Emit(cp, new Vector3(0.15f + Random.value * 0.1f, 0.5f + Random.value * 0.3f, (Random.value - 0.5f) * 0.1f), 4f, 0.4f, 2.2f, new Color(0.45f, 0.44f, 0.43f), 0, 0.12f * (1 - tod * 0.6f)); }
+            zstep = 6;
             DrawParticles(dt, camPos);
+            zstep = 7;
             UpdateAtmos(t, camPos);
+            zstep = 8;
             env?.Update(cam, tod);
             if (Sfx.I != null) Sfx.I.SetTod(tod);
+            zstep = 9;
             // yıldızlar
             if (tod > 0.2f) { for (int i = 0; i < starC.Length; i++) starC[i].w = Mathf.Clamp01((tod - 0.2f) * 1.6f) * (0.5f + 0.5f * Mathf.Sin(t * 2 + i)); starMpb.SetVectorArray("_Color", starC); if (starMat == null) starMat = new Material(GlowMat()); var rp = new RenderParams(starMat) { matProps = starMpb, worldBounds = new Bounds(Vector3.zero, Vector3.one * 1000) }; FaceAll(starM, camPos); Graphics.RenderMeshInstanced(rp, Quad(), 0, starM); }
+            zstep = 10;
             // çimen
             foreach (var b in grassBatches) for (int c = 0; c < b.m.Length; c++) { if (b.count[c] == 0) continue; grassRp.matProps = b.mpb[c]; Graphics.RenderMeshInstanced(grassRp, b.mesh, 0, b.m[c], b.count[c]); }
         }

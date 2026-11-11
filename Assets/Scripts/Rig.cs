@@ -86,8 +86,10 @@ namespace VK
             Color skinTint = Look.SKINS[Mathf.Clamp(lk.skin, 0, Look.SKINS.Length - 1)];
             Color topT = Look.TINTS[Mathf.Clamp(lk.topColor, 0, Look.TINTS.Length - 1)], botT = Look.TINTS[Mathf.Clamp(lk.bottomColor, 0, Look.TINTS.Length - 1)], hatT = Look.TINTS[Mathf.Clamp(lk.hatColor, 0, Look.TINTS.Length - 1)];
             phase = Random.value * 6.28f;
-            var model = Instantiate(BASE, transform); model.name = "model"; body = model;
+            bool sy = !string.IsNullOrEmpty(lk.synty) && SyntyBase() != null;
+            var model = Instantiate(sy ? SBASE : BASE, transform); model.name = "model"; body = model;
             foreach (var t in model.GetComponentsInChildren<Transform>()) { var n = Nm(t.name); if (!B.ContainsKey(n)) B[n] = t; }
+            if (sy) SyntyAlias();
 
             // malzemeler
             var lit = Resources.Load<Material>("Mats/Lit");
@@ -101,7 +103,8 @@ namespace VK
             var show = new HashSet<string>(ALWAYS); foreach (var p in lk.Parts()) show.Add(p);
             var known = new HashSet<string>(KNOWN);
             var visible = new List<Renderer>();
-            foreach (var r in model.GetComponentsInChildren<Renderer>(true))
+            if (sy) SyntyParts(model, lk, visible);
+            else foreach (var r in model.GetComponentsInChildren<Renderer>(true))
             {
                 string key = Nm(r.name);
                 if (!known.Contains(key) && r.transform.parent != null && known.Contains(Nm(r.transform.parent.name))) key = Nm(r.transform.parent.name);
@@ -367,13 +370,70 @@ namespace VK
             return true;
         }
 
+        // ---------------------------------------------------------------- Synty Fantasy Hero (deneme): parçalı karakter
+        static GameObject SBASE; static bool sTried; static readonly Dictionary<string, Material> sMats = new Dictionary<string, Material>();
+        static GameObject SyntyBase() { if (!sTried) { sTried = true; SBASE = Resources.Load<GameObject>("Synty/ModularCharacters"); } return SBASE; }
+        // Synty kemik adları -> bu karakter sisteminin kullandığı adlar
+        void SyntyAlias()
+        {
+            void A(string ours, string theirs) { if (B.TryGetValue(theirs, out var t)) B[ours] = t; }
+            A("Spine", "Spine_01"); A("Spine1", "Spine_02");
+            foreach (var (s, x) in new[] { ("Left", "_L"), ("Right", "_R") })
+            {
+                A(s + "Shoulder", "Clavicle" + x); A(s + "Arm", "Shoulder" + x); A(s + "ForeArm", "Elbow" + x); A(s + "Hand", "Hand" + x);
+                A(s + "UpLeg", "UpperLeg" + x); A(s + "Leg", "LowerLeg" + x); A(s + "Foot", "Ankle" + x); A(s + "ToeBase", "Ball" + x);
+                if (!B.TryGetValue("Hand" + x, out var hand)) continue;
+                foreach (var t in hand.GetComponentsInChildren<Transform>())
+                {
+                    var n = Nm(t.name);
+                    for (int k = 1; k <= 3; k++)
+                    {
+                        if (n == "IndexFinger_0" + k) B[s + "HandIndex" + k] = t;
+                        if (n == "Finger_0" + k) B[s + "HandMiddle" + k] = t;
+                        if (n == "Thumb_0" + k) B[s + "HandThumb" + k] = t;
+                    }
+                }
+            }
+        }
+        // hazır kombinler: gövde, kol, el, kalça, bacak aynı numaralı takım; baş, saç, kaş, sakal ayrı
+        public static readonly string[] SYNTY_PRESETS = { "m3", "m13", "m6", "m8", "m27", "m14", "m26", "m4", "f5", "f13", "f28", "f7" };
+        static readonly int[] HEADS = { 1, 2, 4, 5, 6, 7, 8, 9, 3, 10, 11, 12 }, HAIRS = { 5, 12, 2, 9, 14, 3, 16, 18, 24, 31, 27, 21 }, FACIAL = { 2, 5, 0, 8, 0, 3, 10, 0, 0, 0, 0, 0 };
+        static readonly string[] TEX = { "01_A", "02_A", "03_A", "04_A" };
+        void SyntyParts(GameObject model, Look lk, List<Renderer> visible)
+        {
+            int pi = System.Array.IndexOf(SYNTY_PRESETS, lk.synty); if (pi < 0) pi = 0;
+            string g = lk.synty.StartsWith("f") ? "Female" : "Male"; int o = 3; int.TryParse(lk.synty.Substring(1), out o);
+            string N(string part, int idx, int max) => "Chr_" + part + "_" + g + "_" + Mathf.Clamp(idx, 0, max).ToString("00");
+            var want = new HashSet<string>
+            {
+                N("Torso", o, 28), N("Hips", o, 28), N("ArmUpperRight", o, 20), N("ArmUpperLeft", o, 20), N("ArmLowerRight", o, 18), N("ArmLowerLeft", o, 18),
+                N("HandRight", o, 17), N("HandLeft", o, 17), N("LegRight", o, 19), N("LegLeft", o, 19), N("Head", HEADS[pi], 22),
+                "Chr_Hair_" + HAIRS[pi].ToString("00"), "Chr_Eyebrow_" + g + "_" + (1 + pi % (g == "Male" ? 10 : 7)).ToString("00"),
+            };
+            if (g == "Male" && FACIAL[pi] > 0) want.Add("Chr_FacialHair_Male_" + FACIAL[pi].ToString("00"));
+            string tk = TEX[pi % TEX.Length];
+            if (!sMats.TryGetValue(tk, out var mat))
+            {
+                mat = new Material(Resources.Load<Material>("Mats/Lit")); mat.SetTexture("_BaseMap", Resources.Load<Texture2D>("Synty/Tex_" + tk)); mat.SetColor("_BaseColor", Color.white); mat.SetFloat("_Smoothness", 0.18f);
+                sMats[tk] = mat;
+            }
+            foreach (var r in model.GetComponentsInChildren<Renderer>(true))
+            {
+                if (!want.Contains(Nm(r.name))) { Destroy(r.gameObject); continue; }
+                r.enabled = true; if (r is SkinnedMeshRenderer smr) smr.updateWhenOffscreen = true;
+                var arr = new Material[Mathf.Max(1, r.sharedMaterials.Length)]; for (int i = 0; i < arr.Length; i++) arr[i] = ghost ? ghostMat : mat;
+                r.sharedMaterials = arr; r.shadowCastingMode = ghost || fp ? ShadowCastingMode.Off : ShadowCastingMode.On;
+                visible.Add(r);
+            }
+        }
+
         void ComputeCurlAxes()
         {
             foreach (var side in new[] { "Left", "Right" })
             {
                 if (!B.ContainsKey(side + "Hand") || !B.ContainsKey(side + "HandMiddle1")) continue;
                 Vector3 hand = B[side + "Hand"].position;
-                Vector3 along = B[side + "HandMiddle1"].position - hand, across = B[side + "HandIndex1"].position - B[side + "HandPinky1"].position;
+                Vector3 along = B[side + "HandMiddle1"].position - hand, across = B[side + "HandIndex1"].position - (B.ContainsKey(side + "HandPinky1") ? B[side + "HandPinky1"] : B[side + "HandMiddle1"]).position;
                 Vector3 palm = Vector3.Cross(along, across).normalized;
                 if (Vector3.Dot(palm, B["Hips"].position - hand) < 0) palm = -palm; // A duruşunda avuç gövdeye bakar
                 foreach (var f in new[] { "Index", "Middle", "Ring", "Pinky", "Thumb" })
@@ -518,7 +578,7 @@ namespace VK
                 r.enabled = false;
                 if (!(r is SkinnedMeshRenderer smr) || smr.sharedMesh == null || !smr.sharedMesh.isReadable) continue;
                 var src = smr.sharedMesh; var bw = src.boneWeights; if (bw.Length == 0) continue;
-                bool Arm(int bi) { var n = Nm(smr.bones[bi].name); return n.StartsWith("RightArm") || n.StartsWith("RightForeArm") || n.StartsWith("RightHand"); }
+                var armRoot = B["RightArm"]; bool Arm(int bi) { var bt = smr.bones[bi]; return bt != null && (bt == armRoot || bt.IsChildOf(armRoot)); }
                 var keep = new List<int>();
                 for (int s = 0; s < src.subMeshCount; s++)
                 {

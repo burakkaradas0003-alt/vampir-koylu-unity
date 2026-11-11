@@ -147,6 +147,7 @@ namespace VK
             float night = Mathf.Clamp01((tod - 0.35f) / 0.65f);
             // her grup kendi malzeme kopyasıyla çizilir: aynı karede aynı malzemeyle birden çok örnekli çizim WebGL'de birbirini eziyor
             if (haloMat == null) { haloMat = new Material(GlowMat()); poolMat = new Material(GlowMat()); flyMat = new Material(GlowMat()); }
+            zstep = 71;
             var q = Quad();
             if (night > 0.01f && haloM.Length > 0)
             {
@@ -162,6 +163,7 @@ namespace VK
                 Graphics.RenderMeshInstanced(new RenderParams(poolMat) { matProps = poolMpb, worldBounds = b, shadowCastingMode = ShadowCastingMode.Off }, q, 0, poolM);
                 Graphics.RenderMeshInstanced(new RenderParams(haloMat) { matProps = haloMpb, worldBounds = b, shadowCastingMode = ShadowCastingMode.Off }, q, 0, haloM);
             }
+            zstep = 72;
             // ateş böcekleri: yalnız gece, yumuşak yanıp sönme
             if (night > 0.2f)
             {
@@ -176,6 +178,7 @@ namespace VK
                 flyMpb.SetVectorArray("_Color", flyC);
                 Graphics.RenderMeshInstanced(new RenderParams(flyMat) { matProps = flyMpb, worldBounds = new Bounds(Vector3.zero, Vector3.one * 80), shadowCastingMode = ShadowCastingMode.Off }, q, 0, flyM);
             }
+            zstep = 73;
             // yer sisi: gece belirgin, gündüz çok hafif pus
             if (mistMat != null)
             {

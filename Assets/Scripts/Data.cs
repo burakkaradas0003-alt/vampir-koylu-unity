@@ -15,6 +15,7 @@ namespace VK
         public string hair = "Hairstyle_male_012", hat = "", top = "T_Shirt_009", bottom = "Pants_010", shoes = "Shoe_Sneakers_009";
         public string glasses = "", face = "", hands = "", ears = "", costume = "", mask = "", head = "";
         public string effect = "", victory = "", frame = "", title = "";
+        public string synty = ""; // deneme: Synty Fantasy Hero kombini (boşsa klasik karakter)
         public int skin = 1, topColor, bottomColor, hatColor;
         public Look Clone() => (Look)MemberwiseClone();
         public string Json() => JsonUtility.ToJson(this);
