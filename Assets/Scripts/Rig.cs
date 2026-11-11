@@ -172,6 +172,7 @@ namespace VK
             else
             {
                 float low = Mathf.Min(B["LeftToeBase"].position.y, B["RightToeBase"].position.y, B["LeftFoot"].position.y - 0.06f, B["RightFoot"].position.y - 0.06f);
+                low = MeshBottom(visible, low); // ayak tabanı tam yere bassın (kemik değil, gerçek mesh altı)
                 model.transform.position += Vector3.down * (low - transform.position.y - 0.02f);
                 Vector3 hips = transform.InverseTransformPoint(B["Hips"].position);
                 float seatH = Mathf.Max(0.2f, hips.y - 0.08f);
@@ -461,6 +462,26 @@ namespace VK
             return model;
         }
 
+        // pozlanmış mesh'in en alt noktası (ayakkabı tabanı); bulunamazsa kemik tahmini
+        static Mesh bakeTmp;
+        float MeshBottom(List<Renderer> vis, float fallback)
+        {
+            float best = float.MaxValue; if (bakeTmp == null) bakeTmp = new Mesh();
+            foreach (var r in vis)
+            {
+                if (!(r is SkinnedMeshRenderer smr) || smr.sharedMesh == null || !r.enabled) continue;
+                try
+                {
+                    smr.BakeMesh(bakeTmp, true);
+                    var m = Matrix4x4.TRS(smr.transform.position, smr.transform.rotation, Vector3.one);
+                    var v = bakeTmp.vertices;
+                    for (int i = 0; i < v.Length; i++) { float y = m.MultiplyPoint3x4(v[i]).y; if (y < best) best = y; }
+                }
+                catch { }
+            }
+            return best < float.MaxValue && best > fallback - 0.4f ? best : fallback;
+        }
+
         void ComputeCurlAxes()
         {
             foreach (var side in new[] { "Left", "Right" })
@@ -543,7 +564,7 @@ namespace VK
             bThink += (c.think - bThink) * kk; bLaugh += (Mathf.Max(c.laugh, c.open * c.smile) - bLaugh) * kk; bSurp += (c.surprise - bSurp) * kk;
             bAngry += (c.angry - bAngry) * kk; bSad += (c.sad - bSad) * kk; bTalk += (c.talk - bTalk) * kk;
             // bekleme: her karakterin kendi duruşu; ara sıra değişir
-            if (time > idleNext) { idleNext = time + 7 + Random.value * 9; idleKind = Random.Range(0, 3); }
+            if (time > idleNext) { idleNext = time + 7 + Random.value * 9; idleKind = Random.value < 0.8f ? 0 : Random.Range(1, 3); // çoğunlukla eller dizlerde }
             float idleCross = idleKind == 1 ? 1 : 0, idleChin = idleKind == 2 ? 1 : 0;
             bCross += (idleCross * (1 - bTalk) * (1 - bLaugh) - bCross) * kk * 0.5f;
             bChin += (idleChin * (1 - bTalk) - bChin) * kk * 0.5f;
@@ -562,13 +583,13 @@ namespace VK
             else
             {
                 float gs = Mathf.Sin(time * 4.1f + phase), gc = Mathf.Cos(time * 2.9f + phase);
-                var upL = Blend(time, new Vector3(-0.25f, -1, 0.35f),
+                var upL = Blend(time, new Vector3(-0.12f, -0.8f, 0.62f),
                     (bThink + bChin, new Vector3(-0.12f, -0.55f, 0.75f)), (bCross, new Vector3(-0.2f, -0.85f, 0.5f)), (laugh, new Vector3(-0.3f, -0.9f, 0.32f)),
                     (bSurp, new Vector3(-0.6f, -0.35f, 0.6f)), (bTalk * (1 - bThink), new Vector3(-0.42f, -0.72f, 0.62f + gs * 0.1f)));
-                var foL = Blend(time, new Vector3(-0.02f, -0.45f, 1),
+                var foL = Blend(time, new Vector3(0.02f, -0.6f, 0.82f),
                     (bThink + bChin, new Vector3(0.32f, 0.95f, 0.3f)), (bCross, new Vector3(1f, 0.12f, 0.32f)), (laugh, new Vector3(0.85f, -0.05f, 0.55f)),
                     (bSurp, new Vector3(-0.15f, 0.9f, 0.4f)), (bTalk * (1 - bThink), new Vector3(-0.38f + gs * 0.25f, 0.2f + gc * 0.2f, 1)));
-                var haL = Blend(time, new Vector3(0.1f, -0.7f, 1), (bThink + bChin, new Vector3(0.35f, 0.75f, 0.55f)), (bCross, new Vector3(1, 0, 0.1f)), (bSurp, new Vector3(-0.1f, 1, 0.3f)), (bTalk, new Vector3(-0.3f, 0.5f, 1)));
+                var haL = Blend(time, new Vector3(0.05f, -0.9f, 0.5f), (bThink + bChin, new Vector3(0.35f, 0.75f, 0.55f)), (bCross, new Vector3(1, 0, 0.1f)), (bSurp, new Vector3(-0.1f, 1, 0.3f)), (bTalk, new Vector3(-0.3f, 0.5f, 1)));
                 Aim("LeftArm", "LeftForeArm", rootQ * Lerp(upL, new Vector3(-0.45f, 0.95f, 0.15f), w));
                 Aim("LeftForeArm", "LeftHand", rootQ * Lerp(foL, new Vector3(-0.15f - waveWiggle * 1.2f, 1, 0.15f), w));
                 Aim("LeftHand", "LeftHandMiddle1", rootQ * Lerp(haL, new Vector3(-0.05f, 1, 0.2f), w));
@@ -582,13 +603,13 @@ namespace VK
             else
             {
                 float gs2 = Mathf.Sin(time * 3.3f + phase * 1.7f);
-                var upR = Blend(time, new Vector3(0.25f, -1, 0.35f), (bCross, new Vector3(0.2f, -0.85f, 0.5f)), (laugh, new Vector3(0.3f, -0.9f, 0.32f)),
+                var upR = Blend(time, new Vector3(0.12f, -0.8f, 0.62f), (bCross, new Vector3(0.2f, -0.85f, 0.5f)), (laugh, new Vector3(0.3f, -0.9f, 0.32f)),
                     (bSurp, new Vector3(0.6f, -0.35f, 0.6f)), (bTalk * 0.6f, new Vector3(0.4f, -0.75f, 0.6f)), (bAngry * (1 - bCross), new Vector3(0.3f, -0.95f, 0.25f)));
-                var foR = Blend(time, new Vector3(0.02f, -0.45f, 1), (bCross, new Vector3(-1f, 0.18f, 0.28f)), (laugh, new Vector3(-0.85f, -0.05f, 0.55f)),
+                var foR = Blend(time, new Vector3(-0.02f, -0.6f, 0.82f), (bCross, new Vector3(-1f, 0.18f, 0.28f)), (laugh, new Vector3(-0.85f, -0.05f, 0.55f)),
                     (bSurp, new Vector3(0.15f, 0.9f, 0.4f)), (bTalk * 0.6f, new Vector3(0.35f + gs2 * 0.2f, 0.15f, 1)));
                 Aim("RightArm", "RightForeArm", rootQ * Lerp(upR, P, r));
                 Aim("RightForeArm", "RightHand", rootQ * Lerp(foR, P, r));
-                Aim("RightHand", "RightHandMiddle1", rootQ * Lerp(new Vector3(-0.1f, -0.7f, 1), P, r));
+                Aim("RightHand", "RightHandMiddle1", rootQ * Lerp(new Vector3(-0.05f, -0.9f, 0.5f), P, r));
             }
             Bend("RightHandIndex1", 0.35f * (1 - r)); Bend("RightHandIndex2", 0.4f * (1 - r));
             for (int i = 1; i < 4; i++) { Bend("RightHand" + FING[i] + "1", 0.35f + r * 1.15f); Bend("RightHand" + FING[i] + "2", 0.4f + r * 1.2f); }

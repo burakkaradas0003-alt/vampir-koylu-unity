@@ -923,10 +923,11 @@ namespace VK
             {
                 var q = P[ME.pointAt.Value].seat; var target = new Vector3(q.x, 1.3f, q.z);
                 // Agrou gibi: omuz ekranın alt köşesinin dışında, kol oradan hedefe uzanır (kesik uç asla görünmez)
-                float side = cam.transform.InverseTransformPoint(target).x < 0 ? -1 : 1;
-                armSide = Mathf.Lerp(armSide, side, Mathf.Min(1, dt * 10));
+                // her zaman sağ kol; hedef ekran dışına çıksa da kol o yöne doğru gösterir
+                armSide = 1;
                 // önce elin ekrandaki yeri (hedefin biraz altı/yanı), sonra omuz oradan geriye: ekran köşesinin dışına
                 var tv = cam.WorldToViewportPoint(target);
+                if (tv.z < 0.1f) { tv.x = cam.transform.InverseTransformPoint(target).x < 0 ? 0.02f : 0.98f; tv.y = 0.6f; }
                 // el, ekran köşesiyle hedef arasındaki çizginin üstünde: parmak ekranda tam hedefi gösterir
                 float cx = armSide > 0 ? 1.12f : -0.12f, cy = -0.2f;
                 float hx = Mathf.Lerp(cx, Mathf.Clamp(tv.x, 0.05f, 0.95f), 0.58f), hy = Mathf.Clamp(Mathf.Lerp(cy, Mathf.Clamp(tv.y, 0.3f, 0.9f), 0.58f), 0.22f, 0.5f);
@@ -1000,7 +1001,7 @@ namespace VK
             if (held && drag != null)
             {
                 var d = mp - drag.Value; float s = 844f / Screen.width;
-                yawT -= d.x * s * 0.006f; pitchT = Mathf.Clamp(pitchT + d.y * s * 0.004f, -0.35f, 0.75f); drag = mp;
+                yawT = Mathf.Clamp(yawT - d.x * s * 0.006f, -1.65f, 1.65f); pitchT = Mathf.Clamp(pitchT + d.y * s * 0.004f, -0.35f, 0.75f); drag = mp;
             }
             if (upE)
             {
