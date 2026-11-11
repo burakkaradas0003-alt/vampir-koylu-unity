@@ -566,7 +566,7 @@ namespace VK
             bThink += (c.think - bThink) * kk; bLaugh += (Mathf.Max(c.laugh, c.open * c.smile) - bLaugh) * kk; bSurp += (c.surprise - bSurp) * kk;
             bAngry += (c.angry - bAngry) * kk; bSad += (c.sad - bSad) * kk; bTalk += (c.talk - bTalk) * kk;
             // bekleme: her karakterin kendi duruşu; ara sıra değişir
-            if (time > idleNext) { idleNext = time + 7 + Random.value * 9; idleKind = Random.value < 0.8f ? 0 : Random.Range(1, 3); // çoğunlukla eller dizlerde }
+            if (time > idleNext) { idleNext = time + 7 + Random.value * 9; idleKind = Random.value < 0.8f ? 0 : Random.Range(1, 3); } // çoğunlukla eller dizlerde
             float idleCross = idleKind == 1 ? 1 : 0, idleChin = idleKind == 2 ? 1 : 0;
             bCross += (idleCross * (1 - bTalk) * (1 - bLaugh) - bCross) * kk * 0.5f;
             bChin += (idleChin * (1 - bTalk) - bChin) * kk * 0.5f;
