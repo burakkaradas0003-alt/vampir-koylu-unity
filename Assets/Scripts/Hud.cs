@@ -24,6 +24,19 @@ namespace VK
         public Action<string> onSend; public Action<string> onEmote; public Action onBack, onRoleChip, onAgain, onLobby; public Func<List<string>> voteLog;
         public static readonly Color BG = new Color(0.075f, 0.078f, 0.11f, 0.8f);
         Image phIcon; RectTransform phPill;
+        RectTransform chatBtn, inBox, sendBtn, spkBtn, micBtn, emoBtn; Image spkIcon, micSlash; bool chatOpen, soundOn = true, micOn;
+        // yazma alanı sohbet düğmesinin yanında açılır/kapanır; diğer düğmeler yana kayar
+        void OpenChat(bool open, bool instant = false)
+        {
+            chatOpen = open;
+            inBox.gameObject.SetActive(open); sendBtn.gameObject.SetActive(open);
+            float x0 = open ? 352 : 76;
+            var targets = new[] { (spkBtn, x0), (micBtn, x0 + 46), (emoBtn, x0 + 92) };
+            foreach (var (r, x) in targets) { if (instant) r.anchoredPosition = new Vector2(x, 28); else Tween.Move(r, r.anchoredPosition, new Vector2(x, 28), 0.22f); }
+            chatBtn.GetComponent<Image>().color = open ? new Color(0.36f, 0.24f, 0.7f, 0.9f) : BG;
+            if (open && !instant) { Scale(inBox, new Vector3(0.6f, 1, 1), Vector3.one, 0.25f); input.ActivateInputField(); }
+            if (emoRow != null) emoRow.gameObject.SetActive(false);
+        }
         public static readonly Color GOLD = new Color(1f, 0.8f, 0.3f);
         Image cardGlow;
 
@@ -43,8 +56,9 @@ namespace VK
 
             var topShade = Rect("üstGölge", canvas, new Vector2(0, 1), new Vector2(1, 1), new Vector2(0, -55), new Vector2(0, 110));
             var ti = topShade.gameObject.AddComponent<Image>(); ti.sprite = grad; ti.color = new Color(0.02f, 0.02f, 0.06f, 0.55f); ti.raycastTarget = false; topShade.localScale = new Vector3(1, -1, 1);
-            var botShade = Rect("altGölge", canvas, new Vector2(0, 0), new Vector2(0.45f, 0), Vector2.zero, new Vector2(0, 150)); botShade.pivot = new Vector2(0.5f, 0);
-            var bi = botShade.gameObject.AddComponent<Image>(); bi.sprite = grad; bi.color = new Color(0.02f, 0.02f, 0.06f, 0.5f); bi.raycastTarget = false;
+            // alt kenar: tüm genişlikte, çok yumuşak geçişli hafif karartma (sert kenar çizgisi kalmaz)
+            var botShade = Rect("altGölge", canvas, new Vector2(0, 0), new Vector2(1, 0), Vector2.zero, new Vector2(0, 120)); botShade.pivot = new Vector2(0.5f, 0);
+            var bi = botShade.gameObject.AddComponent<Image>(); bi.sprite = grad; bi.color = new Color(0.02f, 0.02f, 0.06f, 0.32f); bi.raycastTarget = false;
             tagsRoot = Rect("etiketler", canvas, Vector2.zero, Vector2.one, Vector2.zero, Vector2.zero);
             // göz kapakları (gece)
             lidTop = Panel("lidT", canvas, new Color(0.01f, 0.01f, 0.025f, 1f), new Vector2(0, 1), new Vector2(1, 1), new Vector2(0, -0), new Vector2(0, 0)); lidTop.pivot = new Vector2(0.5f, 1);
@@ -78,23 +92,34 @@ namespace VK
             // sohbet günlüğü
             logBox = Rect("log", canvas, new Vector2(0, 0), new Vector2(0, 0), new Vector2(12, 56), new Vector2(250, 110)); logBox.pivot = Vector2.zero;
             var vl = logBox.gameObject.AddComponent<VerticalLayoutGroup>(); vl.childAlignment = TextAnchor.LowerLeft; vl.spacing = 3; vl.childControlHeight = true; vl.childControlWidth = true; vl.childForceExpandHeight = false; vl.childForceExpandWidth = false;
-            // yazma alanı
-            var emoBtn = Panel("emo", canvas, BG, Vector2.zero, Vector2.zero, new Vector2(32, 28), new Vector2(40, 40), true);
-            Img("e", emoBtn, Emoji("laugh"), new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(24, 24));
-            Btn(emoBtn, () => emoG.gameObject.SetActive(!emoG.gameObject.activeSelf));
-            var inBox = Panel("yaz", canvas, BG, Vector2.zero, Vector2.zero, new Vector2(170, 28), new Vector2(224, 40), true);
+            // alt çubuk: kare sohbet düğmesi (basınca yazma alanı yanına açılır), hoparlör, mikrofon, emoji
+            chatBtn = Panel("sohbet", canvas, BG, Vector2.zero, Vector2.zero, new Vector2(30, 28), new Vector2(40, 40), true);
+            Img("i", chatBtn, Emoji("chat"), new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(24, 24));
+            Btn(chatBtn, () => OpenChat(!chatOpen));
+            inBox = Panel("yaz", canvas, BG, Vector2.zero, Vector2.zero, new Vector2(170, 28), new Vector2(224, 40), true);
             var it = Label("metin", inBox, "", 14, FontStyle.Normal, TextAnchor.MiddleLeft, new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(200, 34));
             var ph = Label("ipucu", inBox, "Bir şey yaz...", 14, FontStyle.Normal, TextAnchor.MiddleLeft, new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(200, 34)); ph.color = new Color(1, 1, 1, 0.45f);
             input = inBox.gameObject.AddComponent<InputField>(); input.textComponent = it; input.placeholder = ph; input.characterLimit = 120;
             input.onEndEdit.AddListener(s => { if (Input.GetKeyDown(KeyCode.Return) || Input.GetKeyDown(KeyCode.KeypadEnter)) Send(); });
-            var send = Panel("gönder", canvas, BG, Vector2.zero, Vector2.zero, new Vector2(306, 28), new Vector2(40, 40), true);
-            Label(">", send, ">", 20, FontStyle.Bold, TextAnchor.MiddleCenter, new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(40, 40));
-            Btn(send, Send);
+            sendBtn = Panel("gönder", canvas, BG, Vector2.zero, Vector2.zero, new Vector2(306, 28), new Vector2(40, 40), true);
+            Label(">", sendBtn, ">", 20, FontStyle.Bold, TextAnchor.MiddleCenter, new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(40, 40));
+            Btn(sendBtn, Send);
+            spkBtn = Panel("hoparlör", canvas, BG, Vector2.zero, Vector2.zero, new Vector2(76, 28), new Vector2(40, 40), true);
+            spkIcon = Img("i", spkBtn, Emoji("speakeron"), new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(22, 22));
+            Btn(spkBtn, () => { soundOn = !soundOn; AudioListener.volume = soundOn ? 1 : 0; spkIcon.sprite = Emoji(soundOn ? "speakeron" : "mute"); Toast(soundOn ? "Ses açık" : "Ses kapalı", 1.4f); });
+            micBtn = Panel("mikrofon", canvas, BG, Vector2.zero, Vector2.zero, new Vector2(122, 28), new Vector2(40, 40), true);
+            Img("i", micBtn, Emoji("mic"), new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(22, 22));
+            micSlash = Img("kapalı", micBtn, null, new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(30, 4)); micSlash.sprite = UI.Pill; micSlash.color = new Color(0.95f, 0.3f, 0.35f); micSlash.enabled = true; micSlash.preserveAspect = false; micSlash.rectTransform.localEulerAngles = new Vector3(0, 0, 45);
+            Btn(micBtn, () => { micOn = !micOn; micSlash.enabled = !micOn; micBtn.GetComponent<Image>().color = micOn ? new Color(0.16f, 0.5f, 0.36f, 0.85f) : BG; Bridge.Send("{\"type\":\"mic\",\"on\":" + (micOn ? "true" : "false") + "}"); Toast(micOn ? "Mikrofon açık" : "Mikrofon kapalı", 1.4f); });
+            emoBtn = Panel("emo", canvas, BG, Vector2.zero, Vector2.zero, new Vector2(168, 28), new Vector2(40, 40), true);
+            Img("e", emoBtn, Emoji("laugh"), new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(24, 24));
+            Btn(emoBtn, () => { emoG.gameObject.SetActive(!emoG.gameObject.activeSelf); emoRow.anchoredPosition = new Vector2(emoBtn.anchoredPosition.x + 136, 72); });
             emoRow = Panel("emojiler", canvas, BG, Vector2.zero, Vector2.zero, new Vector2(170, 72), new Vector2(310, 40), true);
             emoG = emoRow.gameObject.AddComponent<CanvasGroup>();
             string[] emos = { "wave", "up", "down", "laugh", "angry", "think", "scream", "cry", "heart" };
             for (int i = 0; i < emos.Length; i++) { string k = emos[i]; var b = Img("e" + i, emoRow, Emoji(k), new Vector2(0, 0.5f), new Vector2(20 + i * 34, 0), new Vector2(26, 26)); Btn(b.rectTransform, () => { onEmote?.Invoke(k); emoRow.gameObject.SetActive(false); }); }
             emoRow.gameObject.SetActive(false);
+            OpenChat(false, true);
 
             // eylem kartı
             var act = Panel("eylem", canvas, BG, new Vector2(1, 0), new Vector2(1, 0), new Vector2(-136, 56), new Vector2(256, 96), true);
@@ -196,7 +221,7 @@ namespace VK
         }
         void Btn(RectTransform r, Action f) { var b = r.gameObject.GetComponent<Button>(); if (b == null) b = r.gameObject.AddComponent<Button>(); b.onClick.AddListener(() => { Sfx.Play("tap"); Punch(r, 0.9f); f(); }); }
 
-        void Send() { var t = input.text.Trim(); input.text = ""; if (t.Length > 0) onSend?.Invoke(t); }
+        void Send() { var t = input.text.Trim(); input.text = ""; if (t.Length > 0) onSend?.Invoke(t); OpenChat(false); }
 
         // ---------------------------------------------------------------- oyunun kullandıkları
         float phaseEnd; public bool timerOn;

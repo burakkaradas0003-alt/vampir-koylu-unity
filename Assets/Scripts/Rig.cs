@@ -216,6 +216,7 @@ namespace VK
         public float cheer;            // 0..1 zafer pozu ağırlığı
         public bool preview;           // vitrin/portre karakteri: efekt parçacığı üretmez
         public bool hang;              // darağacında: ayakta sarkık poz
+        public bool limp;              // ip gerildikten sonra baş düşer
         public Transform Bone(string n) => B.TryGetValue(n, out var t) ? t : transform;
         public float seatHeight;       // taburesiz (ayakta değil, gösterim) kalça yüksekliği
         readonly List<GameObject> acc = new List<GameObject>();
@@ -340,7 +341,7 @@ namespace VK
         }
 
         // kullanıcının rustik sandalyesi: oturma yüzeyi kalça yüksekliğine gelecek şekilde ölçeklenir, sırtlık arkada
-        static Mesh chairMesh; static Quaternion chairRot; static Vector3 chairScl; static Material chairMat; static bool chairTried;
+        static float chairYaw = float.NaN; static Mesh chairMesh; static Quaternion chairRot; static Vector3 chairScl; static Material chairMat; static bool chairTried;
         bool MakeChair(float seatH)
         {
             if (!chairTried)
@@ -367,7 +368,26 @@ namespace VK
             }
             float h = mx.y - mn.y; if (h < 1e-4f) return false;
             float k = 2f * seatH / h; // oturak, toplam yüksekliğin yarısında
-            var g = new GameObject("sandalye"); g.transform.SetParent(transform, false); g.transform.localPosition = new Vector3(0, 0, -0.04f); g.transform.localScale = Vector3.one * k; g.transform.localRotation = Quaternion.Euler(0, 180, 0); // sırtlık arkada, oturak öne bakar
+            // sırtlığın yönünü modelden bul: üst kısmın köşeleri sırtlıktır; sırtlık karakterin arkasına (-Z) gelecek şekilde döndür
+            if (float.IsNaN(chairYaw))
+            {
+                chairYaw = 180;
+                if (chairMesh.isReadable)
+                {
+                    var vs = chairMesh.vertices; Vector3 sum = Vector3.zero, all = Vector3.zero; int n = 0;
+                    float cut = mn.y + (mx.y - mn.y) * 0.72f;
+                    foreach (var v0 in vs) { var p = tr.MultiplyPoint3x4(v0); all += p; if (p.y > cut) { sum += p; n++; } }
+                    if (n > 10)
+                    {
+                        var c0 = all / vs.Length; var d = sum / n - c0; d.y = 0;
+                        if (d.sqrMagnitude > 1e-6f) chairYaw = Mathf.Atan2(d.x, d.z) * Mathf.Rad2Deg; // sırtlığın şu anki yönü
+                        chairYaw = 180 - chairYaw; // onu -Z'ye çevir
+                        // en yakın 90°'ye oturt (model eksenleri düzgünse)
+                        float snap = Mathf.Round(chairYaw / 90f) * 90f; if (Mathf.Abs(Mathf.DeltaAngle(snap, chairYaw)) < 20) chairYaw = snap;
+                    }
+                }
+            }
+            var g = new GameObject("sandalye"); g.transform.SetParent(transform, false); g.transform.localPosition = new Vector3(0, 0, -0.04f); g.transform.localScale = Vector3.one * k; g.transform.localRotation = Quaternion.Euler(0, chairYaw, 0); // sırtlık arkada, oturak öne bakar
             var m = new GameObject("model"); m.transform.SetParent(g.transform, false); m.transform.localRotation = chairRot; m.transform.localScale = chairScl;
             m.transform.localPosition = -new Vector3((mn.x + mx.x) / 2, mn.y, (mn.z + mx.z) / 2);
             m.AddComponent<MeshFilter>().sharedMesh = chairMesh; var r = m.AddComponent<MeshRenderer>(); r.sharedMaterial = chairMat;
@@ -484,6 +504,25 @@ namespace VK
             return best < float.MaxValue && best > fallback - 0.4f ? best : fallback;
         }
 
+        // oturan karakterin elleri tam dizlerine: iki kemikli ters kinematik (omuz-dirsek-el), dirsek hafif dışa ve geriye
+        Vector3 kUpL, kFoL, kUpR, kFoR;
+        void KneeIK(string side, float sx, out Vector3 upLocal, out Vector3 foLocal)
+        {
+            upLocal = new Vector3(0.12f * sx, -0.8f, 0.62f); foLocal = new Vector3(-0.02f * sx, -0.6f, 0.82f);
+            if (!B.TryGetValue(side + "Arm", out var sh) || !B.TryGetValue(side + "ForeArm", out var el) || !B.TryGetValue(side + "Hand", out var ha) || !B.TryGetValue(side + "Leg", out var knee)) return;
+            float a = Vector3.Distance(sh.position, el.position), b = Vector3.Distance(el.position, ha.position);
+            if (a < 1e-4f || b < 1e-4f) return;
+            // el bileği dizin biraz üstünde ve önünde: avuç dizin üstüne gelir
+            var target = knee.position + rootQ * new Vector3(-0.02f * sx, 0.07f, -0.04f) * (a + b) / 0.55f;
+            var S = sh.position; var to = target - S; float d = Mathf.Clamp(to.magnitude, Mathf.Abs(a - b) + 0.01f, a + b - 0.002f);
+            var dir = to.normalized;
+            float cosA = Mathf.Clamp((a * a + d * d - b * b) / (2 * a * d), -1, 1); float x = a * cosA, h = a * Mathf.Sqrt(Mathf.Max(0, 1 - cosA * cosA));
+            var hint = rootQ * new Vector3(sx * 0.8f, 0.1f, -0.6f); var perp = (hint - dir * Vector3.Dot(hint, dir)); if (perp.sqrMagnitude < 1e-6f) perp = rootQ * Vector3.right * sx; perp.Normalize();
+            var elbow = S + dir * x + perp * h; var wrist = S + dir * d;
+            var inv = Quaternion.Inverse(rootQ);
+            upLocal = inv * (elbow - S).normalized; foLocal = inv * (wrist - elbow).normalized;
+        }
+
         void ComputeCurlAxes()
         {
             foreach (var side in new[] { "Left", "Right" })
@@ -585,10 +624,11 @@ namespace VK
             else
             {
                 float gs = Mathf.Sin(time * 4.1f + phase), gc = Mathf.Cos(time * 2.9f + phase);
-                var upL = Blend(time, stool ? new Vector3(-0.12f, -0.8f, 0.62f) : new Vector3(-0.2f, -1, 0.04f),
+                if (stool) KneeIK("Left", -1, out kUpL, out kFoL); else { kUpL = new Vector3(-0.2f, -1, 0.04f); kFoL = new Vector3(-0.08f, -1, 0.14f); }
+                var upL = Blend(time, kUpL,
                     (bThink + bChin, new Vector3(-0.12f, -0.55f, 0.75f)), (bCross, new Vector3(-0.2f, -0.85f, 0.5f)), (laugh, new Vector3(-0.3f, -0.9f, 0.32f)),
                     (bSurp, new Vector3(-0.6f, -0.35f, 0.6f)), (bTalk * (1 - bThink), new Vector3(-0.42f, -0.72f, 0.62f + gs * 0.1f)));
-                var foL = Blend(time, stool ? new Vector3(0.02f, -0.6f, 0.82f) : new Vector3(-0.08f, -1, 0.14f),
+                var foL = Blend(time, kFoL,
                     (bThink + bChin, new Vector3(0.32f, 0.95f, 0.3f)), (bCross, new Vector3(1f, 0.12f, 0.32f)), (laugh, new Vector3(0.85f, -0.05f, 0.55f)),
                     (bSurp, new Vector3(-0.15f, 0.9f, 0.4f)), (bTalk * (1 - bThink), new Vector3(-0.38f + gs * 0.25f, 0.2f + gc * 0.2f, 1)));
                 var haL = Blend(time, stool ? new Vector3(0.05f, -0.9f, 0.5f) : new Vector3(0, -1, 0.12f), (bThink + bChin, new Vector3(0.35f, 0.75f, 0.55f)), (bCross, new Vector3(1, 0, 0.1f)), (bSurp, new Vector3(-0.1f, 1, 0.3f)), (bTalk, new Vector3(-0.3f, 0.5f, 1)));
@@ -605,9 +645,10 @@ namespace VK
             else
             {
                 float gs2 = Mathf.Sin(time * 3.3f + phase * 1.7f);
-                var upR = Blend(time, stool ? new Vector3(0.12f, -0.8f, 0.62f) : new Vector3(0.2f, -1, 0.04f), (bCross, new Vector3(0.2f, -0.85f, 0.5f)), (laugh, new Vector3(0.3f, -0.9f, 0.32f)),
+                if (stool) KneeIK("Right", 1, out kUpR, out kFoR); else { kUpR = new Vector3(0.2f, -1, 0.04f); kFoR = new Vector3(0.08f, -1, 0.14f); }
+                var upR = Blend(time, kUpR, (bCross, new Vector3(0.2f, -0.85f, 0.5f)), (laugh, new Vector3(0.3f, -0.9f, 0.32f)),
                     (bSurp, new Vector3(0.6f, -0.35f, 0.6f)), (bTalk * 0.6f, new Vector3(0.4f, -0.75f, 0.6f)), (bAngry * (1 - bCross), new Vector3(0.3f, -0.95f, 0.25f)));
-                var foR = Blend(time, stool ? new Vector3(-0.02f, -0.6f, 0.82f) : new Vector3(0.08f, -1, 0.14f), (bCross, new Vector3(-1f, 0.18f, 0.28f)), (laugh, new Vector3(-0.85f, -0.05f, 0.55f)),
+                var foR = Blend(time, kFoR, (bCross, new Vector3(-1f, 0.18f, 0.28f)), (laugh, new Vector3(-0.85f, -0.05f, 0.55f)),
                     (bSurp, new Vector3(0.15f, 0.9f, 0.4f)), (bTalk * 0.6f, new Vector3(0.35f + gs2 * 0.2f, 0.15f, 1)));
                 Aim("RightArm", "RightForeArm", rootQ * Lerp(upR, P, r));
                 Aim("RightForeArm", "RightHand", rootQ * Lerp(foR, P, r));
@@ -622,7 +663,7 @@ namespace VK
                 // idam: kollar yanda sarkık, baş öne ve yana düşmüş
                 Aim("LeftArm", "LeftForeArm", W(-0.14f, -1, 0.03f)); Aim("LeftForeArm", "LeftHand", W(-0.06f, -1, 0.06f));
                 Aim("RightArm", "RightForeArm", W(0.14f, -1, 0.03f)); Aim("RightForeArm", "RightHand", W(0.06f, -1, 0.06f));
-                CharRot("Head", 0.5f, 0, 0.32f);
+                if (limp) CharRot("Head", 0.5f, 0, 0.32f);
             }
             // yüz: kızgın / mutlu / normal; konuşurken ağız açılıp kapanır
             string fc = cheer > 0.5f ? "happy" : "usual";

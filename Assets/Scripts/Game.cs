@@ -287,58 +287,80 @@ namespace VK
         }
 
         // ---------------------------------------------------------------- ölüm ve hayaletler
-        // darağacı: yerden yükselir, mahkûm ilmeğe kaldırılır, kapak açılır ve sallanır
+        // darağacı meydanın kenarındaki kendi yerinde kurulur: yerden yükselir, mahkûm ayakta kapağın üstünde belirir,
+        // ilmek boynuna iner, kapak açılır, düşer ve sallanır
+        static readonly Vector3 GALLOWS = new Vector3(Mathf.Cos(4.92f) * 12.6f, 0, Mathf.Sin(4.92f) * 12.6f);
         async Task<GameObject> Hang(Pl p)
         {
-            var outw = new Vector3(p.seat.x, 0, p.seat.z).normalized;
-            var g = new GameObject("darağacı"); g.transform.position = p.seat + outw * 0.1f; g.transform.rotation = Quaternion.LookRotation(-outw);
+            var g = new GameObject("darağacı"); g.transform.position = GALLOWS; g.transform.rotation = Quaternion.LookRotation(-GALLOWS.normalized);
             var lit = Resources.Load<Material>("Mats/Lit");
             var wood = new Material(lit); wood.SetColor("_BaseColor", new Color(0.33f, 0.22f, 0.14f)); wood.SetFloat("_Smoothness", 0.1f);
-            var dark = new Material(lit); dark.SetColor("_BaseColor", new Color(0.22f, 0.15f, 0.1f));
-            var rope = new Material(lit); rope.SetColor("_BaseColor", new Color(0.66f, 0.55f, 0.37f));
+            var dark = new Material(lit); dark.SetColor("_BaseColor", new Color(0.2f, 0.14f, 0.09f));
+            var ropeM = new Material(lit); ropeM.SetColor("_BaseColor", new Color(0.66f, 0.55f, 0.37f));
             GameObject Part(PrimitiveType t, Material m, Vector3 lp, Vector3 sc, Vector3 rot = default)
             {
                 var o = GameObject.CreatePrimitive(t); Destroy(o.GetComponent<Collider>()); o.transform.SetParent(g.transform, false);
                 o.transform.localPosition = lp; o.transform.localScale = sc; o.transform.localEulerAngles = rot; o.GetComponent<MeshRenderer>().sharedMaterial = m; return o;
             }
-            Part(PrimitiveType.Cube, wood, new Vector3(0, 0.07f, 0), new Vector3(2.1f, 0.14f, 1.5f));
-            Part(PrimitiveType.Cube, dark, new Vector3(0, 0.145f, 0), new Vector3(0.75f, 0.02f, 0.75f));   // kapak
-            foreach (float x in new[] { -0.9f, 0.9f })
+            const float deck = 0.9f; // platform yüksekliği
+            Part(PrimitiveType.Cube, wood, new Vector3(0, deck - 0.06f, 0), new Vector3(2.2f, 0.12f, 1.8f));
+            foreach (float x in new[] { -1f, 1f }) foreach (float z in new[] { -0.8f, 0.8f }) Part(PrimitiveType.Cube, dark, new Vector3(x, deck / 2 - 0.06f, z), new Vector3(0.14f, deck, 0.14f));
+            for (int k = 0; k < 4; k++) Part(PrimitiveType.Cube, wood, new Vector3(0, 0.12f + k * 0.22f, 1.25f - k * 0.12f), new Vector3(0.8f, 0.07f, 0.28f)); // basamaklar
+            var trap = Part(PrimitiveType.Cube, dark, new Vector3(0, deck + 0.005f, 0.05f), new Vector3(0.8f, 0.03f, 0.8f));
+            foreach (float x in new[] { -0.95f, 0.95f })
             {
-                Part(PrimitiveType.Cube, wood, new Vector3(x, 1.65f, -0.35f), new Vector3(0.16f, 3.3f, 0.16f));
-                Part(PrimitiveType.Cube, wood, new Vector3(x * 0.72f, 2.95f, -0.35f), new Vector3(0.1f, 0.7f, 0.1f), new Vector3(0, 0, x > 0 ? 45 : -45));
+                Part(PrimitiveType.Cube, wood, new Vector3(x, deck + 1.65f, -0.5f), new Vector3(0.16f, 3.3f, 0.16f));
+                Part(PrimitiveType.Cube, wood, new Vector3(x * 0.72f, deck + 2.95f, -0.5f), new Vector3(0.1f, 0.7f, 0.1f), new Vector3(0, 0, x > 0 ? 45 : -45));
             }
-            Part(PrimitiveType.Cube, wood, new Vector3(0, 3.22f, -0.35f), new Vector3(2.15f, 0.18f, 0.2f));
-            Part(PrimitiveType.Cube, wood, new Vector3(0, 3.22f, -0.1f), new Vector3(0.16f, 0.16f, 0.6f));
-            Part(PrimitiveType.Cylinder, rope, new Vector3(0, 2.86f, 0.08f), new Vector3(0.045f, 0.34f, 0.045f));
-            Part(PrimitiveType.Cylinder, rope, new Vector3(0, 2.48f, 0.08f), new Vector3(0.2f, 0.025f, 0.2f), new Vector3(70, 0, 0));
-            foreach (var r in g.GetComponentsInChildren<MeshRenderer>()) r.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.On;
+            Part(PrimitiveType.Cube, wood, new Vector3(0, deck + 3.22f, -0.5f), new Vector3(2.2f, 0.18f, 0.2f));
+            Part(PrimitiveType.Cube, wood, new Vector3(0, deck + 3.22f, -0.2f), new Vector3(0.16f, 0.16f, 0.65f));
+            float beamY = deck + 3.13f;
+            var rope = Part(PrimitiveType.Cylinder, ropeM, new Vector3(0, beamY - 0.3f, 0.05f), new Vector3(0.045f, 0.3f, 0.045f));
+            var loop = Part(PrimitiveType.Cylinder, ropeM, new Vector3(0, beamY - 0.62f, 0.05f), new Vector3(0.2f, 0.025f, 0.2f), new Vector3(70, 0, 0));
+            foreach (var rr in g.GetComponentsInChildren<MeshRenderer>()) rr.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.On;
+            Focus(GALLOWS + Vector3.up * 2.2f, 9f / SPEED, 44);
             // yükselme
             Sfx.Play("whoosh", 0.8f, 0.7f);
-            for (float a = 0; a < 1; a += Time.deltaTime / Mathf.Max(0.01f, 0.8f / SPEED))
+            for (float a = 0; a < 1; a += Time.deltaTime / Mathf.Max(0.01f, 0.9f / SPEED))
             {
                 g.transform.localScale = new Vector3(1, Mathf.Max(0.01f, Tween.OutBack(Mathf.Clamp01(a))), 1);
-                if (UnityEngine.Random.value < 0.4f) W.Emit(g.transform.position + new Vector3((UnityEngine.Random.value - 0.5f) * 2, 0.1f, (UnityEngine.Random.value - 0.5f) * 1.5f), new Vector3(0, 0.4f, 0), 1.2f, 0.25f, 0.8f, new Color(0.62f, 0.55f, 0.45f), 0, 0.35f);
+                if (UnityEngine.Random.value < 0.4f) W.Emit(GALLOWS + new Vector3((UnityEngine.Random.value - 0.5f) * 2.4f, 0.1f, (UnityEngine.Random.value - 0.5f) * 2f), new Vector3(0, 0.4f, 0), 1.2f, 0.25f, 0.8f, new Color(0.62f, 0.55f, 0.45f), 0, 0.35f);
                 await Awaitable.NextFrameAsync();
             }
             g.transform.localScale = Vector3.one; Sfx.Play("tap", 0.9f, 0.5f);
-            await Wait(0.3f);
-            // mahkûm ilmeğe
-            var ch = p.ch; var chair = ch.transform.Find("sandalye"); if (chair != null) chair.gameObject.SetActive(false);
-            ch.hang = true; await Awaitable.NextFrameAsync(); await Awaitable.NextFrameAsync();
-            var noose = g.transform.TransformPoint(new Vector3(0, 2.44f, 0.08f));
-            var start = ch.transform.position; var offset = noose - ch.Bone("Neck").position;
-            for (float a = 0; a < 1; a += Time.deltaTime / Mathf.Max(0.01f, 0.9f / SPEED)) { ch.transform.position = start + offset * Tween.InOut(Mathf.Clamp01(a)); await Awaitable.NextFrameAsync(); }
-            ch.transform.position = start + offset;
-            await Wait(0.5f);
-            // kapak açılır: kısa düşüş ve sallanma
-            Sfx.Play("death", 0.7f, 0.6f); var hang0 = ch.transform.position; var rot0 = ch.transform.rotation; var axis = g.transform.right;
-            W.Burst(g.transform.position + Vector3.up * 0.2f, new Color(0.6f, 0.52f, 0.42f), 16, 0.6f, 0.2f, 1f);
-            for (float a = 0; a < 1; a += Time.deltaTime / Mathf.Max(0.01f, 2.4f / SPEED))
+            await Wait(0.4f);
+            // mahkûm koltuğundan kaybolur, darağacının kapağında ayakta belirir
+            var ch = p.ch; W.Burst(p.seat + Vector3.up * 0.9f, new Color(0.7f, 0.68f, 0.64f), 18, 0.5f, 0.2f, 1f);
+            var chair = ch.transform.Find("sandalye"); if (chair != null) chair.gameObject.SetActive(false);
+            ch.hang = true; ch.limp = false; ch.transform.rotation = Quaternion.LookRotation(-GALLOWS.normalized);
+            await Awaitable.NextFrameAsync(); await Awaitable.NextFrameAsync();
+            float foot = Mathf.Min(ch.Bone("LeftToeBase").position.y, ch.Bone("RightToeBase").position.y) - 0.03f;
+            var stand = g.transform.TransformPoint(new Vector3(0, deck + 0.02f, 0.05f));
+            ch.transform.position += new Vector3(stand.x - ch.transform.position.x, stand.y - foot, stand.z - ch.transform.position.z);
+            W.Burst(stand + Vector3.up * 0.9f, new Color(0.7f, 0.68f, 0.64f), 18, 0.5f, 0.2f, 1f); Sfx.Play("pop", 0.6f, 0.7f);
+            await Wait(1.0f);
+            // ilmek boynuna iner
+            float neckY = g.transform.InverseTransformPoint(ch.Bone("Neck").position).y;
+            float len = beamY - neckY;
+            for (float a = 0; a < 1; a += Time.deltaTime / Mathf.Max(0.01f, 0.7f / SPEED))
             {
-                float drop = Mathf.Min(1, a * 8) * 0.22f, sw = Mathf.Sin(a * 14f) * 9f * (1 - a);
+                float l = Mathf.Lerp(0.6f, len, Tween.InOut(Mathf.Clamp01(a)));
+                rope.transform.localPosition = new Vector3(0, beamY - l / 2, 0.05f); rope.transform.localScale = new Vector3(0.045f, l / 2, 0.045f);
+                loop.transform.localPosition = new Vector3(0, beamY - l, 0.05f);
+                await Awaitable.NextFrameAsync();
+            }
+            Sfx.Play("tick", 0.8f, 0.6f);
+            await Wait(0.8f);
+            // kapak açılır: düşüş, sallanma
+            trap.SetActive(false); Sfx.Play("death", 0.7f, 0.6f); ch.limp = true;
+            var hang0 = ch.transform.position; var rot0 = ch.transform.rotation; var axis = g.transform.right;
+            W.Burst(stand, new Color(0.6f, 0.52f, 0.42f), 16, 0.6f, 0.2f, 1f);
+            for (float a = 0; a < 1; a += Time.deltaTime / Mathf.Max(0.01f, 2.6f / SPEED))
+            {
+                float drop = Mathf.Min(1, a * 9) * 0.32f, sw = Mathf.Sin(a * 14f) * 8f * (1 - a);
                 ch.transform.rotation = Quaternion.AngleAxis(sw, axis) * rot0;
                 ch.transform.position = hang0 + Vector3.down * drop;
+                float l = len + drop; rope.transform.localPosition = new Vector3(0, beamY - l / 2, 0.05f); rope.transform.localScale = new Vector3(0.045f, l / 2, 0.045f); loop.transform.localPosition = new Vector3(0, beamY - l, 0.05f);
                 await Awaitable.NextFrameAsync();
             }
             return g;
@@ -390,7 +412,7 @@ namespace VK
                 Feel(p, cause == "grief" ? "sad" : "surprise", 2.5f);
                 foreach (var q in Alive()) if (!q.me) { var qq = q; Later(0.3f + Rnd() * 0.9f, () => Feel(qq, Rnd() < 0.6f ? "sad" : "surprise", 3)); }
                 Sfx.Play("death");
-                if (!p.me) Focus(p.seat + Vector3.up * (cause == "exec" ? 1.7f : 0.95f), cause == "exec" ? 6.5f : 3.4f, cause == "exec" ? 46 : 40);
+                if (!p.me && cause != "exec") Focus(p.seat + Vector3.up * 0.95f, 3.4f, 40);
                 var anim = KillAnim(p, cause);
                 await ui.Banner(cause == "grief" ? "broken" : "skull", Who(p), txt, 2.2f);
                 await anim;
@@ -561,7 +583,7 @@ namespace VK
             ui.HideAction();
             ui.Phase("GECE " + n, "Köy uyuyor...");
             W.SetTOD(1, 3.5f / SPEED); Sfx.Play("night");
-            Focus(cam.transform.position + new Vector3(-0.42f, 0.75f, 0.72f).normalized * 50, 3.6f, 58); // gökyüzüne, aya bak
+            // gece: kamera olduğu yerde kalır, sadece gözler kapanır
             await ui.Banner("moon", "Gece " + n, "Herkes gözlerini kapatsın...", 2);
             while (W.TodBusy) await Awaitable.NextFrameAsync();
             foreach (var p in P) p.sleepTo = 1;
