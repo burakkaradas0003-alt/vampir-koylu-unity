@@ -87,7 +87,8 @@ namespace VK
             Color topT = Look.TINTS[Mathf.Clamp(lk.topColor, 0, Look.TINTS.Length - 1)], botT = Look.TINTS[Mathf.Clamp(lk.bottomColor, 0, Look.TINTS.Length - 1)], hatT = Look.TINTS[Mathf.Clamp(lk.hatColor, 0, Look.TINTS.Length - 1)];
             phase = Random.value * 6.28f;
             bool sy = !string.IsNullOrEmpty(lk.synty) && SyntyBase() != null;
-            var model = Instantiate(sy ? SBASE : BASE, transform); model.name = "model"; body = model;
+            var syVis = new List<Renderer>();
+            var model = sy ? SyntyBuild(lk, syVis) : Instantiate(BASE, transform); model.name = "model"; body = model;
             foreach (var t in model.GetComponentsInChildren<Transform>()) { var n = Nm(t.name); if (!B.ContainsKey(n)) B[n] = t; }
             if (sy) SyntyAlias();
 
@@ -103,7 +104,7 @@ namespace VK
             var show = new HashSet<string>(ALWAYS); foreach (var p in lk.Parts()) show.Add(p);
             var known = new HashSet<string>(KNOWN);
             var visible = new List<Renderer>();
-            if (sy) SyntyParts(model, lk, visible);
+            if (sy) visible.AddRange(syVis);
             else foreach (var r in model.GetComponentsInChildren<Renderer>(true))
             {
                 string key = Nm(r.name);
@@ -372,7 +373,27 @@ namespace VK
 
         // ---------------------------------------------------------------- Synty Fantasy Hero (deneme): parçalı karakter
         static GameObject SBASE; static bool sTried; static readonly Dictionary<string, Material> sMats = new Dictionary<string, Material>();
-        static GameObject SyntyBase() { if (!sTried) { sTried = true; SBASE = Resources.Load<GameObject>("Synty/ModularCharacters"); } return SBASE; }
+        static Transform sRoot; static Dictionary<string, SkinnedMeshRenderer> sParts;
+        public static bool SyntyAvailable => SyntyBase() != null;
+        static GameObject SyntyBase()
+        {
+            if (sTried) return SBASE; sTried = true;
+            SBASE = Resources.Load<GameObject>("Synty/ModularCharacters");
+            if (SBASE == null) return null;
+            sParts = new Dictionary<string, SkinnedMeshRenderer>();
+            foreach (var r in SBASE.GetComponentsInChildren<SkinnedMeshRenderer>(true)) if (!sParts.ContainsKey(r.name)) sParts[r.name] = r;
+            foreach (var t in SBASE.GetComponentsInChildren<Transform>(true)) if (t.name == "Root") { sRoot = t; break; }
+            if (sRoot == null || sParts.Count == 0) SBASE = null;
+            return SBASE;
+        }
+        static string PathOf(Transform t, Transform root)
+        {
+            if (t == null) return null; if (t == root) return "";
+            var s = t.name; t = t.parent;
+            while (t != null && t != root) { s = t.name + "/" + s; t = t.parent; }
+            return s;
+        }
+        static void CopyLocal(Transform dst, Transform src) { dst.localPosition = src.localPosition; dst.localRotation = src.localRotation; dst.localScale = src.localScale; }
         // Synty kemik adları -> bu karakter sisteminin kullandığı adlar
         void SyntyAlias()
         {
@@ -399,12 +420,18 @@ namespace VK
         public static readonly string[] SYNTY_PRESETS = { "m3", "m13", "m6", "m8", "m27", "m14", "m26", "m4", "f5", "f13", "f28", "f7" };
         static readonly int[] HEADS = { 1, 2, 4, 5, 6, 7, 8, 9, 3, 10, 11, 12 }, HAIRS = { 5, 12, 2, 9, 14, 3, 16, 18, 24, 31, 27, 21 }, FACIAL = { 2, 5, 0, 8, 0, 3, 10, 0, 0, 0, 0, 0 };
         static readonly string[] TEX = { "01_A", "02_A", "03_A", "04_A" };
-        void SyntyParts(GameObject model, Look lk, List<Renderer> visible)
+        // yalnız iskelet + seçili parçalar kurulur (720 parçalı modelin tamamı kopyalanmaz)
+        GameObject SyntyBuild(Look lk, List<Renderer> visible)
         {
+            if (ghost && ghostMat == null) ghostMat = new Material(Resources.Load<Material>("Mats/Ghost"));
+            var model = new GameObject("model"); model.transform.SetParent(transform, false);
+            var skel = Instantiate(sRoot.gameObject, model.transform); skel.name = "Root"; CopyLocal(skel.transform, sRoot);
+            var map = new Dictionary<string, Transform>();
+            foreach (var t in skel.GetComponentsInChildren<Transform>(true)) { var pth = PathOf(t, skel.transform); if (!map.ContainsKey(pth)) map[pth] = t; }
             int pi = System.Array.IndexOf(SYNTY_PRESETS, lk.synty); if (pi < 0) pi = 0;
             string g = lk.synty.StartsWith("f") ? "Female" : "Male"; int o = 3; int.TryParse(lk.synty.Substring(1), out o);
             string N(string part, int idx, int max) => "Chr_" + part + "_" + g + "_" + Mathf.Clamp(idx, 0, max).ToString("00");
-            var want = new HashSet<string>
+            var want = new List<string>
             {
                 N("Torso", o, 28), N("Hips", o, 28), N("ArmUpperRight", o, 20), N("ArmUpperLeft", o, 20), N("ArmLowerRight", o, 18), N("ArmLowerLeft", o, 18),
                 N("HandRight", o, 17), N("HandLeft", o, 17), N("LegRight", o, 19), N("LegLeft", o, 19), N("Head", HEADS[pi], 22),
@@ -417,14 +444,21 @@ namespace VK
                 mat = new Material(Resources.Load<Material>("Mats/Lit")); mat.SetTexture("_BaseMap", Resources.Load<Texture2D>("Synty/Tex_" + tk)); mat.SetColor("_BaseColor", Color.white); mat.SetFloat("_Smoothness", 0.18f);
                 sMats[tk] = mat;
             }
-            foreach (var r in model.GetComponentsInChildren<Renderer>(true))
+            foreach (var name in want)
             {
-                if (!want.Contains(Nm(r.name))) { Destroy(r.gameObject); continue; }
-                r.enabled = true; if (r is SkinnedMeshRenderer smr) smr.updateWhenOffscreen = true;
-                var arr = new Material[Mathf.Max(1, r.sharedMaterials.Length)]; for (int i = 0; i < arr.Length; i++) arr[i] = ghost ? ghostMat : mat;
-                r.sharedMaterials = arr; r.shadowCastingMode = ghost || fp ? ShadowCastingMode.Off : ShadowCastingMode.On;
-                visible.Add(r);
+                if (!sParts.TryGetValue(name, out var src) || src.sharedMesh == null) continue;
+                var go = new GameObject(name); go.transform.SetParent(model.transform, false); CopyLocal(go.transform, src.transform);
+                var smr = go.AddComponent<SkinnedMeshRenderer>();
+                var bones = new Transform[src.bones.Length];
+                for (int i = 0; i < bones.Length; i++) { var pth = PathOf(src.bones[i], sRoot); bones[i] = pth != null && map.TryGetValue(pth, out var bt) ? bt : null; }
+                smr.sharedMesh = src.sharedMesh; smr.bones = bones;
+                var rp = PathOf(src.rootBone, sRoot); smr.rootBone = rp != null && map.TryGetValue(rp, out var rb) ? rb : skel.transform;
+                smr.localBounds = src.localBounds; smr.updateWhenOffscreen = true;
+                var arr = new Material[Mathf.Max(1, src.sharedMaterials.Length)]; for (int i = 0; i < arr.Length; i++) arr[i] = ghost ? ghostMat : mat;
+                smr.sharedMaterials = arr; smr.shadowCastingMode = ghost || fp ? ShadowCastingMode.Off : ShadowCastingMode.On;
+                visible.Add(smr);
             }
+            return model;
         }
 
         void ComputeCurlAxes()

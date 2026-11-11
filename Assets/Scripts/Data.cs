@@ -42,7 +42,7 @@ namespace VK
     }
 
     // ---------------------------------------------------------------- katalog
-    public enum Cat { Hair, Hat, Top, Bottom, Shoes, Glasses, Face, Hands, Ears, Costume, Mask, Head, Effect, Victory, Frame, Title }
+    public enum Cat { Hair, Hat, Top, Bottom, Shoes, Glasses, Face, Hands, Ears, Costume, Mask, Head, Effect, Victory, Frame, Title, Hero }
 
     public class Item
     {
@@ -57,13 +57,13 @@ namespace VK
         {
             { Cat.Hair, "Saç" }, { Cat.Hat, "Şapka" }, { Cat.Top, "Üst" }, { Cat.Bottom, "Alt" }, { Cat.Shoes, "Ayakkabı" }, { Cat.Glasses, "Gözlük" },
             { Cat.Face, "Yüz" }, { Cat.Hands, "Eldiven" }, { Cat.Ears, "Kulaklık" }, { Cat.Costume, "Kostüm" }, { Cat.Mask, "Maske" }, { Cat.Head, "Aksesuar" },
-            { Cat.Effect, "Efekt" }, { Cat.Victory, "Zafer pozu" }, { Cat.Frame, "Çerçeve" }, { Cat.Title, "Unvan" },
+            { Cat.Effect, "Efekt" }, { Cat.Victory, "Zafer pozu" }, { Cat.Frame, "Çerçeve" }, { Cat.Title, "Unvan" }, { Cat.Hero, "Kahraman" },
         };
         public static readonly Dictionary<Cat, string> CAT_ICON = new Dictionary<Cat, string>
         {
             { Cat.Hair, "Hairstyle_male_010" }, { Cat.Hat, "tophat" }, { Cat.Top, "shirt" }, { Cat.Bottom, "jeans" }, { Cat.Shoes, "shoe" }, { Cat.Glasses, "glasses" },
             { Cat.Face, "Moustache_002" }, { Cat.Hands, "gloves" }, { Cat.Ears, "headphone" }, { Cat.Costume, "clown" }, { Cat.Mask, "mask" }, { Cat.Head, "sparkles" },
-            { Cat.Effect, "dizzy" }, { Cat.Victory, "hands" }, { Cat.Frame, "gem" }, { Cat.Title, "scroll" },
+            { Cat.Effect, "dizzy" }, { Cat.Victory, "hands" }, { Cat.Frame, "gem" }, { Cat.Title, "scroll" }, { Cat.Hero, "person" },
         };
         // boş bırakılabilen kategoriler (çıkar seçeneği)
         public static bool Optional(Cat c) => c != Cat.Top && c != Cat.Bottom && c != Cat.Shoes && c != Cat.Hair;
@@ -90,6 +90,10 @@ namespace VK
             I("fr_ice", "Buz Mavisi", Cat.Frame, 250, "Nadir", "snow", new Color(0.5f, 0.85f, 1f)), I("fr_rose", "Gül", Cat.Frame, 250, "Nadir", "flower", new Color(1f, 0.5f, 0.7f)),
             I("t_hope", "Köyün Umudu", Cat.Title, 0, "Sıradan", "wheat"), I("t_hunter", "Gece Avcısı", Cat.Title, 200, "Nadir", "avci"), I("t_sly", "Kurnaz Vampir", Cat.Title, 200, "Nadir", "vampir"),
             I("t_oracle", "Kâhinlerin Kâhini", Cat.Title, 350, "Destansı", "crystal"), I("t_legend", "Efsane", Cat.Title, 900, "Efsanevi", "trophy"),
+            // kahramanlar (Synty Fantasy Hero kombinleri)
+            I("hero_m3", "Gezgin", Cat.Hero, 0), I("hero_m13", "Avcı Ruhlu", Cat.Hero, 0), I("hero_f5", "Şifacı", Cat.Hero, 0), I("hero_m6", "Tüccar", Cat.Hero, 0),
+            I("hero_m8", "Muhafız", Cat.Hero, 180, "Nadir"), I("hero_m27", "Soylu", Cat.Hero, 380, "Destansı"), I("hero_m14", "Kaçakçı", Cat.Hero, 180, "Nadir"), I("hero_m26", "Paralı Asker", Cat.Hero, 380, "Destansı"),
+            I("hero_m4", "Bilge", Cat.Hero, 260, "Nadir"), I("hero_f13", "Okçu", Cat.Hero, 260, "Nadir"), I("hero_f28", "Leydi", Cat.Hero, 520, "Efsanevi"), I("hero_f7", "Gölge", Cat.Hero, 520, "Efsanevi"),
         };
         static Item I(string id, string name, Cat c, int price, string rarity = "Sıradan", string icon = null, Color? tint = null)
             => new Item { id = id, name = name, cat = c, price = price, rarity = rarity, icon = icon ?? id, tint = tint ?? Color.white };
@@ -104,7 +108,8 @@ namespace VK
             {
                 case Cat.Hair: return l.hair; case Cat.Hat: return l.hat; case Cat.Top: return l.top; case Cat.Bottom: return l.bottom; case Cat.Shoes: return l.shoes;
                 case Cat.Glasses: return l.glasses; case Cat.Face: return l.face; case Cat.Hands: return l.hands; case Cat.Ears: return l.ears; case Cat.Costume: return l.costume;
-                case Cat.Mask: return l.mask; case Cat.Head: return l.head; case Cat.Effect: return l.effect; case Cat.Victory: return l.victory; case Cat.Frame: return l.frame; default: return l.title;
+                case Cat.Mask: return l.mask; case Cat.Head: return l.head; case Cat.Effect: return l.effect; case Cat.Victory: return l.victory; case Cat.Frame: return l.frame;
+                case Cat.Hero: return string.IsNullOrEmpty(l.synty) ? "" : "hero_" + l.synty; default: return l.title;
             }
         }
         public static void Set(Look l, Cat c, string v)
@@ -113,7 +118,8 @@ namespace VK
             {
                 case Cat.Hair: l.hair = v; break; case Cat.Hat: l.hat = v; break; case Cat.Top: l.top = v; break; case Cat.Bottom: l.bottom = v; break; case Cat.Shoes: l.shoes = v; break;
                 case Cat.Glasses: l.glasses = v; break; case Cat.Face: l.face = v; break; case Cat.Hands: l.hands = v; break; case Cat.Ears: l.ears = v; break; case Cat.Costume: l.costume = v; break;
-                case Cat.Mask: l.mask = v; break; case Cat.Head: l.head = v; break; case Cat.Effect: l.effect = v; break; case Cat.Victory: l.victory = v; break; case Cat.Frame: l.frame = v; break; default: l.title = v; break;
+                case Cat.Mask: l.mask = v; break; case Cat.Head: l.head = v; break; case Cat.Effect: l.effect = v; break; case Cat.Victory: l.victory = v; break; case Cat.Frame: l.frame = v; break;
+                case Cat.Hero: l.synty = string.IsNullOrEmpty(v) ? "" : v.Substring(5); break; default: l.title = v; break;
             }
         }
 
@@ -133,6 +139,7 @@ namespace VK
             if (r.NextDouble() < 0.12) l.head = P(new[] { "head_cat", "head_bunny", "head_horns" });
             l.skin = r.Next(Look.SKINS.Length); l.topColor = r.NextDouble() < 0.5 ? 0 : r.Next(Look.TINTS.Length); l.bottomColor = r.NextDouble() < 0.6 ? 0 : r.Next(Look.TINTS.Length);
             l.frame = P(new[] { "", "", "fr_amethyst", "fr_ice", "fr_rose", "fr_gold" });
+            if (Rig.SyntyAvailable) l.synty = P(Rig.SYNTY_PRESETS);
             return l;
         }
     }
@@ -154,7 +161,7 @@ namespace VK
         public List<StatKV> stats = new List<StatKV>();
         public List<string> achieved = new List<string>();
         public List<QuestState> quests = new List<QuestState>();
-        public string questDay = "", questWeek = "";
+        public string questDay = "", questWeek = ""; public bool heroInit;
         public List<string> history = new List<string>(); // son maçlar: "kazandı|Kâhin|9|3"
 
         public int Stat(string k) { var s = stats.FirstOrDefault(x => x.k == k); return s == null ? 0 : s.v; }
@@ -206,6 +213,8 @@ namespace VK
             var nm = Bridge.Param("me"); if (!string.IsNullOrEmpty(nm)) P.name = nm.Length > 14 ? nm.Substring(0, 14) : nm;
             if (string.IsNullOrEmpty(P.look.victory)) P.look.victory = "vic_cheer";
             if (string.IsNullOrEmpty(P.look.title)) P.look.title = "t_hope";
+            // kahraman paketi geldiyse oyuncu bir kez kahraman görünümüne geçer (istersen özelleştirmeden klasiğe dönebilir)
+            if (!P.heroInit && Rig.SyntyAvailable) { P.heroInit = true; if (string.IsNullOrEmpty(P.look.synty)) P.look.synty = "m3"; }
             RollQuests();
         }
         public static void Save()

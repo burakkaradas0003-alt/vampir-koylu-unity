@@ -18,6 +18,15 @@ jobs:
     timeout-minutes: 90
     steps:
       - uses: actions/checkout@v4
+      - name: Şifreli karakter paketi (Synty) — anahtar yoksa klasik karakterlerle derlenir
+        env:
+          SYNTY_KEY: ${{ secrets.SYNTY_KEY }}
+        run: |
+          if [ -n "$SYNTY_KEY" ] && [ -f secure/synty.tgz.enc ]; then
+            printf "%s\n" "$SYNTY_KEY" > /tmp/k
+            openssl enc -d -aes-256-cbc -pbkdf2 -iter 200000 -in secure/synty.tgz.enc -pass file:/tmp/k | tar xz -C Assets/Resources
+            rm -f /tmp/k; ls -la Assets/Resources/Synty | head -5
+          else echo "SYNTY_KEY yok: klasik karakterler"; fi
       - name: Disk aç
         run: |
           sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc /opt/hostedtoolcache/CodeQL /usr/local/share/boost || true

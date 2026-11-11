@@ -328,17 +328,20 @@ namespace VK
         }
         void OpenCharacter()
         {
-            draft = Store.P.look.Clone();
+            draft = Store.P.look.Clone(); if (Rig.SyntyAvailable && !string.IsNullOrEmpty(draft.synty)) cat = Cat.Hero;
             show.texture = Studio.I.Showcase(draft, 432, 520);
             RefreshCharacter();
         }
         void CommitDraftPreviewOff() { }
+        static readonly Cat[] HERO_CATS = { Cat.Hero, Cat.Effect, Cat.Victory, Cat.Frame, Cat.Title };
+        Cat[] CharCats() => !string.IsNullOrEmpty(draft.synty) ? HERO_CATS : Rig.SyntyAvailable ? new[] { Cat.Hero }.Concat(CHAR_CATS).ToArray() : CHAR_CATS;
         static readonly Cat[] CHAR_CATS = { Cat.Hair, Cat.Hat, Cat.Top, Cat.Bottom, Cat.Shoes, Cat.Glasses, Cat.Face, Cat.Mask, Cat.Head, Cat.Hands, Cat.Ears, Cat.Costume, Cat.Effect, Cat.Victory, Cat.Frame, Cat.Title };
         void RefreshCharacter()
         {
             Studio.I.SetShow(draft);
             UI.Clear(catRow);
-            foreach (var c in CHAR_CATS)
+            var cats = CharCats(); if (System.Array.IndexOf(cats, cat) < 0) cat = cats[0];
+            foreach (var c in cats)
             {
                 var cc = c; var b = UI.Chip(catRow, Catalog.CAT_NAME[c], c == cat, () => { cat = cc; RefreshCharacter(); }, Hud.Emoji(Catalog.CAT_ICON[c]) ?? Resources.Load<Sprite>("Items/" + Catalog.CAT_ICON[c]));
                 b.r.LE(-1, 32);
@@ -410,7 +413,7 @@ namespace VK
             var strip = UI.Img(r, UI.Pill, UI.A(rc, 0.9f), "şerit"); strip.rectTransform.At(new Vector2(0.5f, 0), new Vector2(0, 3), new Vector2(30, 3), new Vector2(0.5f, 0));
             if (it == null)
             {
-                UI.Txt(r, "Yok", 12, UI.Muted, UI.Bold, TextAnchor.MiddleCenter).rectTransform.Fill(0, 18, 0, 0);
+                UI.Txt(r, cat == Cat.Hero ? "Klasik" : "Yok", 12, UI.Muted, UI.Bold, TextAnchor.MiddleCenter).rectTransform.Fill(0, 18, 0, 0);
                 var x = UI.Img(r, UI.Ring, new Color(1, 1, 1, 0.2f), "yok"); x.rectTransform.At(new Vector2(0.5f, 0.5f), new Vector2(0, 8), new Vector2(40, 40));
             }
             else
@@ -430,7 +433,7 @@ namespace VK
 
         // ================================================================ MAĞAZA
         bool invTab; Cat? shopCat; RectTransform shopGrid, shopFilters, featured; UI.Btn tabShop, tabInv;
-        static readonly Cat[] SHOP_CATS = { Cat.Costume, Cat.Hat, Cat.Mask, Cat.Head, Cat.Glasses, Cat.Top, Cat.Bottom, Cat.Shoes, Cat.Face, Cat.Hands, Cat.Ears, Cat.Effect, Cat.Victory, Cat.Frame, Cat.Title };
+        static readonly Cat[] SHOP_CATS = { Cat.Hero, Cat.Costume, Cat.Hat, Cat.Mask, Cat.Head, Cat.Glasses, Cat.Top, Cat.Bottom, Cat.Shoes, Cat.Face, Cat.Hands, Cat.Ears, Cat.Effect, Cat.Victory, Cat.Frame, Cat.Title };
         RectTransform BuildShop()
         {
             var s = UI.R("mağaza", content).Fill();
@@ -453,7 +456,7 @@ namespace VK
             tabShop.Restyle(!invTab ? UI.Style.Primary : UI.Style.Secondary); tabInv.Restyle(invTab ? UI.Style.Primary : UI.Style.Secondary);
             // öne çıkan ürün (her gün değişir)
             UI.Clear(featured);
-            var pool = Catalog.ALL.Where(i => i.rarity == "Efsanevi" || i.rarity == "Destansı").ToList();
+            var pool = Catalog.ALL.Where(i => (i.rarity == "Efsanevi" || i.rarity == "Destansı") && (i.cat != Cat.Hero || Rig.SyntyAvailable)).ToList();
             var f = pool[DateTime.Now.DayOfYear % pool.Count];
             var fc = Catalog.RarityColor(f.rarity);
             var bg = UI.Img(featured, UI.Glow, UI.A(fc, 0.4f), "ışık"); bg.rectTransform.At(new Vector2(0.5f, 1), new Vector2(0, -40), new Vector2(220, 220), new Vector2(0.5f, 1));
@@ -467,9 +470,9 @@ namespace VK
             // filtreler
             UI.Clear(shopFilters);
             UI.Chip(shopFilters, "Tümü", shopCat == null, () => { shopCat = null; RefreshShop(); }).r.LE(-1, 26);
-            foreach (var c in SHOP_CATS) { var cc = c; UI.Chip(shopFilters, Catalog.CAT_NAME[c], shopCat == c, () => { shopCat = cc; RefreshShop(); }).r.LE(-1, 26); }
+            foreach (var c in SHOP_CATS) { if (c == Cat.Hero && !Rig.SyntyAvailable) continue; var cc = c; UI.Chip(shopFilters, Catalog.CAT_NAME[c], shopCat == c, () => { shopCat = cc; RefreshShop(); }).r.LE(-1, 26); }
             UI.Clear(shopGrid);
-            var items = Catalog.ALL.Where(i => (shopCat == null || i.cat == shopCat) && (invTab ? Store.P.Owns(i.id) : !i.Free)).OrderBy(i => Store.P.Owns(i.id)).ThenBy(i => i.price).ToList();
+            var items = Catalog.ALL.Where(i => (i.cat != Cat.Hero || Rig.SyntyAvailable) && (shopCat == null || i.cat == shopCat) && (invTab ? Store.P.Owns(i.id) : !i.Free)).OrderBy(i => Store.P.Owns(i.id)).ThenBy(i => i.price).ToList();
             if (items.Count == 0) { var e = UI.Txt(shopGrid, invTab ? "Bu kategoride ürünün yok" : "Ürün yok", 12, UI.Muted, null, TextAnchor.MiddleCenter); e.rectTransform.LE(400, 60); }
             int n = 0;
             foreach (var it in items)
