@@ -18,12 +18,68 @@ namespace VK
         {
             if (grade != null)
             {
-                grade.colorFilter.Override(Color.Lerp(new Color(1f, 0.97f, 0.92f), new Color(0.8f, 0.88f, 1.08f), k));
-                grade.saturation.Override(Mathf.Lerp(12f, -6f, k));
-                grade.contrast.Override(Mathf.Lerp(12f, 18f, k));
-                grade.postExposure.Override(Mathf.Lerp(0.25f, 0.15f, k));
+                grade.colorFilter.Override(Color.Lerp(new Color(1f, 0.95f, 0.88f), new Color(0.8f, 0.88f, 1.08f), k));
+                grade.saturation.Override(Mathf.Lerp(10f, -6f, k));
+                grade.contrast.Override(Mathf.Lerp(20f, 20f, k));
+                grade.postExposure.Override(Mathf.Lerp(0.12f, 0.15f, k));
             }
-            if (vign != null) vign.intensity.Override(Mathf.Lerp(0.26f, 0.4f, k));
+            if (vign != null) vign.intensity.Override(Mathf.Lerp(0.32f, 0.42f, k));
+        }
+
+        // ------------------------------------------------------------ low-poly kum meydan
+        bool BuildFacetedPlaza()
+        {
+            if (matGrass == null) return false;
+            var rnd = new System.Random(5);
+            float F(float a, float b) => a + (float)rnd.NextDouble() * (b - a);
+            // halkalar halinde, kenara doğru düzensiz noktalar
+            var ring = new List<List<Vector3>>(); float R0 = 10.2f, step = 0.85f;
+            ring.Add(new List<Vector3> { new Vector3(0, 0.025f, 0) });
+            for (float r = step; r <= R0 + 0.01f; r += step)
+            {
+                int n = Mathf.Max(6, Mathf.RoundToInt(2 * Mathf.PI * r / step));
+                var row = new List<Vector3>(); float off = F(0, 1);
+                for (int i = 0; i < n; i++)
+                {
+                    float a = (i + off) / n * Mathf.PI * 2; bool outer = r > R0 - 0.5f;
+                    float rr = outer ? r + Mathf.Sin(a * 7) * 0.25f + F(-0.15f, 0.15f) : r + F(-0.22f, 0.22f);
+                    float aa = a + (outer ? 0 : F(-0.4f, 0.4f) / Mathf.Max(1, r));
+                    row.Add(new Vector3(Mathf.Cos(aa) * rr, 0.025f + (outer ? -0.02f : F(-0.035f, 0.04f)), Mathf.Sin(aa) * rr));
+                }
+                ring.Add(row);
+            }
+            var v = new List<Vector3>(); var col = new List<Color>(); var tr = new List<int>();
+            void Tri(Vector3 p, Vector3 q, Vector3 w)
+            {
+                var c = (p + q + w) / 3f; float d = new Vector2(c.x, c.z).magnitude;
+                float k = F(0.9f, 1.05f); float warm = F(-0.025f, 0.025f);
+                var baseC = Color.Lerp(new Color(0.88f, 0.76f, 0.56f), new Color(0.8f, 0.68f, 0.5f), Mathf.Clamp01(d / R0) * 0.6f);
+                var cc = new Color(baseC.r * k + warm, baseC.g * k, baseC.b * k - warm, 1);
+                int i0 = v.Count; v.Add(p); v.Add(q); v.Add(w); col.Add(cc); col.Add(cc); col.Add(cc);
+                // üst yüz görünsün (saat yönü kontrolü)
+                if (Vector3.Cross(q - p, w - p).y < 0) { tr.Add(i0); tr.Add(i0 + 1); tr.Add(i0 + 2); } else { tr.Add(i0); tr.Add(i0 + 2); tr.Add(i0 + 1); }
+            }
+            for (int k = 0; k + 1 < ring.Count; k++)
+            {
+                var A = ring[k]; var B = ring[k + 1];
+                if (A.Count == 1) { for (int i = 0; i < B.Count; i++) Tri(A[0], B[i], B[(i + 1) % B.Count]); continue; }
+                // iki halkayı açıya göre fermuar gibi birleştir
+                int ia = 0, ib = 0; float Ang(Vector3 p) => Mathf.Repeat(Mathf.Atan2(p.z, p.x), Mathf.PI * 2);
+                var a2 = new List<Vector3>(A); a2.Sort((x, y) => Ang(x).CompareTo(Ang(y)));
+                var b2 = new List<Vector3>(B); b2.Sort((x, y) => Ang(x).CompareTo(Ang(y)));
+                int na = a2.Count, nb = b2.Count;
+                while (ia < na || ib < nb)
+                {
+                    var pa = a2[ia % na]; var pb = b2[ib % nb];
+                    float nextA = ia < na ? Ang(a2[(ia + 1) % na]) + ((ia + 1) >= na ? Mathf.PI * 2 : 0) : 99;
+                    float nextB = ib < nb ? Ang(b2[(ib + 1) % nb]) + ((ib + 1) >= nb ? Mathf.PI * 2 : 0) : 99;
+                    if (nextA < nextB) { Tri(pa, a2[(ia + 1) % na], pb); ia++; } else { Tri(pa, b2[(ib + 1) % nb], pb); ib++; }
+                }
+            }
+            var m = new Mesh { indexFormat = UnityEngine.Rendering.IndexFormat.UInt32 }; m.SetVertices(v); m.SetColors(col); m.SetTriangles(tr, 0); m.RecalculateNormals(); m.RecalculateBounds();
+            var mat = new Material(matGrass); mat.enableInstancing = false; mat.SetFloat("_Wind", 0); mat.SetColor("_Tint", Color.white);
+            var g = MeshGO("Meydan", m, mat, transform, false); g.GetComponent<MeshRenderer>().receiveShadows = true;
+            return true;
         }
 
         // ------------------------------------------------------------ dekorlar

@@ -43,7 +43,7 @@ namespace VK
 
             // ışıklar
             var sgo = new GameObject("Güneş"); sun = sgo.AddComponent<Light>(); sun.type = LightType.Directional;
-            sun.shadows = LightShadows.Soft; sun.shadowStrength = 0.8f; sun.transform.rotation = Quaternion.Euler(42, -35, 0);
+            sun.shadows = LightShadows.Soft; sun.shadowStrength = 0.9f; sun.transform.rotation = Quaternion.Euler(42, -35, 0);
             var fgo = new GameObject("Ateş Işığı"); fireLight = fgo.AddComponent<Light>(); fireLight.type = LightType.Point;
             fireLight.color = new Color(1f, 0.6f, 0.27f); fireLight.range = 18; fgo.transform.position = new Vector3(0, 1.1f, 0);
             fireLight.shadows = LightShadows.None;
@@ -171,7 +171,8 @@ namespace VK
             var m = new Mesh { indexFormat = IndexFormat.UInt32 }; m.SetVertices(verts); m.SetUVs(0, uvs); m.SetTriangles(tris, 0); m.RecalculateNormals(); m.RecalculateBounds();
             var g = MeshGO("Çimen zemin", m, gm, transform, false); g.GetComponent<MeshRenderer>().receiveShadows = true;
             groundMesh = m;
-            // kum meydan
+            // kum meydan: düz gölgeli, yüzeyleri hafif farklı tonda low-poly zemin (Agrou tarzı)
+            if (BuildFacetedPlaza()) return;
             var sand = TexMat(Tex.Sand(), Vector2.one, Color.white, 0.02f);
             var disc = new Mesh(); var dv = new List<Vector3> { new Vector3(0, 0.02f, 0) }; var dt = new List<int>();
             int seg = 96; for (int i = 0; i <= seg; i++) { float a = i * Mathf.PI * 2 / seg; float r = 9.55f + Mathf.Sin(a * 7) * 0.12f; dv.Add(new Vector3(Mathf.Cos(a) * r, 0.02f, Mathf.Sin(a) * r)); }
@@ -427,10 +428,10 @@ namespace VK
             var tint = new Color(0.62f, 0.8f, 0.5f);
             for (int i = 0; i < n; i++)
             {
-                float a = R(0, 6.283f); bool edge = i < n * 0.08f, far = i > n * 0.9f, mid = i > n * 0.7f;
+                float a = R(0, 6.283f); bool edge = i < n * 0.14f, far = i > n * 0.9f, mid = i > n * 0.7f;
                 float d = edge ? R(8.6f, 9.5f) : far ? R(22, 36) : mid ? R(14.5f, 22) : 9.2f + Mathf.Pow(R(0, 1), 1.15f) * 5.6f;
                 var pos = new Vector3(Mathf.Cos(a) * d, GroundY(Mathf.Cos(a) * d, Mathf.Sin(a) * d), Mathf.Sin(a) * d);
-                float s = (edge ? R(0.07f, 0.11f) : R(0.1f, 0.17f)) * (1 + Mathf.Max(0, d - 14) * 0.03f), sw = R(2.2f, 3.2f);
+                float s = (edge ? R(0.12f, 0.19f) : R(0.1f, 0.17f)) * (1 + Mathf.Max(0, d - 14) * 0.03f), sw = R(2.2f, 3.2f);
                 mats.Add(Matrix4x4.TRS(pos, Quaternion.Euler(R(-4, 4), R(0, 360), R(-4, 4)), new Vector3(s * sw, s, s * sw)));
                 var c = Sample(pos.x, pos.z) * tint; tints.Add(new Vector4(c.r, c.g, c.b, 1));
             }
@@ -532,7 +533,7 @@ namespace VK
             sun.color = Color.Lerp(new Color(1f, 0.9f, 0.76f), new Color(0.5f, 0.6f, 0.95f), k);
             sun.intensity = Mathf.Lerp(1.45f, 0.3f, k); // gece: soğuk ay ışığı
             sun.transform.rotation = Quaternion.Euler(Mathf.Lerp(34, 38, k), Mathf.Lerp(-40, 150, k), 0);
-            RenderSettings.ambientSkyColor = Color.Lerp(new Color(0.55f, 0.66f, 0.82f), new Color(0.07f, 0.08f, 0.17f), k);
+            RenderSettings.ambientSkyColor = Color.Lerp(new Color(0.5f, 0.6f, 0.76f), new Color(0.07f, 0.08f, 0.17f), k);
             RenderSettings.ambientEquatorColor = Color.Lerp(new Color(0.6f, 0.58f, 0.5f), new Color(0.06f, 0.06f, 0.12f), k);
             RenderSettings.ambientGroundColor = Color.Lerp(new Color(0.36f, 0.33f, 0.26f), new Color(0.03f, 0.03f, 0.05f), k);
             RenderSettings.fogColor = Color.Lerp(new Color(0.86f, 0.82f, 0.74f), new Color(0.05f, 0.05f, 0.12f), k);
