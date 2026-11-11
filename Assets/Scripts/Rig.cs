@@ -90,7 +90,7 @@ namespace VK
             var syVis = new List<Renderer>();
             var model = sy ? SyntyBuild(lk, syVis) : Instantiate(BASE, transform); model.name = "model"; body = model;
             foreach (var t in model.GetComponentsInChildren<Transform>()) { var n = Nm(t.name); if (!B.ContainsKey(n)) B[n] = t; }
-            if (sy) SyntyAlias();
+            if (sy) SyntyAlias(); isSynty = sy;
 
             // malzemeler
             var lit = Resources.Load<Material>("Mats/Lit");
@@ -430,7 +430,7 @@ namespace VK
                 foreach (var t in hand.GetComponentsInChildren<Transform>())
                 {
                     var n = Nm(t.name);
-                    for (int k = 1; k <= 3; k++)
+                    for (int k = 1; k <= 4; k++)
                     {
                         if (n == "IndexFinger_0" + k) B[s + "HandIndex" + k] = t;
                         if (n == "Finger_0" + k) B[s + "HandMiddle" + k] = t;
@@ -539,6 +539,7 @@ namespace VK
                 Vector3 along = B[side + "HandMiddle1"].position - hand, across = B[side + "HandIndex1"].position - (B.ContainsKey(side + "HandPinky1") ? B[side + "HandPinky1"] : B[side + "HandMiddle1"]).position;
                 Vector3 palm = Vector3.Cross(along, across).normalized;
                 if (Vector3.Dot(palm, B["Hips"].position - hand) < 0) palm = -palm; // A duruşunda avuç gövdeye bakar
+                palmLocal[side] = Quaternion.Inverse(B[side + "Hand"].rotation) * palm;
                 foreach (var f in new[] { "Index", "Middle", "Ring", "Pinky", "Thumb" })
                     for (int k = 1; k <= 2; k++)
                     {
@@ -565,6 +566,29 @@ namespace VK
             var cur = (c.position - b.position).normalized;
             if (cur.sqrMagnitude < 1e-6f) return;
             b.rotation = Quaternion.FromToRotation(cur, dirW) * b.rotation;
+        }
+        readonly Dictionary<string, Vector3> palmLocal = new Dictionary<string, Vector3>();
+        bool isSynty;
+        // kemiği çocuğuna doğru verilen dünya yönüne çevir, k oranında (0 = olduğu gibi)
+        void AimK(string bone, string child, Vector3 dirW, float k)
+        {
+            if (k <= 0 || !B.TryGetValue(bone, out var b) || !B.TryGetValue(child, out var c)) return;
+            var cur = (c.position - b.position).normalized; if (cur.sqrMagnitude < 1e-6f || dirW.sqrMagnitude < 1e-6f) return;
+            var target = Quaternion.FromToRotation(cur, dirW.normalized) * b.rotation;
+            b.rotation = Quaternion.Slerp(b.rotation, target, k);
+        }
+        // kahraman eli: işaret parmağı hedefe dümdüz, diğer parmaklar avuca kıvrık yumruk, başparmak yanında
+        void SyntyPointHand(float r)
+        {
+            if (r <= 0.01f || !B.TryGetValue("RightHand", out var hand) || !B.TryGetValue("RightHandIndex1", out var i1) || !palmLocal.TryGetValue("Right", out var pl)) return;
+            var dir = (i1.position - hand.position).normalized;
+            if (B.TryGetValue("RightHandMiddle1", out var m1)) dir = ((i1.position + m1.position) * 0.5f - hand.position).normalized;
+            var palm = (hand.rotation * pl).normalized;
+            AimK("RightHandIndex1", "RightHandIndex2", dir, r); AimK("RightHandIndex2", "RightHandIndex3", dir, r); AimK("RightHandIndex3", "RightHandIndex4", dir, r);
+            AimK("RightHandMiddle1", "RightHandMiddle2", palm * 0.85f + dir * 0.25f, r);
+            AimK("RightHandMiddle2", "RightHandMiddle3", -dir + palm * 0.35f, r);
+            AimK("RightHandMiddle3", "RightHandMiddle4", -dir - palm * 0.6f, r);
+            AimK("RightHandThumb1", "RightHandThumb2", dir * 0.8f + palm * 0.45f, r); AimK("RightHandThumb2", "RightHandThumb3", dir * 0.5f + palm * 0.8f, r);
         }
         void Bend(string bone, float ang)
         {
@@ -664,6 +688,7 @@ namespace VK
             Bend("RightHandIndex1", 0.35f * (1 - r)); Bend("RightHandIndex2", 0.4f * (1 - r));
             for (int i = 1; i < 4; i++) { Bend("RightHand" + FING[i] + "1", 0.35f + r * 1.15f); Bend("RightHand" + FING[i] + "2", 0.4f + r * 1.2f); }
             Bend("RightHandThumb1", r * 0.5f); Bend("RightHandThumb2", r * 0.6f);
+            if (isSynty && !ghost) SyntyPointHand(r);
             if (cheer > 0.01f && !ghost && !hang) Victory(time, Mathf.Clamp01(cheer));
             if (hang)
             {

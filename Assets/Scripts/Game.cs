@@ -979,7 +979,7 @@ namespace VK
                 F.smile += (smile - F.smile) * fk; F.open += (open - F.open) * fk; F.up += (up - F.up) * fk; F.angry += (angry - F.angry) * fk; F.sad += (sad - F.sad) * fk;
                 F.think = think; F.laugh = laughW; F.surprise = surp; F.talk = p.talk > 0 && p.alive ? 1 : 0;
                 ch.redEyes = red && p.alive;
-                if (tgt != null) ch.pointYaw = Mathf.Clamp(AngleTo(p, tgt.seat) * 0.9f, -1.1f, 1.1f);
+                if (tgt != null) ch.pointYaw = Mathf.Clamp(AngleTo(p, tgt.seat), -1.55f, 1.55f);
                 ch.pointRaise = p.raise;
                 if (p.wave > 0) { p.wave -= dt; ch.wave = Mathf.Min(1, p.wave * 2); ch.waveWiggle = Mathf.Sin(t * 14) * 0.35f * ch.wave; } else { ch.wave *= 0.8f; ch.waveWiggle *= 0.8f; }
                 if (p.crownDrop > 0) { p.crownDrop = Mathf.Max(0, p.crownDrop - dt * 1.4f); float u = p.crownDrop; ch.crown.localPosition = new Vector3(0, u * u * 1.2f, 0); ch.crown.localEulerAngles = new Vector3(0, u * 6 * Mathf.Rad2Deg, 0); }
