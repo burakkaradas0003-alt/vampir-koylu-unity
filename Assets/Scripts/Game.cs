@@ -717,11 +717,11 @@ namespace VK
                 onSelect = i =>
                 {
                     ME.pointAt = i; rings.Clear(); if (vn != null) rings.Add(new KeyValuePair<int, Color>(v.Value, Hex("#FF4D6D"))); rings.Add(new KeyValuePair<int, Color>(i, Hex("#8BE04A")));
-                    ui.ShowAction("skull", "Zehir", $"Zehirlenecek: <b><color=#FFFFFF>{P[i].n}</color></b>",
+                    ui.ShowAction("poison", "Zehir", $"Zehirlenecek: <b><color=#FFFFFF>{P[i].n}</color></b>",
                         new Hud.Btn_ { t = "Zehirle", style = "r", f = () => { poisonUsed = true; poisonT = i; ui.Toast(P[i].n + " zehirlendi"); selectable = null; ME.pointAt = null; Main(); } },
                         new Hud.Btn_ { t = "Geri", style = "m", f = () => { selectable = null; ME.pointAt = null; Main(); } });
                 };
-                ui.ShowAction("skull", "Zehir", "Zehirlemek istediğin kişiye dokun.", new Hud.Btn_ { t = "Geri", style = "m", f = () => { selectable = null; Main(); } });
+                ui.ShowAction("poison", "Zehir", "Zehirlemek istediğin kişiye dokun.", new Hud.Btn_ { t = "Geri", style = "m", f = () => { selectable = null; Main(); } });
             }
             Main();
             ui.Sub("Cadı uyanıyor"); ui.SetTimer(T_STEP / SPEED);

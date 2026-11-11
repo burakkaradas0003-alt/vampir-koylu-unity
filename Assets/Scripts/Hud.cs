@@ -105,12 +105,11 @@ namespace VK
             Label(">", sendBtn, ">", 20, FontStyle.Bold, TextAnchor.MiddleCenter, new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(40, 40));
             Btn(sendBtn, Send);
             spkBtn = Panel("hoparlör", canvas, BG, Vector2.zero, Vector2.zero, new Vector2(76, 28), new Vector2(40, 40), true);
-            spkIcon = Img("i", spkBtn, Emoji("speakeron"), new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(22, 22));
+            spkIcon = Img("i", spkBtn, Emoji("speakeron"), new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(24, 24));
             Btn(spkBtn, () => { soundOn = !soundOn; AudioListener.volume = soundOn ? 1 : 0; spkIcon.sprite = Emoji(soundOn ? "speakeron" : "mute"); Toast(soundOn ? "Ses açık" : "Ses kapalı", 1.4f); });
             micBtn = Panel("mikrofon", canvas, BG, Vector2.zero, Vector2.zero, new Vector2(122, 28), new Vector2(40, 40), true);
-            Img("i", micBtn, Emoji("mic"), new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(22, 22));
-            micSlash = Img("kapalı", micBtn, null, new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(30, 4)); micSlash.sprite = UI.Pill; micSlash.color = new Color(0.95f, 0.3f, 0.35f); micSlash.enabled = true; micSlash.preserveAspect = false; micSlash.rectTransform.localEulerAngles = new Vector3(0, 0, 45);
-            Btn(micBtn, () => { micOn = !micOn; micSlash.enabled = !micOn; micBtn.GetComponent<Image>().color = micOn ? new Color(0.16f, 0.5f, 0.36f, 0.85f) : BG; Bridge.Send("{\"type\":\"mic\",\"on\":" + (micOn ? "true" : "false") + "}"); Toast(micOn ? "Mikrofon açık" : "Mikrofon kapalı", 1.4f); });
+            micSlash = Img("i", micBtn, Emoji("micoff"), new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(24, 24));
+            Btn(micBtn, () => { micOn = !micOn; micSlash.sprite = Emoji(micOn ? "mic" : "micoff"); micBtn.GetComponent<Image>().color = micOn ? new Color(0.16f, 0.5f, 0.36f, 0.85f) : BG; Bridge.Send("{\"type\":\"mic\",\"on\":" + (micOn ? "true" : "false") + "}"); Toast(micOn ? "Mikrofon açık" : "Mikrofon kapalı", 1.4f); });
             emoBtn = Panel("emo", canvas, BG, Vector2.zero, Vector2.zero, new Vector2(168, 28), new Vector2(40, 40), true);
             Img("e", emoBtn, Emoji("laugh"), new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(24, 24));
             Btn(emoBtn, () => { emoG.gameObject.SetActive(!emoG.gameObject.activeSelf); emoRow.anchoredPosition = new Vector2(emoBtn.anchoredPosition.x + 136, 72); });
