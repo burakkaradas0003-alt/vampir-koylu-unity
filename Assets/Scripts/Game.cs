@@ -574,6 +574,7 @@ namespace VK
             SetMayor(m);
             await ui.Banner("crown", P[m].me ? "Muhtar sensin!" : P[m].n + " muhtar seçildi!", r.best > 0 ? r.best + " oy" : "", 2.6f);
             ui.Log("", P[m].me ? "Muhtar oldun — oyun iki sayılır" : P[m].n + " muhtar oldu", "sys");
+            if (P[m].me && !AUTO) { bool mc = false; ui.ShowCard("muhtar", "Muhtar", "EK GÖREV", Hex("#F5B942"), "Rol değil, oyunun başında oylamayla seçilirsin. Verdiğin oy iki sayılır ve eşitlikte son sözü sen söylersin.", "Kapat", () => mc = true); float t0 = Now; while (!mc && Now - t0 < 6f) await Awaitable.NextFrameAsync(); ui.HideCard(); }
         }
 
         async Task Night(int n)

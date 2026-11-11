@@ -17,7 +17,7 @@ namespace VK
         Text phT, phS, timer, rcName, toastT, b1, b2, sleepT, sleepS, hint;
         Image rcIcon, rcBorder, sleepI, bIcon;
         CanvasGroup toastG, bannerG, actG, cardG, endG, emoG;
-        Image[] cardSmoke; Image cardPropL, cardPropR, cardRibbon, cardDivIcon; RectTransform cardTop; Button cardClose;
+        Image cardArt; Action cardCloseAct; Image[] cardSmoke; Image cardPropL, cardPropR, cardRibbon, cardDivIcon; RectTransform cardTop; Button cardClose;
         RectTransform lidTop, lidBot, logBox, actBtns, tagsRoot, endGrid, emoRow;
         Text actT, actD; Image actI;
         InputField input; Image cardIcon; Text cardName, cardTeam, cardDesc; Button cardBtn; Text cardBtnT;
@@ -182,6 +182,17 @@ namespace VK
             Img("taş", front, kUS("gem"), new Vector2(0.5f, 0), new Vector2(0, 2), new Vector2(30, 30));
             var kCx = Img("kapat", front, kUS("close"), new Vector2(1, 1), new Vector2(-4, -4), new Vector2(34, 34)); kCx.raycastTarget = true;
             cardClose = kCx.gameObject.AddComponent<Button>();
+            // kullanıcının hazır kart görselleri (Resources/Cards/<rol>.png): düğmeler resmin üstünde görünmez dokunma alanları
+            cardArt = Img("kart resmi", front, null, new Vector2(0.5f, 0.5f), new Vector2(0, 24), new Vector2(520, 390)); cardArt.preserveAspect = true;
+            void Hit(string n, Vector2 c, Vector2 sz)
+            {
+                var r = Rect(n, cardArt.rectTransform, c, c, Vector2.zero, new Vector2(520 * sz.x, 390 * sz.y));
+                var im = r.gameObject.AddComponent<Image>(); im.color = new Color(0, 0, 0, 0); im.raycastTarget = true;
+                r.gameObject.AddComponent<Button>().onClick.AddListener(() => cardCloseAct?.Invoke());
+            }
+            Hit("kapat düğmesi", new Vector2(0.5f, 0.22f), new Vector2(0.4f, 0.13f));
+            Hit("çarpı", new Vector2(0.76f, 0.86f), new Vector2(0.1f, 0.14f));
+            cardArt.gameObject.SetActive(false);
             card.gameObject.SetActive(false);
 
             // bitiş ekranı: BuildEnd (ShowEnd çağrılınca kurulur)
@@ -359,6 +370,11 @@ namespace VK
             var smokeC = vamp ? new Color(0.9f, 0.2f, 0.3f, 0.42f) : new Color(Mathf.Lerp(c.r, 0.62f, 0.5f), Mathf.Lerp(c.g, 0.3f, 0.5f), Mathf.Lerp(c.b, 0.95f, 0.5f), 0.4f);
             foreach (var sm in cardSmoke) sm.color = smokeC;
             Action close = () => { Sfx.Play("tap"); cardG.gameObject.SetActive(false); onClose?.Invoke(); };
+            cardCloseAct = close;
+            var art = Resources.Load<Sprite>("Cards/" + icon);
+            cardArt.sprite = art; cardArt.enabled = art != null;
+            foreach (Transform ch in cardArt.transform.parent) if (ch != cardArt.transform && ch.name != "arka") ch.gameObject.SetActive(art == null);
+            cardArt.gameObject.SetActive(false);
             cardBtn.onClick.RemoveAllListeners(); cardBtn.onClick.AddListener(() => close());
             cardClose.onClick.RemoveAllListeners(); cardClose.onClick.AddListener(() => close());
             cardGlow.color = new Color(c.r, c.g, c.b, 0.55f);
@@ -381,7 +397,7 @@ namespace VK
                 if (!front) return;
                 float ang = k * Mathf.PI * 3; float sx = Mathf.Abs(Mathf.Cos(ang));
                 front.localScale = new Vector3(Mathf.Max(0.02f, sx), 1 + Mathf.Sin(k * Mathf.PI) * 0.06f, 1);
-                if (!flipped && k > 0.84f) { flipped = true; back.gameObject.SetActive(false); cardTop.gameObject.SetActive(true); Scale(cardIcon.rectTransform, Vector3.zero, Vector3.one, 0.4f); Sfx.Play("magic"); }
+                if (!flipped && k > 0.84f) { flipped = true; back.gameObject.SetActive(false); if (art != null) { cardArt.gameObject.SetActive(true); Scale(cardArt.rectTransform, Vector3.one * 0.9f, Vector3.one, 0.35f); } else { cardTop.gameObject.SetActive(true); Scale(cardIcon.rectTransform, Vector3.zero, Vector3.one, 0.4f); } Sfx.Play("magic"); }
             }, x => x, 0, () => { if (front) front.localScale = Vector3.one; });
         }
         public void HideCard() { cardG.gameObject.SetActive(false); }

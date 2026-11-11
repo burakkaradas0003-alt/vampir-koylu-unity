@@ -203,10 +203,16 @@ public class ZuImport : AssetPostprocessor
             var n = System.IO.Path.GetFileNameWithoutExtension(assetPath); // kenarlar: sol, alt, sağ, üst
             ti.spriteBorder = n == "frame" ? new Vector4(72, 72, 72, 72) : n == "plaque" ? new Vector4(70, 0, 70, 0) : n.StartsWith("ribbon") ? new Vector4(26, 0, 26, 0) : n == "btn_gold" ? new Vector4(70, 0, 70, 0) : Vector4.zero;
         }
+        if (assetPath.Contains("/Resources/Cards/"))
+        {
+            // kullanıcının rol kartları: dosyaya dokunulmaz, yalnız içe aktarırken sıkıştırılır
+            ti.textureType = TextureImporterType.Sprite; ti.spriteImportMode = SpriteImportMode.Single; ti.alphaIsTransparency = true; ti.mipmapEnabled = false;
+            ti.textureCompression = TextureImporterCompression.CompressedHQ; ti.maxTextureSize = 1024;
+        }
         if (assetPath.Contains("turf")) { ti.wrapMode = TextureWrapMode.Mirror; ti.isReadable = true; }
         if (assetPath.Contains("flames")) ti.wrapMode = TextureWrapMode.Clamp;
         if (assetPath.Contains("/Village/")) { ti.textureCompression = TextureImporterCompression.Uncompressed; ti.wrapMode = TextureWrapMode.Repeat; ti.filterMode = FilterMode.Bilinear; ti.mipmapEnabled = true; ti.sRGBTexture = true; }
-        ti.maxTextureSize = 2048;
+        if (!assetPath.Contains("/Resources/Cards/")) ti.maxTextureSize = 2048;
     }
 }
 #endif
