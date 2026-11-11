@@ -17,7 +17,7 @@ namespace VK
         readonly Dictionary<string, RectTransform> screens = new Dictionary<string, RectTransform>();
         readonly Dictionary<string, UI.Btn> railBtns = new Dictionary<string, UI.Btn>();
         readonly Dictionary<string, Image> railDots = new Dictionary<string, Image>();
-        string current;
+        string current; CanvasGroup dimG;
         Text coinsT, nameT, levelT; UI.Bar xpBar; RawImage meAvatar; Image meRing;
 
         public static Menu Make(World w) { var g = new GameObject("Menü"); I = g.AddComponent<Menu>(); I.W = w; I.Build(); return I; }
@@ -30,13 +30,15 @@ namespace VK
             var sl = UI.Img(cr, UI.GradH, new Color(0.03f, 0.03f, 0.05f, 0.75f), "sol karartma"); sl.rectTransform.anchorMin = Vector2.zero; sl.rectTransform.anchorMax = new Vector2(0.42f, 1); sl.rectTransform.offsetMin = sl.rectTransform.offsetMax = Vector2.zero;
             var sr = UI.Img(cr, UI.GradH, new Color(0.03f, 0.03f, 0.05f, 0.8f), "sağ karartma"); sr.rectTransform.anchorMin = new Vector2(0.5f, 0); sr.rectTransform.anchorMax = Vector2.one; sr.rectTransform.offsetMin = sr.rectTransform.offsetMax = Vector2.zero; sr.rectTransform.localScale = new Vector3(-1, 1, 1);
             var tp = UI.Img(cr, UI.Grad, new Color(0.03f, 0.03f, 0.05f, 0.6f), "üst karartma"); tp.rectTransform.anchorMin = new Vector2(0, 1); tp.rectTransform.anchorMax = Vector2.one; tp.rectTransform.pivot = new Vector2(0.5f, 1); tp.rectTransform.sizeDelta = new Vector2(0, 90); tp.rectTransform.localScale = new Vector3(1, -1, 1);
+            // lobi dışındaki ekranlarda sahne hafifçe kararır (okunabilirlik)
+            var dimI = UI.Img(cr, null, new Color(0.03f, 0.03f, 0.05f, 0.62f), "karartma"); dimI.rectTransform.Fill(); dimG = dimI.gameObject.AddComponent<CanvasGroup>(); dimG.alpha = 0; dimG.blocksRaycasts = false;
             root = UI.R("güvenli alan", cr); root.gameObject.AddComponent<SafeArea>();
             BuildRail(); BuildTopBar();
             content = UI.R("içerik", root).Fill(86, 10, 12, 56);
             screens["lobi"] = BuildLobby(); screens["karakter"] = BuildCharacter(); screens["magaza"] = BuildShop(); screens["gorev"] = BuildQuests(); screens["profil"] = BuildProfile();
             foreach (var s in screens.Values) s.gameObject.SetActive(false);
             // bildirim ve geçiş perdesi
-            toastR = UI.Panel(root, "bildirim", UI.A(UI.Anthracite, 0.95f), true, UI.Pill).At(new Vector2(0.5f, 1), new Vector2(40, -62), new Vector2(420, 36), new Vector2(0.5f, 1));
+            toastR = UI.Panel(root, "bildirim", UI.A(UI.Anthracite, 0.95f), true, UI.Pill).At(new Vector2(0, 0), new Vector2(96, 16), new Vector2(380, 36), new Vector2(0, 0));
             toastG = toastR.gameObject.AddComponent<CanvasGroup>(); toastG.alpha = 0; toastG.blocksRaycasts = false;
             toastT = UI.Txt(toastR, "", 13, null, UI.Bold, TextAnchor.MiddleCenter); toastT.rectTransform.Fill(14, 0, 14, 0);
             var fade = UI.Img(cr, null, Color.black, "perde"); fade.rectTransform.Fill(); fadeG = fade.gameObject.AddComponent<CanvasGroup>(); fadeG.alpha = 1; fadeG.blocksRaycasts = false;
@@ -126,6 +128,7 @@ namespace VK
             if (id == "profil") RefreshProfile();
             if (id == "lobi") RefreshLobby();
             camTarget = id == "lobi" ? 0 : 1;
+            Tween.Fade(dimG, dimG.alpha, id == "lobi" ? 0 : 1, 0.3f);
         }
 
         // ---------------------------------------------------------------- 3B kamera
@@ -309,7 +312,7 @@ namespace VK
             var fr = UI.Img(stage, UI.Ring, UI.A(UI.Lilac, 0.35f), "halka"); fr.rectTransform.At(new Vector2(0.5f, 0), new Vector2(0, 34), new Vector2(180, 30), new Vector2(0.5f, 0.5f));
             var raw = UI.R("karakter", stage).Fill(0, 18, 0, 0); show = raw.gameObject.AddComponent<RawImage>(); show.raycastTarget = true;
             var drag = raw.gameObject.AddComponent<DragRotate>();
-            var hint = UI.Txt(stage, "Döndürmek için sağa sola kaydır", 10, UI.Muted, null, TextAnchor.MiddleCenter); hint.rectTransform.At(new Vector2(0.5f, 0), new Vector2(0, 4), new Vector2(240, 16), new Vector2(0.5f, 0));
+            var hint = UI.Txt(stage, "Döndürmek için sağa sola kaydır", 10, UI.Lilac, null, TextAnchor.MiddleCenter); hint.rectTransform.At(new Vector2(0.5f, 0), new Vector2(0, 4), new Vector2(240, 16), new Vector2(0.5f, 0));
             // seçenekler paneli
             var pan = UI.Panel(s, "seçenekler"); pan.anchorMin = new Vector2(0, 0); pan.anchorMax = Vector2.one; pan.offsetMin = new Vector2(280, 0); pan.offsetMax = Vector2.zero;
             var cs = UI.Scroll(pan, false, out catRow, 6); ((RectTransform)cs.transform).anchorMin = new Vector2(0, 1); ((RectTransform)cs.transform).anchorMax = new Vector2(1, 1); ((RectTransform)cs.transform).pivot = new Vector2(0.5f, 1); ((RectTransform)cs.transform).offsetMin = new Vector2(10, -48); ((RectTransform)cs.transform).offsetMax = new Vector2(-10, -8);

@@ -152,7 +152,7 @@ namespace VK
         public static Text Txt(Transform p, string s, int size, Color? c = null, Font f = null, TextAnchor al = TextAnchor.MiddleLeft, string n = "yazı")
         {
             var r = R(n, p); var t = r.gameObject.AddComponent<Text>(); t.font = f ?? Body; t.fontSize = size; t.color = c ?? Fg; t.alignment = al; t.text = s;
-            t.supportRichText = true; t.raycastTarget = false; t.horizontalOverflow = HorizontalWrapMode.Wrap; t.verticalOverflow = VerticalWrapMode.Truncate; t.lineSpacing = 0.95f;
+            t.supportRichText = true; t.raycastTarget = false; t.horizontalOverflow = HorizontalWrapMode.Wrap; t.verticalOverflow = VerticalWrapMode.Overflow; t.lineSpacing = 0.95f;
             return t;
         }
         public static Text Shadowed(this Text t, float a = 0.5f) { var s = t.gameObject.AddComponent<Shadow>(); s.effectColor = new Color(0, 0, 0, a); s.effectDistance = new Vector2(0, -1.5f); return t; }

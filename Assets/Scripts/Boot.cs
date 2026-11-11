@@ -19,6 +19,7 @@ namespace VK
             Screen.orientation = ScreenOrientation.AutoRotation;
             bool low = SystemInfo.systemMemorySize < 3000 || Bridge.Param("lite") == "1";
             Store.Load();
+            if (float.TryParse(Bridge.Param("hiz") ?? "", System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out var sp) && sp > 0) Game.SPEED = sp;
             var w = new GameObject("Dünya").AddComponent<World>(); w.Build(low);
             new GameObject("Ses").AddComponent<Sfx>().Build(new Vector3(0, 0.5f, 0));
             Studio.Make();
@@ -26,7 +27,7 @@ namespace VK
             {
                 var h = new GameObject("Arayüz").AddComponent<Hud>(); h.Build();
                 var g = new GameObject("Oyun").AddComponent<Game>();
-                g.Begin(w, h, Store.P.name, false, System.Environment.TickCount & 0x7fffffff);
+                g.Begin(w, h, Store.P.name, Bridge.Param("oto") == "1", System.Environment.TickCount & 0x7fffffff);
             }
             // "Tekrar oyna" aynı kadroyla doğrudan oyuna döner; ?oyun=1 lobiyi atlar (test)
             if ((Replay && Game.Lineup != null) || Bridge.Param("oyun") == "1") { Replay = false; StartGame(); }
