@@ -360,7 +360,7 @@ namespace VK
                 await Wait(1.3f);
             }
             p.ch.body.SetActive(false);
-            if (gallows != null) { var gl = gallows; Later(1.6f, () => { if (gl) { var tr = gl.transform; Tween.Run(gl, 0.6f, k => { if (tr) tr.localScale = new Vector3(1, Mathf.Max(0.01f, 1 - k), 1); }, Tween.OutCubic, 0, () => { if (gl) Destroy(gl); }); } }); }
+            if (gallows != null) { var gl = gallows; var tr = gl.transform; Tween.Run(gl, 0.6f, k => { if (tr) tr.localScale = new Vector3(1, Mathf.Max(0.01f, 1 - k), 1); }, Tween.OutCubic, 1.4f, () => { if (gl) Destroy(gl); }); Destroy(gl, 4f); }
             W.Burst(p.seat + Vector3.up * 0.9f, new Color(0.75f, 0.83f, 1f), 18, 0.5f, 0.2f, 1.2f);
             var gh = Rig.Make(p.look, p.size, true);
             gh.transform.position = p.seat + Vector3.up * 0.1f; gh.transform.LookAt(new Vector3(0, 0.1f, 0));

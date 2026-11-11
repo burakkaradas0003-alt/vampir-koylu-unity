@@ -585,13 +585,13 @@ namespace VK
             else
             {
                 float gs = Mathf.Sin(time * 4.1f + phase), gc = Mathf.Cos(time * 2.9f + phase);
-                var upL = Blend(time, new Vector3(-0.12f, -0.8f, 0.62f),
+                var upL = Blend(time, stool ? new Vector3(-0.12f, -0.8f, 0.62f) : new Vector3(-0.2f, -1, 0.04f),
                     (bThink + bChin, new Vector3(-0.12f, -0.55f, 0.75f)), (bCross, new Vector3(-0.2f, -0.85f, 0.5f)), (laugh, new Vector3(-0.3f, -0.9f, 0.32f)),
                     (bSurp, new Vector3(-0.6f, -0.35f, 0.6f)), (bTalk * (1 - bThink), new Vector3(-0.42f, -0.72f, 0.62f + gs * 0.1f)));
-                var foL = Blend(time, new Vector3(0.02f, -0.6f, 0.82f),
+                var foL = Blend(time, stool ? new Vector3(0.02f, -0.6f, 0.82f) : new Vector3(-0.08f, -1, 0.14f),
                     (bThink + bChin, new Vector3(0.32f, 0.95f, 0.3f)), (bCross, new Vector3(1f, 0.12f, 0.32f)), (laugh, new Vector3(0.85f, -0.05f, 0.55f)),
                     (bSurp, new Vector3(-0.15f, 0.9f, 0.4f)), (bTalk * (1 - bThink), new Vector3(-0.38f + gs * 0.25f, 0.2f + gc * 0.2f, 1)));
-                var haL = Blend(time, new Vector3(0.05f, -0.9f, 0.5f), (bThink + bChin, new Vector3(0.35f, 0.75f, 0.55f)), (bCross, new Vector3(1, 0, 0.1f)), (bSurp, new Vector3(-0.1f, 1, 0.3f)), (bTalk, new Vector3(-0.3f, 0.5f, 1)));
+                var haL = Blend(time, stool ? new Vector3(0.05f, -0.9f, 0.5f) : new Vector3(0, -1, 0.12f), (bThink + bChin, new Vector3(0.35f, 0.75f, 0.55f)), (bCross, new Vector3(1, 0, 0.1f)), (bSurp, new Vector3(-0.1f, 1, 0.3f)), (bTalk, new Vector3(-0.3f, 0.5f, 1)));
                 Aim("LeftArm", "LeftForeArm", rootQ * Lerp(upL, new Vector3(-0.45f, 0.95f, 0.15f), w));
                 Aim("LeftForeArm", "LeftHand", rootQ * Lerp(foL, new Vector3(-0.15f - waveWiggle * 1.2f, 1, 0.15f), w));
                 Aim("LeftHand", "LeftHandMiddle1", rootQ * Lerp(haL, new Vector3(-0.05f, 1, 0.2f), w));
@@ -605,13 +605,13 @@ namespace VK
             else
             {
                 float gs2 = Mathf.Sin(time * 3.3f + phase * 1.7f);
-                var upR = Blend(time, new Vector3(0.12f, -0.8f, 0.62f), (bCross, new Vector3(0.2f, -0.85f, 0.5f)), (laugh, new Vector3(0.3f, -0.9f, 0.32f)),
+                var upR = Blend(time, stool ? new Vector3(0.12f, -0.8f, 0.62f) : new Vector3(0.2f, -1, 0.04f), (bCross, new Vector3(0.2f, -0.85f, 0.5f)), (laugh, new Vector3(0.3f, -0.9f, 0.32f)),
                     (bSurp, new Vector3(0.6f, -0.35f, 0.6f)), (bTalk * 0.6f, new Vector3(0.4f, -0.75f, 0.6f)), (bAngry * (1 - bCross), new Vector3(0.3f, -0.95f, 0.25f)));
-                var foR = Blend(time, new Vector3(-0.02f, -0.6f, 0.82f), (bCross, new Vector3(-1f, 0.18f, 0.28f)), (laugh, new Vector3(-0.85f, -0.05f, 0.55f)),
+                var foR = Blend(time, stool ? new Vector3(-0.02f, -0.6f, 0.82f) : new Vector3(0.08f, -1, 0.14f), (bCross, new Vector3(-1f, 0.18f, 0.28f)), (laugh, new Vector3(-0.85f, -0.05f, 0.55f)),
                     (bSurp, new Vector3(0.15f, 0.9f, 0.4f)), (bTalk * 0.6f, new Vector3(0.35f + gs2 * 0.2f, 0.15f, 1)));
                 Aim("RightArm", "RightForeArm", rootQ * Lerp(upR, P, r));
                 Aim("RightForeArm", "RightHand", rootQ * Lerp(foR, P, r));
-                Aim("RightHand", "RightHandMiddle1", rootQ * Lerp(new Vector3(-0.05f, -0.9f, 0.5f), P, r));
+                Aim("RightHand", "RightHandMiddle1", rootQ * Lerp(stool ? new Vector3(-0.05f, -0.9f, 0.5f) : new Vector3(0, -1, 0.12f), P, r));
             }
             Bend("RightHandIndex1", 0.35f * (1 - r)); Bend("RightHandIndex2", 0.4f * (1 - r));
             for (int i = 1; i < 4; i++) { Bend("RightHand" + FING[i] + "1", 0.35f + r * 1.15f); Bend("RightHand" + FING[i] + "2", 0.4f + r * 1.2f); }
