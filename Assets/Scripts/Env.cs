@@ -152,16 +152,17 @@ namespace VK
             var cool = Color.Lerp(new Color(0.86f, 0.93f, 1.05f), new Color(0.35f, 0.4f, 0.6f), k);
             if (sky != null)
             {
-                sky.SetFloat("_Exposure", Mathf.Lerp(1.15f, 0.08f, k));
-                sky.SetFloat("_AtmosphereThickness", Mathf.Lerp(0.85f, 0.6f, k));
-                sky.SetColor("_SkyTint", Color.Lerp(new Color(0.5f, 0.55f, 0.62f), new Color(0.2f, 0.24f, 0.45f), k));
+                sky.SetFloat("_Exposure", Mathf.Lerp(0.85f, 0.05f, k));
+                sky.SetFloat("_AtmosphereThickness", Mathf.Lerp(1.3f, 0.6f, k));
+                sky.SetColor("_SkyTint", Color.Lerp(new Color(0.46f, 0.48f, 0.5f), new Color(0.16f, 0.2f, 0.4f), k));
                 sky.SetColor("_GroundColor", Color.Lerp(new Color(0.42f, 0.4f, 0.37f), new Color(0.05f, 0.05f, 0.09f), k));
                 sky.SetFloat("_SunSize", Mathf.Lerp(0.035f, 0.0f, k));
                 RenderSettings.sun = sun;
             }
             // uzak sis gökyüzünün ufkuyla aynı renkte: dağlar ufukta erir
-            RenderSettings.fogColor = Color.Lerp(new Color(0.76f, 0.8f, 0.82f), new Color(0.05f, 0.06f, 0.13f), k); // gündüz hafif sıcak pus
-            RenderSettings.fogDensity = Mathf.Lerp(0.0085f, 0.0095f, k);
+            // gündüz gri sis, gece koyu lacivert ve yoğun: köyün ötesi karanlığa gömülür
+            RenderSettings.fogColor = Color.Lerp(new Color(0.62f, 0.66f, 0.7f), new Color(0.03f, 0.04f, 0.09f), k);
+            RenderSettings.fogDensity = Mathf.Lerp(0.012f, 0.024f, k);
             foreach (var m in mountainMats) m.SetColor("_Tint", cool);
         }
 
@@ -174,8 +175,8 @@ namespace VK
                 var p = cloudP[i] + new Vector3(t * 1.2f, 0, t * 0.4f);
                 var rot = Quaternion.LookRotation(p - camPos);
                 cloudM[i] = Matrix4x4.TRS(p, rot, Vector3.one * cloudS[i]);
-                float a = Mathf.Lerp(0.85f, 0.18f, tod);
-                cloudC[i] = new Vector4(Mathf.Lerp(1f, 0.32f, tod), Mathf.Lerp(1f, 0.36f, tod), Mathf.Lerp(1f, 0.5f, tod), a);
+                float a = Mathf.Lerp(0.95f, 0.18f, tod);
+                cloudC[i] = new Vector4(Mathf.Lerp(0.78f, 0.32f, tod), Mathf.Lerp(0.8f, 0.36f, tod), Mathf.Lerp(0.84f, 0.5f, tod), a); // gündüz kurşuni bulut
             }
             cloudMpb.SetVectorArray("_Color", cloudC);
             var rp = new RenderParams(cloudMat) { matProps = cloudMpb, worldBounds = new Bounds(Vector3.zero, Vector3.one * 800), shadowCastingMode = ShadowCastingMode.Off };

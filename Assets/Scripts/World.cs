@@ -73,7 +73,7 @@ namespace VK
             BuildAtmos();
             // hareketsiz sahne parçalarını aynı malzemeye göre birleştir (çizim çağrısı azalır)
             foreach (var n in new[] { "Köy", "Taşlar" }) { var g = transform.Find(n); if (g != null) StaticBatchingUtility.Combine(g.gameObject); }
-            SetLevel(low ? 2 : 0);
+            SetLevel(int.TryParse(Bridge.Param("kalite") ?? "", out var fq) ? fq : low ? 2 : 0);
             ApplyTOD(0);
         }
 
@@ -530,21 +530,23 @@ namespace VK
         void ApplyTOD(float k)
         {
             tod = k;
-            sun.color = Color.Lerp(new Color(1f, 0.9f, 0.76f), new Color(0.5f, 0.6f, 0.95f), k);
-            sun.intensity = Mathf.Lerp(1.45f, 0.3f, k); // gece: soğuk ay ışığı
+            // gündüz: bulutlu, soluk, kasvetli bir sabah; gece: koyu lacivert, tek sıcak ışık ateş ve pencereler
+            sun.color = Color.Lerp(new Color(0.93f, 0.9f, 0.84f), new Color(0.42f, 0.52f, 0.92f), k);
+            sun.intensity = Mathf.Lerp(0.95f, 0.16f, k);
+            sun.shadowStrength = Mathf.Lerp(0.55f, 0.8f, k);
             sun.transform.rotation = Quaternion.Euler(Mathf.Lerp(34, 38, k), Mathf.Lerp(-40, 150, k), 0);
-            RenderSettings.ambientSkyColor = Color.Lerp(new Color(0.5f, 0.6f, 0.76f), new Color(0.07f, 0.08f, 0.17f), k);
-            RenderSettings.ambientEquatorColor = Color.Lerp(new Color(0.6f, 0.58f, 0.5f), new Color(0.06f, 0.06f, 0.12f), k);
-            RenderSettings.ambientGroundColor = Color.Lerp(new Color(0.36f, 0.33f, 0.26f), new Color(0.03f, 0.03f, 0.05f), k);
-            RenderSettings.fogColor = Color.Lerp(new Color(0.86f, 0.82f, 0.74f), new Color(0.05f, 0.05f, 0.12f), k);
+            RenderSettings.ambientSkyColor = Color.Lerp(new Color(0.46f, 0.5f, 0.56f), new Color(0.045f, 0.055f, 0.12f), k);
+            RenderSettings.ambientEquatorColor = Color.Lerp(new Color(0.44f, 0.45f, 0.44f), new Color(0.03f, 0.035f, 0.075f), k);
+            RenderSettings.ambientGroundColor = Color.Lerp(new Color(0.25f, 0.24f, 0.22f), new Color(0.012f, 0.012f, 0.022f), k);
             PaintSky(k);
-            fireBase = Mathf.Lerp(0.6f, 5.5f, k * k); fireLight.range = Mathf.Lerp(4, 18, k);
+            fireBase = Mathf.Lerp(1.1f, 7.5f, k * k); fireLight.range = Mathf.Lerp(6, 16, k);
             fireLight.shadows = !low && fireShadowAllowed && k > 0.5f ? LightShadows.Hard : LightShadows.None;
-            foreach (var m in windowMats) m.SetColor("_EmissionColor", new Color(1f, 0.52f, 0.18f) * (k * 1.5f)); // sıcak turuncu, beyaza patlamasın
+            foreach (var m in windowMats) m.SetColor("_EmissionColor", new Color(1f, 0.55f, 0.2f) * (0.15f + k * 2.6f)); // gündüz de loş yanar, gece parlar
             moon.SetActive(false);
             env?.ApplyTOD(k, sun);
             GradeTOD(k);
-            if (villageMat != null) villageMat.SetColor("_EmissionColor", new Color(1f, 0.62f, 0.28f) * (k * 0.8f)); // köy paketi: yumuşak pencere ışığı
+            if (villageMat != null) villageMat.SetColor("_EmissionColor", new Color(1f, 0.6f, 0.26f) * (0.12f + k * 2.4f)); // köy paketi: pencereler parlasın
+            if (bloom != null) { bloom.threshold.Override(Mathf.Lerp(0.95f, 0.72f, k)); bloom.intensity.Override(Mathf.Lerp(0.45f, 1.15f, k)); }
         }
         float fireBase = 0.6f;
 

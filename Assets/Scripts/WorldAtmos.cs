@@ -18,12 +18,13 @@ namespace VK
         {
             if (grade != null)
             {
-                grade.colorFilter.Override(Color.Lerp(new Color(1f, 0.95f, 0.88f), new Color(0.8f, 0.88f, 1.08f), k));
-                grade.saturation.Override(Mathf.Lerp(10f, -6f, k));
-                grade.contrast.Override(Mathf.Lerp(20f, 20f, k));
-                grade.postExposure.Override(Mathf.Lerp(0.12f, 0.15f, k));
+                // gündüz: soğuk-gri, az doygun (kasvet); gece: lacivert, kontrastlı
+                grade.colorFilter.Override(Color.Lerp(new Color(0.93f, 0.95f, 0.98f), new Color(0.78f, 0.86f, 1.08f), k));
+                grade.saturation.Override(Mathf.Lerp(-14f, -8f, k));
+                grade.contrast.Override(Mathf.Lerp(16f, 26f, k));
+                grade.postExposure.Override(Mathf.Lerp(0.05f, 0.1f, k));
             }
-            if (vign != null) vign.intensity.Override(Mathf.Lerp(0.32f, 0.42f, k));
+            if (vign != null) vign.intensity.Override(Mathf.Lerp(0.36f, 0.48f, k));
         }
 
         // ------------------------------------------------------------ low-poly kum meydan

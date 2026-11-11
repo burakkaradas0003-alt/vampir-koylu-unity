@@ -909,7 +909,7 @@ namespace VK
             {
                 float fps = fpsN / (t - fpsT0); fpsT0 = t; fpsN = 0;
                 // ilk 8 sn (yükleme takılmaları) sayılmaz; iki ölçüm üst üste düşükse hafiflet
-                if (t < 8) { }
+                if (t < 8 || Bridge.Param("kalite") != null) { }
                 else if (fps < 38) { lowCount++; goodSecs = 0; if (lowCount >= 2) { W.Degrade(); lowCount = 0; } }
                 else if (fps > 54) { lowCount = 0; goodSecs += 3; if (goodSecs >= 8 && W.level > 0) { W.SetLevel(W.level - 1); goodSecs = 0; } }
                 else { goodSecs = 0; lowCount = 0; }
