@@ -188,6 +188,7 @@ public class ZuImport : AssetPostprocessor
         mi.importLights = false;
         mi.materialImportMode = ModelImporterMaterialImportMode.None;
         mi.animationType = ModelImporterAnimationType.Generic;
+        if (assetPath.Contains("/Village/")) { mi.animationType = ModelImporterAnimationType.None; mi.importBlendShapes = false; mi.meshCompression = ModelImporterMeshCompression.Off; }
     }
 
     void OnPreprocessTexture()
@@ -198,6 +199,7 @@ public class ZuImport : AssetPostprocessor
         if (assetPath.Contains("/Emoji/") || assetPath.Contains("/Items/")) { ti.textureType = TextureImporterType.Sprite; ti.spriteImportMode = SpriteImportMode.Single; ti.alphaIsTransparency = true; ti.mipmapEnabled = false; ti.textureCompression = TextureImporterCompression.Uncompressed; }
         if (assetPath.Contains("turf")) { ti.wrapMode = TextureWrapMode.Mirror; ti.isReadable = true; }
         if (assetPath.Contains("flames")) ti.wrapMode = TextureWrapMode.Clamp;
+        if (assetPath.Contains("/Village/")) { ti.textureCompression = TextureImporterCompression.Uncompressed; ti.wrapMode = TextureWrapMode.Repeat; ti.filterMode = FilterMode.Bilinear; ti.mipmapEnabled = true; ti.sRGBTexture = true; }
         ti.maxTextureSize = 2048;
     }
 }

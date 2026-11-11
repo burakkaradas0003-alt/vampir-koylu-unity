@@ -211,6 +211,8 @@ namespace VK
         void BuildVillage()
         {
             var root = new GameObject("Köy").transform; root.SetParent(transform, false);
+            // kullanıcının köy paketi varsa onu kullan; yoksa eski kodla üretilen köy
+            if (BuildAssetVillage(root)) return;
             var tP = Tex.Plaster(); var tW = Tex.Wood(); var tS = Tex.Stone();
             var plaster = TexMat(tP, new Vector2(2, 1.5f), Color.white); var timber = TexMat(tW, new Vector2(1, 1), Color.white, 0.15f);
             var roofs = new[] { TexMat(Tex.RoofTiles(new Color(0.62f, 0.22f, 0.17f)), new Vector2(1, 1), Color.white, 0.2f), TexMat(Tex.RoofTiles(new Color(0.48f, 0.3f, 0.2f)), new Vector2(1, 1), Color.white, 0.2f), TexMat(Tex.RoofTiles(new Color(0.36f, 0.33f, 0.36f)), new Vector2(1, 1), Color.white, 0.25f) };
