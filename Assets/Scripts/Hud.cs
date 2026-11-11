@@ -17,6 +17,7 @@ namespace VK
         Text phT, phS, timer, rcName, toastT, b1, b2, sleepT, sleepS, hint;
         Image rcIcon, rcBorder, sleepI, bIcon;
         CanvasGroup toastG, bannerG, actG, cardG, endG, emoG;
+        Image[] cardSmoke; Image cardPropL, cardPropR, cardRibbon, cardDivIcon; RectTransform cardTop; Button cardClose;
         RectTransform lidTop, lidBot, logBox, actBtns, tagsRoot, endGrid, emoRow;
         Text actT, actD; Image actI;
         InputField input; Image cardIcon; Text cardName, cardTeam, cardDesc; Button cardBtn; Text cardBtnT;
@@ -142,18 +143,45 @@ namespace VK
             b2 = Label("b2", ban, "", 15, FontStyle.Normal, TextAnchor.MiddleCenter, new Vector2(0.5f, 0.5f), new Vector2(0, -40), new Vector2(700, 24));
             hint = Label("hint", canvas, "← Kaydırarak bak · Seçmek için kişiye dokun →", 13, FontStyle.Normal, TextAnchor.MiddleCenter, new Vector2(0.5f, 0.5f), new Vector2(0, -20), new Vector2(500, 26));
 
-            // rol kartı
-            var card = Panel("kartArka", canvas, new Color(0, 0, 0, 0.6f), Vector2.zero, Vector2.one, Vector2.zero, Vector2.zero);
+            // rol kartı: altın süslü mor çerçeve, üstte ay diski önünde büyük rol ikonu, iki yanında rol eşyaları,
+            // isim plakası, takım şeridi, açıklama, ayraç, parlak altın düğme, köşede kapat
+            var card = Panel("kartArka", canvas, new Color(0.02f, 0.01f, 0.05f, 0.62f), Vector2.zero, Vector2.one, Vector2.zero, Vector2.zero);
             cardG = card.gameObject.AddComponent<CanvasGroup>();
-            var front = Panel("kart", card, new Color(0.08f, 0.09f, 0.18f, 0.98f), new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(300, 300), true);
-            cardIcon = Img("i", front, null, new Vector2(0.5f, 1), new Vector2(0, -56), new Vector2(72, 72));
-            cardName = Label("n", front, "", 36, FontStyle.Bold, TextAnchor.MiddleCenter, new Vector2(0.5f, 1), new Vector2(0, -116), new Vector2(280, 42)); cardName.font = UI.Display;
-            cardGlow = Img("hale", front, glow, new Vector2(0.5f, 1), new Vector2(0, -56), new Vector2(150, 150)); cardGlow.enabled = true; cardGlow.preserveAspect = false; cardGlow.transform.SetSiblingIndex(0);
-            cardTeam = Label("tm", front, "", 13, FontStyle.Bold, TextAnchor.MiddleCenter, new Vector2(0.5f, 1), new Vector2(0, -140), new Vector2(280, 20));
-            cardDesc = Label("d", front, "", 13, FontStyle.Normal, TextAnchor.UpperCenter, new Vector2(0.5f, 1), new Vector2(0, -196), new Vector2(260, 84)); cardDesc.color = new Color(0.8f, 0.83f, 0.94f);
-            var cb = Panel("tamam", front, new Color(0.96f, 0.77f, 0.26f), new Vector2(0.5f, 0), new Vector2(0.5f, 0), new Vector2(0, 30), new Vector2(160, 38), true);
-            cardBtnT = Label("t", cb, "Hazırım", 15, FontStyle.Bold, TextAnchor.MiddleCenter, new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(160, 38)); cardBtnT.color = new Color(0.1f, 0.08f, 0.04f);
-            cardBtn = cb.gameObject.AddComponent<Button>();
+            var front = Rect("kart", card, new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(0, -24), new Vector2(360, 284));
+            Sprite kUS(string n) => Resources.Load<Sprite>("UI/" + n);
+            Image kSl(string n, Transform par, string sp, Vector2 anchor, Vector2 pos, Vector2 size, float ppu = 1f)
+            {
+                var im = Img(n, par, kUS(sp), anchor, pos, size); im.preserveAspect = false; if (im.sprite != null && im.sprite.border != Vector4.zero) { im.type = Image.Type.Sliced; im.pixelsPerUnitMultiplier = ppu; }
+                return im;
+            }
+            cardSmoke = new Image[3];
+            cardSmoke[0] = kSl("duman sol", front, "smoke", new Vector2(0, 0), new Vector2(10, 30), new Vector2(170, 150));
+            cardSmoke[1] = kSl("duman sağ", front, "smoke", new Vector2(1, 0), new Vector2(-10, 30), new Vector2(170, 150));
+            cardSmoke[2] = kSl("duman üst", front, "smoke", new Vector2(0.5f, 1), new Vector2(0, 0), new Vector2(330, 170));
+            var kFrame = kSl("çerçeve", front, "frame", new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(360, 284), 1.6f);
+            var kFsh = kFrame.gameObject.AddComponent<Shadow>(); kFsh.effectColor = new Color(0, 0, 0, 0.5f); kFsh.effectDistance = new Vector2(0, -5);
+            cardTop = Rect("üst süs", front, Vector2.zero, Vector2.one, Vector2.zero, Vector2.zero);
+            var kMoon = kSl("ay", cardTop, "moon", new Vector2(0.5f, 1), new Vector2(0, 16), new Vector2(124, 124)); kMoon.color = new Color(1, 1, 1, 0.85f);
+            cardGlow = Img("hale", cardTop, glow, new Vector2(0.5f, 1), new Vector2(0, 14), new Vector2(210, 170)); cardGlow.enabled = true; cardGlow.preserveAspect = false;
+            cardIcon = Img("i", cardTop, null, new Vector2(0.5f, 1), new Vector2(0, 18), new Vector2(112, 112));
+            cardPropL = Img("eşya sol", cardTop, null, new Vector2(0.5f, 1), new Vector2(-134, -70), new Vector2(54, 54)); cardPropL.rectTransform.localEulerAngles = new Vector3(0, 0, 12);
+            cardPropR = Img("eşya sağ", cardTop, null, new Vector2(0.5f, 1), new Vector2(134, -70), new Vector2(54, 54)); cardPropR.rectTransform.localEulerAngles = new Vector3(0, 0, -10);
+            var kPlq = kSl("plaka", front, "plaque", new Vector2(0.5f, 1), new Vector2(0, -74), new Vector2(214, 56), 1.7f);
+            cardName = Label("n", kPlq.rectTransform, "", 32, FontStyle.Bold, TextAnchor.MiddleCenter, new Vector2(0.5f, 0.5f), new Vector2(0, 1), new Vector2(200, 44)); cardName.font = UI.Display; cardName.color = new Color(1f, 0.93f, 0.8f);
+            var kNsh = cardName.GetComponent<Shadow>(); kNsh.effectColor = new Color(0.25f, 0.1f, 0.02f, 0.9f); kNsh.effectDistance = new Vector2(0, -2);
+            cardRibbon = kSl("şerit", front, "ribbon_g", new Vector2(0.5f, 1), new Vector2(0, -107), new Vector2(118, 26), 2f);
+            cardTeam = Label("tm", cardRibbon.rectTransform, "", 12, FontStyle.Bold, TextAnchor.MiddleCenter, new Vector2(0.5f, 0.5f), new Vector2(0, 0), new Vector2(118, 22));
+            cardDesc = Label("d", front, "", 13, FontStyle.Normal, TextAnchor.UpperCenter, new Vector2(0.5f, 1), new Vector2(0, -158), new Vector2(312, 64)); cardDesc.color = new Color(0.95f, 0.93f, 0.98f);
+            kSl("ayraç", front, "divider", new Vector2(0.5f, 0), new Vector2(0, 80), new Vector2(256, 14));
+            cardDivIcon = Img("ayraç ikon", front, null, new Vector2(0.5f, 0), new Vector2(0, 80), new Vector2(20, 20));
+            var kCb = kSl("tamam", front, "btn_gold", new Vector2(0.5f, 0), new Vector2(0, 40), new Vector2(214, 46), 1.9f).rectTransform;
+            kCb.GetComponent<Image>().raycastTarget = true;
+            cardBtnT = Label("t", kCb, "Hazırım", 19, FontStyle.Bold, TextAnchor.MiddleCenter, new Vector2(0.5f, 0.5f), new Vector2(0, 1), new Vector2(200, 40)); cardBtnT.color = new Color(0.24f, 0.13f, 0.03f);
+            var kBsh = cardBtnT.GetComponent<Shadow>(); kBsh.effectColor = new Color(1f, 0.95f, 0.7f, 0.6f); kBsh.effectDistance = new Vector2(0, -1);
+            cardBtn = kCb.gameObject.AddComponent<Button>();
+            Img("taş", front, kUS("gem"), new Vector2(0.5f, 0), new Vector2(0, 2), new Vector2(30, 30));
+            var kCx = Img("kapat", front, kUS("close"), new Vector2(1, 1), new Vector2(-4, -4), new Vector2(34, 34)); kCx.raycastTarget = true;
+            cardClose = kCx.gameObject.AddComponent<Button>();
             card.gameObject.SetActive(false);
 
             // bitiş ekranı: BuildEnd (ShowEnd çağrılınca kurulur)
@@ -322,29 +350,38 @@ namespace VK
 
         public void ShowCard(string icon, string name, string team, Color c, string desc, string btn, Action onClose)
         {
-            cardIcon.sprite = Emoji(icon); cardName.text = name; cardTeam.text = team; cardTeam.color = c; cardDesc.text = desc; cardBtnT.text = btn;
-            cardBtn.onClick.RemoveAllListeners(); cardBtn.onClick.AddListener(() => { Sfx.Play("tap"); cardG.gameObject.SetActive(false); onClose?.Invoke(); });
-            cardGlow.color = new Color(c.r, c.g, c.b, 0.45f);
+            cardIcon.sprite = Emoji(icon); cardName.text = name; cardTeam.text = team; cardTeam.color = Color.white; cardDesc.text = desc; cardBtnT.text = btn;
+            bool vamp = team.StartsWith("VAMP");
+            cardRibbon.sprite = Resources.Load<Sprite>(vamp ? "UI/ribbon_r" : "UI/ribbon_g");
+            var props = icon switch { "vampir" => ("batw", "poison"), "kahin" => ("crystal", "telescope"), "koruma" => ("shield", "swords"), "cadi" => ("heal", "book"), "avci" => ("rifle", "axes"), "melek" => ("wings", "crown"), _ => ("axes", "lantern") };
+            cardPropL.sprite = Emoji(props.Item1); cardPropR.sprite = Emoji(props.Item2); cardPropL.enabled = cardPropL.sprite != null; cardPropR.enabled = cardPropR.sprite != null;
+            cardDivIcon.sprite = Emoji(props.Item1); cardDivIcon.enabled = cardDivIcon.sprite != null;
+            var smokeC = vamp ? new Color(0.9f, 0.2f, 0.3f, 0.42f) : new Color(Mathf.Lerp(c.r, 0.62f, 0.5f), Mathf.Lerp(c.g, 0.3f, 0.5f), Mathf.Lerp(c.b, 0.95f, 0.5f), 0.4f);
+            foreach (var sm in cardSmoke) sm.color = smokeC;
+            Action close = () => { Sfx.Play("tap"); cardG.gameObject.SetActive(false); onClose?.Invoke(); };
+            cardBtn.onClick.RemoveAllListeners(); cardBtn.onClick.AddListener(() => close());
+            cardClose.onClick.RemoveAllListeners(); cardClose.onClick.AddListener(() => close());
+            cardGlow.color = new Color(c.r, c.g, c.b, 0.55f);
             cardG.gameObject.SetActive(true); Fade(cardG, 0, 1, 0.25f);
-            var front = (RectTransform)cardIcon.transform.parent;
+            var front = (RectTransform)cardTop.parent;
             // kart arkası: iki kez dönerek karışır, sonra rol yüzü açılır
             var back = front.Find("arka") as RectTransform;
             if (back == null)
             {
-                back = UI.Panel(front, "arka", new Color(0.2f, 0.12f, 0.42f, 1f), false); back.Fill();
-                UI.Img(back, UI.Glow, UI.A(UI.Lilac, 0.5f), "ışık").rectTransform.Fill(30, 30, 30, 30);
-                UI.Img(back, UI.Outline, UI.A(UI.Gold, 0.7f), "süs").rectTransform.Fill(10, 10, 10, 10);
+                back = UI.R("arka", front).Fill();
+                var bf = back.gameObject.AddComponent<Image>(); bf.sprite = Resources.Load<Sprite>("UI/frame"); bf.type = Image.Type.Sliced; bf.pixelsPerUnitMultiplier = 1.6f;
+                UI.Img(back, UI.Glow, UI.A(UI.Lilac, 0.5f), "ışık").rectTransform.Fill(40, 40, 40, 40);
                 UI.Icon(back, Emoji("crystal"), 70).rectTransform.At(new Vector2(0.5f, 0.5f), new Vector2(0, 14), new Vector2(70, 70));
                 UI.Txt(back, "Rolün belirleniyor", 13, UI.Lilac, UI.Bold, TextAnchor.MiddleCenter).rectTransform.At(new Vector2(0.5f, 0), new Vector2(0, 40), new Vector2(260, 20), new Vector2(0.5f, 0));
             }
-            back.gameObject.SetActive(true); back.SetAsLastSibling(); cardIcon.enabled = false; Sfx.Play("whoosh");
+            back.gameObject.SetActive(true); back.SetAsLastSibling(); cardTop.gameObject.SetActive(false); Sfx.Play("whoosh");
             bool flipped = false;
             Tween.Run(front, 1.25f, k =>
             {
                 if (!front) return;
                 float ang = k * Mathf.PI * 3; float sx = Mathf.Abs(Mathf.Cos(ang));
                 front.localScale = new Vector3(Mathf.Max(0.02f, sx), 1 + Mathf.Sin(k * Mathf.PI) * 0.06f, 1);
-                if (!flipped && k > 0.84f) { flipped = true; back.gameObject.SetActive(false); cardIcon.enabled = true; Scale(cardIcon.rectTransform, Vector3.zero, Vector3.one, 0.4f); Sfx.Play("magic"); }
+                if (!flipped && k > 0.84f) { flipped = true; back.gameObject.SetActive(false); cardTop.gameObject.SetActive(true); Scale(cardIcon.rectTransform, Vector3.zero, Vector3.one, 0.4f); Sfx.Play("magic"); }
             }, x => x, 0, () => { if (front) front.localScale = Vector3.one; });
         }
         public void HideCard() { cardG.gameObject.SetActive(false); }

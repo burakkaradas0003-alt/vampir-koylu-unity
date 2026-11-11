@@ -83,48 +83,47 @@ namespace VK
         // ---------------------------------------------------------------- ortaçağ ev paketi (Resources/Medieval/pack.fbx)
         // yarı ahşap evler + değirmen; düz renkli malzemeler adlarına göre bizim ışıklı malzemelerimizle değişir,
         // pencere camı ve fenerler gece sıcak turuncu parlar
-        GameObject medSrc; Dictionary<string, Material> medMats; float medUnit;
+        // paket önceden ikili ağ dosyasına çevrildi (Resources/Medieval/medieval.bytes): ölçek 8.2 m ev yüksekliği,
+        // taban y=0, ortalanmış, kapı +Z. Her nesne malzeme adına göre alt ağlara ayrılmış.
+        Dictionary<string, (Mesh mesh, string[] mats)> medObj; Dictionary<string, Material> medMats;
         bool LoadMedieval()
         {
-            medSrc = Resources.Load<GameObject>("Medieval/pack");
-            if (medSrc == null) return false;
-            var h = MedSrc("house2"); if (h == null) return false;
-            var r = h.GetComponentInChildren<MeshFilter>(); if (r == null || r.sharedMesh == null) return false;
-            // birim: house2 yüksekliği 8.2 m olsun (ölçüm Unity'de, dönüş/ölçek dahil)
-            float hy = MedBounds(h).size.y; if (hy < 1e-4f) return false;
-            medUnit = 8.2f / hy; medMats = new Dictionary<string, Material>();
-            return true;
-        }
-        Transform MedSrc(string n) { foreach (var t in medSrc.GetComponentsInChildren<Transform>(true)) if (t.name == n) return t; return null; }
-        static Bounds MedBounds(Transform src)
-        {
-            bool has = false; var bb = new Bounds();
-            foreach (var mf in src.GetComponentsInChildren<MeshFilter>(true))
+            var ta = Resources.Load<TextAsset>("Medieval/medieval"); if (ta == null) return false;
+            medObj = new Dictionary<string, (Mesh, string[])>(); medMats = new Dictionary<string, Material>();
+            using (var br = new System.IO.BinaryReader(new System.IO.MemoryStream(ta.bytes)))
             {
-                if (mf.sharedMesh == null) continue; var b = mf.sharedMesh.bounds; var m = mf.transform.localToWorldMatrix;
-                for (int i = 0; i < 8; i++)
+                string Str() { int n = br.ReadInt32(); return System.Text.Encoding.UTF8.GetString(br.ReadBytes(n)); }
+                int cnt = br.ReadInt32();
+                for (int o = 0; o < cnt; o++)
                 {
-                    var p = m.MultiplyPoint3x4(b.center + Vector3.Scale(b.extents, new Vector3((i & 1) == 0 ? -1 : 1, (i & 2) == 0 ? -1 : 1, (i & 4) == 0 ? -1 : 1)));
-                    if (!has) { bb = new Bounds(p, Vector3.zero); has = true; } else bb.Encapsulate(p);
+                    string nm = Str(); int vc = br.ReadInt32();
+                    var pos = new Vector3[vc]; var nor = new Vector3[vc];
+                    for (int i = 0; i < vc; i++) pos[i] = new Vector3(br.ReadSingle(), br.ReadSingle(), br.ReadSingle());
+                    for (int i = 0; i < vc; i++) nor[i] = new Vector3(br.ReadSingle(), br.ReadSingle(), br.ReadSingle());
+                    int sc = br.ReadInt32(); var mats = new string[sc]; var subs = new int[sc][];
+                    for (int k = 0; k < sc; k++) { mats[k] = Str(); int ic = br.ReadInt32(); var ix = new int[ic]; for (int i = 0; i < ic; i++) ix[i] = br.ReadInt32(); subs[k] = ix; }
+                    var m = new Mesh { name = nm, indexFormat = IndexFormat.UInt32 }; m.vertices = pos; m.normals = nor; m.subMeshCount = sc;
+                    for (int k = 0; k < sc; k++) m.SetTriangles(subs[k], k);
+                    m.RecalculateBounds(); m.UploadMeshData(true);
+                    medObj[nm] = (m, mats);
                 }
             }
-            return bb;
+            return medObj.Count > 0;
         }
-        Material MedMat(Material orig)
+        Material MedMat(string raw)
         {
-            string raw = orig != null ? orig.name : "", k = "";
-            foreach (char ch in raw.Replace(" (Instance)", "")) if (char.IsLetterOrDigit(ch)) k += ch;
+            string k = ""; foreach (char ch in raw) if (char.IsLetterOrDigit(ch)) k += ch;
             if (medMats.TryGetValue(k, out var m)) return m;
             Color c; bool glow = false; float sm = 0.08f;
             switch (k)
             {
                 case "Mat": c = new Color(0.36f, 0.35f, 0.34f); break;              // taş temel, baca
-                case "Mat1": c = new Color(0.16f, 0.15f, 0.14f); glow = true; sm = 0.5f; break; // pencere camı
+                case "Mat1": c = new Color(0.2f, 0.19f, 0.18f); glow = true; sm = 0.5f; break; // pencere camı
                 case "Mat2": c = new Color(0.33f, 0.21f, 0.12f); break;             // ahşap, çatı
                 case "Mat5": c = new Color(0.3f, 0.42f, 0.22f); break;              // çimen
-                case "Mat6": c = new Color(0.74f, 0.71f, 0.65f); break;             // sıva
+                case "Mat6": c = new Color(0.78f, 0.74f, 0.66f); break;             // sıva ve değirmen kanatları
                 case "Mat7": c = new Color(0.9f, 0.55f, 0.18f); glow = true; break; // fener
-                default: c = orig != null && orig.HasProperty("_BaseColor") ? orig.GetColor("_BaseColor") : orig != null && orig.HasProperty("_Color") ? orig.color : new Color(0.7f, 0.68f, 0.64f); break;
+                default: c = new Color(0.7f, 0.68f, 0.64f); break;
             }
             m = new Material(Resources.Load<Material>(glow ? "Mats/LitEmissive" : "Mats/Lit")); m.SetColor("_BaseColor", c); m.SetFloat("_Smoothness", sm); m.SetFloat("_Metallic", 0);
             if (glow) { m.EnableKeyword("_EMISSION"); m.SetColor("_EmissionColor", Color.black); windowMats.Add(m); }
@@ -133,19 +132,12 @@ namespace VK
         // bir parçayı yerleştir: taban ortası 'pos'a, kapısı (+Z) 'yaw' yönüne
         GameObject PutMed(string name, Transform parent, Vector3 pos, float yaw, float scale = 1)
         {
-            if (medSrc == null) return null; var src = MedSrc(name); if (src == null) return null;
+            if (medObj == null || !medObj.TryGetValue(name, out var o)) return null;
             var g = new GameObject(name); g.transform.SetParent(parent, false);
-            var inst = Instantiate(src.gameObject, g.transform, false); inst.name = "model";
-            inst.transform.localRotation = src.rotation; float s = medUnit * scale; inst.transform.localScale = src.lossyScale * s;
-            foreach (var r in inst.GetComponentsInChildren<MeshRenderer>(true))
-            {
-                var ms = r.sharedMaterials; for (int i = 0; i < ms.Length; i++) ms[i] = MedMat(ms[i]); r.sharedMaterials = ms;
-                r.shadowCastingMode = ShadowCastingMode.On; r.receiveShadows = true;
-            }
-            foreach (var c in inst.GetComponentsInChildren<Collider>(true)) Destroy(c);
-            // kaynağın dünya sınırlarından tabanı ve ortayı bul (kaynağın kendi konumu düşülür)
-            var b = MedBounds(src); var off = b.center - src.position; float bottom = b.min.y - src.position.y;
-            inst.transform.localPosition = -new Vector3(off.x, bottom, off.z) * s;
+            var m = new GameObject("model"); m.transform.SetParent(g.transform, false); m.transform.localScale = Vector3.one * scale;
+            m.AddComponent<MeshFilter>().sharedMesh = o.mesh;
+            var r = m.AddComponent<MeshRenderer>(); var ms = new Material[o.mats.Length]; for (int i = 0; i < ms.Length; i++) ms[i] = MedMat(o.mats[i]);
+            r.sharedMaterials = ms; r.shadowCastingMode = ShadowCastingMode.On; r.receiveShadows = true;
             g.transform.localPosition = pos; g.transform.localRotation = Quaternion.Euler(0, yaw, 0);
             return g;
         }

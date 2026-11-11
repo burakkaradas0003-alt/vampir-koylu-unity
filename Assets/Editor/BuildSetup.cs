@@ -40,7 +40,7 @@ public static class BuildSetup
     public static void Setup()
     {
         ReimportModels();
-        foreach (var g in AssetDatabase.FindAssets("t:Texture2D", new[] { "Assets/Resources/Emoji", "Assets/Resources/Items" })) AssetDatabase.ImportAsset(AssetDatabase.GUIDToAssetPath(g), ImportAssetOptions.ForceUpdate);
+        foreach (var g in AssetDatabase.FindAssets("t:Texture2D", new[] { "Assets/Resources/Emoji", "Assets/Resources/Items", "Assets/Resources/UI" })) AssetDatabase.ImportAsset(AssetDatabase.GUIDToAssetPath(g), ImportAssetOptions.ForceUpdate);
         var urp = SetupPipeline();
         SetupMaterials();
         SetupScene();
@@ -197,6 +197,12 @@ public class ZuImport : AssetPostprocessor
         var ti = (TextureImporter)assetImporter;
         if (assetPath.Contains("_normal")) ti.textureType = TextureImporterType.NormalMap;
         if (assetPath.Contains("/Emoji/") || assetPath.Contains("/Items/")) { ti.textureType = TextureImporterType.Sprite; ti.spriteImportMode = SpriteImportMode.Single; ti.alphaIsTransparency = true; ti.mipmapEnabled = false; ti.textureCompression = TextureImporterCompression.Uncompressed; }
+        if (assetPath.Contains("/Resources/UI/"))
+        {
+            ti.textureType = TextureImporterType.Sprite; ti.spriteImportMode = SpriteImportMode.Single; ti.alphaIsTransparency = true; ti.mipmapEnabled = false; ti.textureCompression = TextureImporterCompression.Uncompressed;
+            var n = System.IO.Path.GetFileNameWithoutExtension(assetPath); // kenarlar: sol, alt, sağ, üst
+            ti.spriteBorder = n == "frame" ? new Vector4(72, 72, 72, 72) : n == "plaque" ? new Vector4(70, 0, 70, 0) : n.StartsWith("ribbon") ? new Vector4(26, 0, 26, 0) : n == "btn_gold" ? new Vector4(70, 0, 70, 0) : Vector4.zero;
+        }
         if (assetPath.Contains("turf")) { ti.wrapMode = TextureWrapMode.Mirror; ti.isReadable = true; }
         if (assetPath.Contains("flames")) ti.wrapMode = TextureWrapMode.Clamp;
         if (assetPath.Contains("/Village/")) { ti.textureCompression = TextureImporterCompression.Uncompressed; ti.wrapMode = TextureWrapMode.Repeat; ti.filterMode = FilterMode.Bilinear; ti.mipmapEnabled = true; ti.sRGBTexture = true; }
