@@ -31,7 +31,7 @@
     createUnityInstance(canvas, {
       dataUrl: "Build/__DATA__", frameworkUrl: "Build/__FW__", codeUrl: "Build/__CODE__",
       streamingAssetsUrl: "StreamingAssets", companyName: "Zuplay", productName: "Vampir Köylü", productVersion: "0.1.0",
-      devicePixelRatio: Math.min(window.devicePixelRatio || 1, /iPhone|iPad|Android/i.test(navigator.userAgent) ? 1.5 : 2),
+      devicePixelRatio: Math.min(window.devicePixelRatio || 1, /iPhone|iPad|Android/i.test(navigator.userAgent) ? 2 : 2),
       showBanner: function (msg, type) { if (type === "error") document.getElementById("lt").textContent = msg; }
     }, function (p) { document.getElementById("pb").style.width = Math.round(p * 100) + "%"; })
     .then(function () { document.getElementById("load").style.display = "none"; })

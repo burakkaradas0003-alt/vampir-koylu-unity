@@ -758,7 +758,7 @@ namespace VK
         }
 
         // ---------------------------------------------------------------- her kare
-        float nextLookAt, fpsT0, goodSecs, armSide = 1; int fpsN;
+        float nextLookAt, fpsT0, goodSecs, armSide = 1; int fpsN, lowCount;
         readonly List<Transform> ringObjs = new List<Transform>(); Material ringMat; Mesh ringMesh;
 
         float AngleTo(Pl p, Vector3 target) { var v = p.ch.transform.InverseTransformPoint(target); return Mathf.Atan2(v.x, v.z); }
@@ -777,12 +777,14 @@ namespace VK
             // kare hızı düşükse kaliteyi otomatik düşür
             // sürekli kare hızı izleme: 2 sn ortalama < 40 ise hafiflet, 8 sn boyunca > 56 ise bir adım geri al
             if (fpsT0 == 0) fpsT0 = t; fpsN++;
-            if (t - fpsT0 > 2f)
+            if (t - fpsT0 > 3f)
             {
                 float fps = fpsN / (t - fpsT0); fpsT0 = t; fpsN = 0;
-                if (fps < 40) { W.Degrade(); goodSecs = 0; }
-                else if (fps > 56) { goodSecs += 2; if (goodSecs >= 8 && W.level > 0) { W.SetLevel(W.level - 1); goodSecs = 0; } }
-                else goodSecs = 0;
+                // ilk 8 sn (yükleme takılmaları) sayılmaz; iki ölçüm üst üste düşükse hafiflet
+                if (t < 8) { }
+                else if (fps < 38) { lowCount++; goodSecs = 0; if (lowCount >= 2) { W.Degrade(); lowCount = 0; } }
+                else if (fps > 54) { lowCount = 0; goodSecs += 3; if (goodSecs >= 8 && W.level > 0) { W.SetLevel(W.level - 1); goodSecs = 0; } }
+                else { goodSecs = 0; lowCount = 0; }
             }
             HandleInput();
 

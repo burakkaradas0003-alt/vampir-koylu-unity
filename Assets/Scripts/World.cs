@@ -69,7 +69,7 @@ namespace VK
             BuildVillage();
             BuildCampfire();
             BuildGrass();
-            SetLevel(low ? 3 : Application.isMobilePlatform ? 1 : 0);
+            SetLevel(low ? 2 : 0);
             ApplyTOD(0);
         }
 
@@ -622,8 +622,9 @@ namespace VK
         public bool degraded => level > 0;
         public int level = -1;
         int[][] grassFull;
-        static readonly float[] SCALE = { 1f, 0.85f, 0.72f, 0.62f, 0.52f };
-        static readonly int[] GRASS = { 100, 75, 50, 35, 20 };
+        // çözünürlük en son düşer ve en fazla %80'e iner (bulanıklık en göze batan kayıp)
+        static readonly float[] SCALE = { 1f, 1f, 1f, 0.9f, 0.8f };
+        static readonly int[] GRASS = { 100, 85, 65, 50, 40 };
         public void SetLevel(int L)
         {
             L = Mathf.Clamp(L, 0, 4); if (L == level) return; level = L;
@@ -632,10 +633,11 @@ namespace VK
             {
                 urp.renderScale = SCALE[L];
                 urp.msaaSampleCount = L == 0 ? 2 : 1;
-                urp.shadowDistance = L >= 3 ? 14 : L >= 1 ? 22 : 30;
+                urp.shadowDistance = L >= 3 ? 18 : L >= 2 ? 24 : 30;
             }
-            if (volume != null) volume.enabled = L <= 1;
-            sun.shadows = L >= 4 ? LightShadows.None : L >= 2 ? LightShadows.Hard : LightShadows.Soft;
+            if (volume != null) volume.enabled = L <= 2;
+            if (bloom != null) bloom.active = L == 0;
+            sun.shadows = L >= 4 ? LightShadows.Hard : L >= 2 ? LightShadows.Hard : LightShadows.Soft;
             if (grassFull == null) grassFull = grassBatches.ConvertAll(b => (int[])b.count.Clone()).ToArray();
             for (int k = 0; k < grassBatches.Count; k++) for (int c = 0; c < grassBatches[k].count.Length; c++) grassBatches[k].count[c] = grassFull[k][c] * GRASS[L] / 100;
             Debug.Log("[Zuplay] kalite seviyesi " + L);
