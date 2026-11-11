@@ -878,12 +878,12 @@ namespace VK
             float baseYaw = Mathf.Atan2(-ME.seat.x, -ME.seat.z) * Mathf.Rad2Deg;
             var playerRot = Quaternion.Euler(pitch * Mathf.Rad2Deg, baseYaw + yaw * Mathf.Rad2Deg, 0);
             bool shot = Now < shotUntil || endOrbit;
-            Quaternion want = playerRot; float wantFov = 62;
-            if (endOrbit) { want = Quaternion.LookRotation(new Vector3(0, 0.9f, 0) - cam.transform.position); wantFov = 50; }
-            else if (shot) { var d = shotTarget - cam.transform.position; if (d.sqrMagnitude > 0.01f) want = Quaternion.LookRotation(d); wantFov = shotFov; }
+            Quaternion camWant = playerRot; float wantFov = 62;
+            if (endOrbit) { camWant = Quaternion.LookRotation(new Vector3(0, 0.9f, 0) - cam.transform.position); wantFov = 50; }
+            else if (shot) { var d = shotTarget - cam.transform.position; if (d.sqrMagnitude > 0.01f) camWant = Quaternion.LookRotation(d); wantFov = shotFov; }
             if (shot) camEase = 0; else camEase = Mathf.Min(1, camEase + dt * 0.8f);
             float rk = shot ? 3.2f : Mathf.Lerp(3.2f, 22f, camEase * camEase);
-            camRot = Quaternion.Slerp(camRot, want, 1 - Mathf.Exp(-dt * rk));
+            camRot = Quaternion.Slerp(camRot, camWant, 1 - Mathf.Exp(-dt * rk));
             cam.transform.rotation = camRot;
             cam.fieldOfView = Mathf.Lerp(cam.fieldOfView, wantFov, 1 - Mathf.Exp(-dt * 2.5f));
             bool armOn = ME.raise > 0.03f && ME.pointAt != null;
