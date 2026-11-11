@@ -28,14 +28,14 @@ namespace VK
         public static Color A(Color c, float a) { c.a = a; return c; }
 
         // ---------------------------------------------------------------- kaynaklar
-        public static Font Body, Bold, Title;
+        public static Font Body, Bold, Title, Display; // Display: başlıklar için gotik yazı (Pirata One)
         public static Sprite Round, RoundSmall, Pill, Outline, OutlinePill, Circle, Ring, Grad, GradH, Glow, Soft;
         static bool ready;
         public static void Init()
         {
             if (ready) return; ready = true;
             var legacy = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
-            Body = Resources.Load<Font>("Fonts/Body") ?? legacy; Bold = Resources.Load<Font>("Fonts/BodyBold") ?? legacy; Title = Resources.Load<Font>("Fonts/Title") ?? Bold;
+            Body = Resources.Load<Font>("Fonts/Body") ?? legacy; Bold = Resources.Load<Font>("Fonts/BodyBold") ?? legacy; Title = Resources.Load<Font>("Fonts/Title") ?? Bold; Display = Resources.Load<Font>("Fonts/Display") ?? Title;
             Round = RoundRect(64, 18, 0, true); RoundSmall = RoundRect(32, 9, 0, true); Pill = RoundRect(64, 31, 0, false);
             Outline = RoundRect(64, 18, 1.6f, false); OutlinePill = RoundRect(64, 31, 1.6f, false);
             Circle = Disc(128, 0); Ring = Disc(128, 5f); Grad = Gradient(false); GradH = Gradient(true); Glow = GlowS(); Soft = SoftRect();

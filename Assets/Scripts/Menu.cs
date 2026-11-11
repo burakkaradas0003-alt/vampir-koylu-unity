@@ -85,7 +85,7 @@ namespace VK
             levelT = UI.Txt(me, "", 10, UI.Lilac, UI.Bold, TextAnchor.MiddleRight); levelT.rectTransform.At(new Vector2(1, 1), new Vector2(-12, -6), new Vector2(60, 16), new Vector2(1, 1));
             xpBar = UI.ProgressBar(me, UI.Purple, 5); xpBar.r.At(new Vector2(0, 0), new Vector2(46, 9), new Vector2(156, 5), new Vector2(0, 0));
             UI.Click(me, () => Show("profil"));
-            screenTitle = UI.Txt(bar, "", 20, null, UI.Title, TextAnchor.MiddleCenter); screenTitle.rectTransform.At(new Vector2(0.5f, 0.5f), new Vector2(20, 0), new Vector2(300, 34)); screenTitle.Shadowed();
+            screenTitle = UI.Txt(bar, "", 24, null, UI.Display, TextAnchor.MiddleCenter); screenTitle.rectTransform.At(new Vector2(0.5f, 0.5f), new Vector2(20, 0), new Vector2(300, 34)); screenTitle.Shadowed();
             // altın
             var coin = UI.Panel(bar, "altın", UI.A(UI.Ink, 0.7f), false, UI.Pill).At(new Vector2(1, 0.5f), Vector2.zero, new Vector2(118, 34), new Vector2(1, 0.5f));
             UI.Icon(coin, Hud.Emoji("coin"), 20).rectTransform.At(new Vector2(0, 0.5f), new Vector2(8, 0), new Vector2(20, 20), new Vector2(0, 0.5f));
@@ -165,7 +165,7 @@ namespace VK
             code = (1000 + lr.Next(9000)).ToString();
             var pan = UI.Panel(s, "oda").At(new Vector2(1, 0.5f), Vector2.zero, new Vector2(300, 0), new Vector2(1, 0.5f)); pan.anchorMin = new Vector2(1, 0); pan.anchorMax = new Vector2(1, 1); pan.sizeDelta = new Vector2(300, 0);
             // başlık
-            var t = UI.Txt(pan, "Vampir Köylü", 18, null, UI.Title); t.rectTransform.At(new Vector2(0, 1), new Vector2(16, -10), new Vector2(170, 26), new Vector2(0, 1));
+            var t = UI.Txt(pan, "Vampir Köylü", 22, null, UI.Display); t.rectTransform.At(new Vector2(0, 1), new Vector2(16, -10), new Vector2(170, 26), new Vector2(0, 1));
             var codeB = UI.Panel(pan, "kod", new Color(1, 1, 1, 0.06f), false, UI.Pill).At(new Vector2(1, 1), new Vector2(-12, -12), new Vector2(98, 24), new Vector2(1, 1));
             roomCode = UI.Txt(codeB, "Oda #" + code, 11, UI.Lilac, UI.Bold, TextAnchor.MiddleCenter); roomCode.rectTransform.Fill();
             UI.Click(codeB, () => { GUIUtility.systemCopyBuffer = "zuplay://vk/" + code; Toast("Oda kodu kopyalandı: #" + code); });
@@ -316,7 +316,7 @@ namespace VK
             var fade = UI.Img(raw, UI.GradH, new Color(0.04f, 0.04f, 0.06f, 0.55f), "geçiş"); fade.rectTransform.anchorMin = new Vector2(0.8f, 0); fade.rectTransform.anchorMax = Vector2.one; fade.rectTransform.offsetMin = fade.rectTransform.offsetMax = Vector2.zero; fade.rectTransform.localScale = new Vector3(-1, 1, 1);
             // isim etiketi (sol üst)
             var tag = UI.Panel(raw, "isim", UI.A(UI.Ink, 0.75f), false, UI.Pill).At(new Vector2(0, 1), new Vector2(98, -60), new Vector2(190, 40), new Vector2(0, 1));
-            nameTag = UI.Txt(tag, "", 13, null, UI.Title); nameTag.rectTransform.At(new Vector2(0, 1), new Vector2(14, -3), new Vector2(170, 20), new Vector2(0, 1));
+            nameTag = UI.Txt(tag, "", 16, null, UI.Display); nameTag.rectTransform.At(new Vector2(0, 1), new Vector2(14, -3), new Vector2(170, 20), new Vector2(0, 1));
             var tt = UI.Txt(tag, "", 9, UI.Gold, UI.Bold); tt.rectTransform.At(new Vector2(0, 0), new Vector2(14, 5), new Vector2(170, 14), new Vector2(0, 0)); tt.name = "unvan";
             var hint = UI.Txt(raw, "Karakteri döndürmek için sağa sola kaydır", 10, UI.Fg, null, TextAnchor.MiddleCenter).Shadowed(0.7f); hint.rectTransform.At(new Vector2(0.5f, 0), new Vector2(40, 12), new Vector2(300, 16), new Vector2(0.5f, 0));
             // sağ panel
@@ -387,7 +387,7 @@ namespace VK
             var r = UI.R("bölüm", p); r.LE(-1, 24);
             var bg = UI.Img(r, UI.Pill, UI.A(UI.Purple, 0.85f), "şerit"); bg.rectTransform.At(new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(180, 20));
             UI.Img(r, null, UI.A(UI.Lilac, 0.25f), "çizgi").rectTransform.At(new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(300, 1)).SetAsFirstSibling();
-            UI.Txt(bg.rectTransform, t, 11, null, UI.Title, TextAnchor.MiddleCenter).rectTransform.Fill(0, 1, 0, 0);
+            UI.Txt(bg.rectTransform, t, 13, null, UI.Display, TextAnchor.MiddleCenter).rectTransform.Fill(0, 1, 0, 0);
         }
         void SubTitle(Transform p, string t)
         {
@@ -527,7 +527,7 @@ namespace VK
             UI.Txt(featured, "GÜNÜN ÖNE ÇIKANI", 10, UI.Lilac, UI.Bold, TextAnchor.MiddleCenter).rectTransform.At(new Vector2(0.5f, 1), new Vector2(0, -12), new Vector2(190, 16), new Vector2(0.5f, 1));
             var ic = UI.Icon(featured, f.Icon(), 110); ic.rectTransform.At(new Vector2(0.5f, 1), new Vector2(0, -44), new Vector2(110, 110), new Vector2(0.5f, 1));
             Tween.Scale(ic.rectTransform, 0.8f, 1, 0.5f);
-            UI.Txt(featured, f.name, 17, null, UI.Title, TextAnchor.MiddleCenter).rectTransform.At(new Vector2(0.5f, 1), new Vector2(0, -160), new Vector2(190, 24), new Vector2(0.5f, 1));
+            UI.Txt(featured, f.name, 20, null, UI.Display, TextAnchor.MiddleCenter).rectTransform.At(new Vector2(0.5f, 1), new Vector2(0, -160), new Vector2(190, 24), new Vector2(0.5f, 1));
             var rb = UI.Badge(featured, f.rarity + " · " + Catalog.CAT_NAME[f.cat], UI.A(fc, 0.2f), fc, 10); rb.At(new Vector2(0.5f, 1), new Vector2(0, -188), new Vector2(150, 20), new Vector2(0.5f, 1));
             var buy = UI.Button(featured, Store.P.Owns(f.id) ? "Sende · İncele" : f.price + " altın", Store.P.Owns(f.id) ? UI.Style.Secondary : UI.Style.Gold, () => OpenProduct(f), Store.P.Owns(f.id) ? null : Hud.Emoji("coin"), 13);
             buy.r.At(new Vector2(0.5f, 0), new Vector2(0, 14), new Vector2(170, 36), new Vector2(0.5f, 0));
@@ -569,7 +569,7 @@ namespace VK
             else { var ic = UI.Icon(left, it.Icon(), 120); ic.rectTransform.At(new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(120, 120)); if (it.cat == Cat.Frame) UI.Img(left, UI.Ring, it.tint, "çerçeve").rectTransform.At(new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(140, 140)); }
             var right = UI.R("bilgi", card).Fill(244, 16, 18, 16);
             UI.Badge(right, (it.rarity == "Efsanevi" ? "EFSANEVİ" : it.rarity == "Destansı" ? "DESTANSI" : it.rarity == "Nadir" ? "NADİR" : "SIRADAN"), UI.A(rc, 0.18f), rc, 10).At(new Vector2(0, 1), Vector2.zero, new Vector2(80, 20), new Vector2(0, 1));
-            UI.Txt(right, it.name, 24, null, UI.Title).rectTransform.At(new Vector2(0, 1), new Vector2(0, -26), new Vector2(260, 34), new Vector2(0, 1));
+            UI.Txt(right, it.name, 28, null, UI.Display).rectTransform.At(new Vector2(0, 1), new Vector2(0, -26), new Vector2(260, 34), new Vector2(0, 1));
             UI.Txt(right, Catalog.CAT_NAME[it.cat], 12, UI.Muted, UI.Bold).rectTransform.At(new Vector2(0, 1), new Vector2(0, -60), new Vector2(260, 18), new Vector2(0, 1));
             string desc = it.cat == Cat.Effect ? "Karakterinin çevresinde süzülen parıltılar. Lobide ve oyunda görünür." : it.cat == Cat.Victory ? "Maç kazandığında karakterin bu pozu yapar." : it.cat == Cat.Frame ? "Portrenin çevresindeki çerçeve; lobide, oyunda ve profilinde görünür." : it.cat == Cat.Title ? "Adının altında görünen unvan." : "Karakterinin görünümünü değiştirir. Herkes seni böyle görür.";
             UI.Txt(right, desc + "\n<color=#9A9CB0>Kozmetiktir, oyun dengesini etkilemez.</color>", 12, UI.Fg).rectTransform.At(new Vector2(0, 1), new Vector2(0, -86), new Vector2(256, 80), new Vector2(0, 1));
@@ -697,7 +697,7 @@ namespace VK
             UI.Img(profLeft, UI.Glow, UI.A(Catalog.Get(p.look.frame) != null ? fc : UI.Purple, 0.4f), "ışık").rectTransform.At(new Vector2(0.5f, 1), new Vector2(0, -6), new Vector2(240, 220), new Vector2(0.5f, 1));
             var raw = UI.R("karakter", profLeft).At(new Vector2(0.5f, 1), new Vector2(0, -4), new Vector2(170, 206), new Vector2(0.5f, 1));
             profShow = raw.gameObject.AddComponent<RawImage>(); profShow.texture = Studio.I.Showcase(p.look, 340, 412); raw.gameObject.AddComponent<DragRotate>();
-            UI.Txt(profLeft, p.name, 22, null, UI.Title, TextAnchor.MiddleCenter).Shadowed().rectTransform.At(new Vector2(0.5f, 0), new Vector2(0, 92), new Vector2(220, 30), new Vector2(0.5f, 0));
+            UI.Txt(profLeft, p.name, 26, null, UI.Display, TextAnchor.MiddleCenter).Shadowed().rectTransform.At(new Vector2(0.5f, 0), new Vector2(0, 92), new Vector2(220, 30), new Vector2(0.5f, 0));
             var ti = Catalog.Get(p.look.title);
             UI.Txt(profLeft, ti != null ? "« " + ti.name + " »" : "", 11, UI.Gold, UI.Bold, TextAnchor.MiddleCenter).rectTransform.At(new Vector2(0.5f, 0), new Vector2(0, 74), new Vector2(220, 16), new Vector2(0.5f, 0));
             var lv = UI.Img(profLeft, UI.Circle, UI.Purple, "seviye"); lv.rectTransform.At(new Vector2(0, 0), new Vector2(18, 26), new Vector2(38, 38), new Vector2(0, 0));

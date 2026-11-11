@@ -47,10 +47,11 @@ namespace VK
             var bi = botShade.gameObject.AddComponent<Image>(); bi.sprite = grad; bi.color = new Color(0.02f, 0.02f, 0.06f, 0.5f); bi.raycastTarget = false;
             tagsRoot = Rect("etiketler", canvas, Vector2.zero, Vector2.one, Vector2.zero, Vector2.zero);
             // göz kapakları (gece)
-            lidTop = Panel("lidT", canvas, new Color(0.01f, 0.01f, 0.03f, 0.97f), new Vector2(0, 1), new Vector2(1, 1), new Vector2(0, -0), new Vector2(0, 0)); lidTop.pivot = new Vector2(0.5f, 1);
-            lidBot = Panel("lidB", canvas, new Color(0.01f, 0.01f, 0.03f, 0.97f), new Vector2(0, 0), new Vector2(1, 0), Vector2.zero, Vector2.zero); lidBot.pivot = new Vector2(0.5f, 0);
+            lidTop = Panel("lidT", canvas, new Color(0.01f, 0.01f, 0.025f, 1f), new Vector2(0, 1), new Vector2(1, 1), new Vector2(0, -0), new Vector2(0, 0)); lidTop.pivot = new Vector2(0.5f, 1);
+            lidBot = Panel("lidB", canvas, new Color(0.01f, 0.01f, 0.025f, 1f), new Vector2(0, 0), new Vector2(1, 0), Vector2.zero, Vector2.zero); lidBot.pivot = new Vector2(0.5f, 0);
             sleepI = Img("si", lidBot, null, new Vector2(0.5f, 1), new Vector2(0, 70), new Vector2(46, 46));
-            sleepT = Label("st", lidBot, "", 20, FontStyle.Bold, TextAnchor.MiddleCenter, new Vector2(0.5f, 1), new Vector2(0, 30), new Vector2(600, 30));
+            sleepT = Label("st", lidBot, "", 24, FontStyle.Bold, TextAnchor.MiddleCenter, new Vector2(0.5f, 1), new Vector2(0, 30), new Vector2(600, 30));
+            sleepT.font = UI.Display;
             sleepS = Label("ss", lidBot, "", 13, FontStyle.Normal, TextAnchor.MiddleCenter, new Vector2(0.5f, 1), new Vector2(0, 8), new Vector2(600, 20)); sleepS.color = new Color(0.6f, 0.64f, 0.8f);
 
             // üst çubuk
@@ -65,7 +66,7 @@ namespace VK
             phPill = Panel("evre", canvas, new Color(0.055f, 0.058f, 0.08f, 0.72f), new Vector2(0.5f, 1), new Vector2(0.5f, 1), new Vector2(0, -31), new Vector2(330, 46), true);
             phPill.GetComponent<Image>().sprite = UI.Pill;
             phIcon = Img("gündüz-gece", phPill, Emoji("sun"), new Vector2(0, 0.5f), new Vector2(26, 0), new Vector2(26, 26));
-            phT = Label("ph", phPill, "VAMPİR KÖYLÜ", 19, FontStyle.Bold, TextAnchor.MiddleCenter, new Vector2(0.5f, 1), new Vector2(10, -15), new Vector2(280, 26)); phT.font = fontTitle; phT.GetComponent<Shadow>().effectDistance = new Vector2(0, -1.5f);
+            phT = Label("ph", phPill, "VAMPİR KÖYLÜ", 19, FontStyle.Bold, TextAnchor.MiddleCenter, new Vector2(0.5f, 1), new Vector2(10, -15), new Vector2(280, 26)); phT.font = UI.Display; phT.fontSize = 22; phT.GetComponent<Shadow>().effectDistance = new Vector2(0, -1.5f);
             phS = Label("phs", phPill, "", 11, FontStyle.Normal, TextAnchor.MiddleCenter, new Vector2(0.5f, 1), new Vector2(10, -34), new Vector2(290, 16)); phS.color = new Color(0.78f, 0.79f, 0.86f);
             var tm = Panel("süre", canvas, BG, new Vector2(1, 1), new Vector2(1, 1), new Vector2(-46, -30), new Vector2(70, 36), true);
             timer = Label("t", tm, "", 20, FontStyle.Bold, TextAnchor.MiddleCenter, new Vector2(0.5f, 0.5f), new Vector2(0, 1), new Vector2(70, 36)); timer.font = fontTitle; timer.color = GOLD;
@@ -113,7 +114,7 @@ namespace VK
             bannerG = ban.gameObject.AddComponent<CanvasGroup>(); bannerG.alpha = 0; bannerG.blocksRaycasts = false;
             bIcon = Img("i", ban, null, new Vector2(0.5f, 1), new Vector2(0, -24), new Vector2(46, 46));
             var bGlow = ban.gameObject; var gl0 = Img("parıltı", ban, glow, new Vector2(0.5f, 0.5f), new Vector2(0, -10), new Vector2(620, 200)); gl0.enabled = true; gl0.color = new Color(0, 0, 0, 0.55f); gl0.preserveAspect = false; gl0.transform.SetAsFirstSibling();
-            b1 = Label("b1", ban, "", 40, FontStyle.Bold, TextAnchor.MiddleCenter, new Vector2(0.5f, 0.5f), new Vector2(0, -6), new Vector2(760, 52)); b1.font = fontTitle;
+            b1 = Label("b1", ban, "", 46, FontStyle.Bold, TextAnchor.MiddleCenter, new Vector2(0.5f, 0.5f), new Vector2(0, -6), new Vector2(760, 56)); b1.font = UI.Display;
             b2 = Label("b2", ban, "", 15, FontStyle.Normal, TextAnchor.MiddleCenter, new Vector2(0.5f, 0.5f), new Vector2(0, -40), new Vector2(700, 24));
             hint = Label("hint", canvas, "← Kaydırarak bak · Seçmek için kişiye dokun →", 13, FontStyle.Normal, TextAnchor.MiddleCenter, new Vector2(0.5f, 0.5f), new Vector2(0, -20), new Vector2(500, 26));
 
@@ -122,7 +123,7 @@ namespace VK
             cardG = card.gameObject.AddComponent<CanvasGroup>();
             var front = Panel("kart", card, new Color(0.08f, 0.09f, 0.18f, 0.98f), new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(300, 300), true);
             cardIcon = Img("i", front, null, new Vector2(0.5f, 1), new Vector2(0, -56), new Vector2(72, 72));
-            cardName = Label("n", front, "", 30, FontStyle.Bold, TextAnchor.MiddleCenter, new Vector2(0.5f, 1), new Vector2(0, -116), new Vector2(280, 38)); cardName.font = fontTitle;
+            cardName = Label("n", front, "", 36, FontStyle.Bold, TextAnchor.MiddleCenter, new Vector2(0.5f, 1), new Vector2(0, -116), new Vector2(280, 42)); cardName.font = UI.Display;
             cardGlow = Img("hale", front, glow, new Vector2(0.5f, 1), new Vector2(0, -56), new Vector2(150, 150)); cardGlow.enabled = true; cardGlow.preserveAspect = false; cardGlow.transform.SetSiblingIndex(0);
             cardTeam = Label("tm", front, "", 13, FontStyle.Bold, TextAnchor.MiddleCenter, new Vector2(0.5f, 1), new Vector2(0, -140), new Vector2(280, 20));
             cardDesc = Label("d", front, "", 13, FontStyle.Normal, TextAnchor.UpperCenter, new Vector2(0.5f, 1), new Vector2(0, -196), new Vector2(260, 84)); cardDesc.color = new Color(0.8f, 0.83f, 0.94f);
@@ -344,7 +345,7 @@ namespace VK
             var glowT = UI.Img(safe, UI.Glow, UI.A(team, 0.35f), "ışık"); glowT.rectTransform.At(new Vector2(0.5f, 1), new Vector2(0, 10), new Vector2(560, 150), new Vector2(0.5f, 1));
             var ribbon = UI.Badge(safe, res.win ? "ZAFER" : "YENİLGİ", res.win ? UI.A(UI.Good, 0.25f) : UI.A(UI.Bad, 0.22f), res.win ? UI.Good : UI.Bad, 11);
             ribbon.At(new Vector2(0.5f, 1), new Vector2(0, -12), new Vector2(90, 20), new Vector2(0.5f, 1));
-            var tt = UI.Txt(safe, title, 34, team, UI.Title, TextAnchor.MiddleCenter).Shadowed(0.6f); tt.rectTransform.At(new Vector2(0.5f, 1), new Vector2(0, -34), new Vector2(700, 46), new Vector2(0.5f, 1));
+            var tt = UI.Txt(safe, title, 40, team, UI.Display, TextAnchor.MiddleCenter).Shadowed(0.6f); tt.rectTransform.At(new Vector2(0.5f, 1), new Vector2(0, -34), new Vector2(700, 46), new Vector2(0.5f, 1));
             Tween.Scale(tt.rectTransform, 0.6f, 1, 0.55f, 0.1f);
             UI.Txt(safe, sub + "  ·  <color=#9A9CB0>" + stats + "</color>", 12, UI.Fg, null, TextAnchor.MiddleCenter).rectTransform.At(new Vector2(0.5f, 1), new Vector2(0, -80), new Vector2(700, 18), new Vector2(0.5f, 1));
             // MVP kartı
@@ -357,7 +358,7 @@ namespace VK
                 UI.Badge(mc, "MVP", UI.Gold, new Color(0.16f, 0.11f, 0.02f), 11).At(new Vector2(0.5f, 1), new Vector2(0, -8), new Vector2(50, 20), new Vector2(0.5f, 1));
                 var av = UI.Avatar(mc, 86, Studio.I != null && mvp.look != null ? Studio.I.Portrait(mvp.look, 160) : null, mvp.look?.frame, out _); ((RectTransform)av.transform.parent.parent).At(new Vector2(0.5f, 1), new Vector2(0, -32), new Vector2(86, 86), new Vector2(0.5f, 1));
                 UI.Icon(mc, Emoji("crown"), 26).rectTransform.At(new Vector2(0.5f, 1), new Vector2(30, -26), new Vector2(26, 26), new Vector2(0.5f, 1));
-                UI.Txt(mc, mvp.name, 15, null, UI.Title, TextAnchor.MiddleCenter).rectTransform.At(new Vector2(0.5f, 0), new Vector2(0, 52), new Vector2(160, 22), new Vector2(0.5f, 0));
+                UI.Txt(mc, mvp.name, 18, null, UI.Display, TextAnchor.MiddleCenter).rectTransform.At(new Vector2(0.5f, 0), new Vector2(0, 52), new Vector2(160, 22), new Vector2(0.5f, 0));
                 var rl = UI.R("rol", mc).At(new Vector2(0.5f, 0), new Vector2(0, 30), new Vector2(150, 18), new Vector2(0.5f, 0)); UI.HRow(rl, 4, TextAnchor.MiddleCenter);
                 UI.Icon(rl, Emoji(mvp.icon), 16).rectTransform.LE(16, 16); var rt0 = UI.Txt(rl, mvp.role, 11, mvp.color, UI.Bold, TextAnchor.MiddleCenter); rt0.rectTransform.LE(-1, 16);
                 UI.Txt(mc, "Maçın oyuncusu", 9, UI.Muted, null, TextAnchor.MiddleCenter).rectTransform.At(new Vector2(0.5f, 0), new Vector2(0, 12), new Vector2(150, 14), new Vector2(0.5f, 0));
@@ -529,7 +530,7 @@ namespace VK
             FadeLog();
             if (toastG.alpha > 0 && Time.time > toastUntil) toastG.alpha = Mathf.Max(0, toastG.alpha - Time.deltaTime * 3);
             lid = Mathf.MoveTowards(lid, eyesClosed ? 1 : 0, Time.deltaTime * 2.2f);
-            float h = canvas.rect.height * 0.58f * lid;
+            float h = canvas.rect.height * 0.62f * lid; // iki kapak tam kapandığında ekranın tamamı kararır
             lidTop.sizeDelta = new Vector2(0, h); lidBot.sizeDelta = new Vector2(0, h);
             lidTop.gameObject.SetActive(lid > 0.001f); lidBot.gameObject.SetActive(lid > 0.001f);
             if (hint != null && hint.enabled && Time.time > 9) hint.enabled = false;
