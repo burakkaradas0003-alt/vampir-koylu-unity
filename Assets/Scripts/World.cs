@@ -128,7 +128,7 @@ namespace VK
             sky.GetComponent<MeshRenderer>().shadowCastingMode = ShadowCastingMode.Off;
             moon = Prim(PrimitiveType.Sphere, Resources.Load<Material>("Mats/Unlit"), new Vector3(-120, 150, 180), Vector3.one * 14, transform);
             moon.GetComponent<MeshRenderer>().material.SetColor("_BaseColor", new Color(1.6f, 1.55f, 1.3f));
-            int n = 260; starM = new Matrix4x4[n]; starC = new Vector4[1023]; // renk dizisi hep 1023: WebGL örnekli çizimde kısa dizi sorun çıkarıyor starMpb = new MaterialPropertyBlock();
+            int n = 260; starM = new Matrix4x4[n]; starC = new Vector4[1023]; starMpb = new MaterialPropertyBlock(); // renk dizisi hep 1023: WebGL örnekli çizimde kısa dizi sorun çıkarıyor
             for (int i = 0; i < n; i++)
             {
                 var d = Random.onUnitSphere; d.y = Mathf.Abs(d.y) * 0.9f + 0.1f;
