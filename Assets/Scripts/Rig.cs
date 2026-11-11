@@ -69,18 +69,22 @@ namespace VK
 
         static string Nm(string n) { int k = n.LastIndexOf(':'); return k >= 0 ? n.Substring(k + 1) : n; }
 
-        public static Rig Make(int outfitIndex, Color skinTint, float size, bool ghost = false, bool fp = false)
+        public Look look;
+        public static Rig Make(Look look, float size, bool ghost = false, bool fp = false, bool stool = true)
         {
             if (BASE == null) { BASE = Resources.Load<GameObject>("Character/Creative_Character_free"); ATLAS = Resources.Load<Texture2D>("Character/Textures_4"); }
             var root = new GameObject(ghost ? "Hayalet" : fp ? "Kolum" : "Köylü");
             var rig = root.AddComponent<Rig>();
-            rig.ghost = ghost; rig.fp = fp;
-            rig.Setup(OUTFITS[outfitIndex % OUTFITS.Length], skinTint, size);
+            rig.ghost = ghost; rig.fp = fp; rig.stool = stool; rig.look = (look ?? new Look()).Clone();
+            rig.Setup(rig.look, size);
             return rig;
         }
+        bool stool = true;
 
-        void Setup(Outfit outfit, Color skinTint, float size)
+        void Setup(Look lk, float size)
         {
+            Color skinTint = Look.SKINS[Mathf.Clamp(lk.skin, 0, Look.SKINS.Length - 1)];
+            Color topT = Look.TINTS[Mathf.Clamp(lk.topColor, 0, Look.TINTS.Length - 1)], botT = Look.TINTS[Mathf.Clamp(lk.bottomColor, 0, Look.TINTS.Length - 1)], hatT = Look.TINTS[Mathf.Clamp(lk.hatColor, 0, Look.TINTS.Length - 1)];
             phase = Random.value * 6.28f;
             var model = Instantiate(BASE, transform); model.name = "model"; body = model;
             foreach (var t in model.GetComponentsInChildren<Transform>()) { var n = Nm(t.name); if (!B.ContainsKey(n)) B[n] = t; }
@@ -89,11 +93,12 @@ namespace VK
             var lit = Resources.Load<Material>("Mats/Lit");
             Material Cloth(float shift) { var m = new Material(lit); m.SetTexture("_BaseMap", ATLAS); m.SetTextureOffset("_BaseMap", new Vector2(shift, 0)); m.SetFloat("_Smoothness", 0.25f); return m; }
             var skin = Cloth(0); skin.SetColor("_BaseColor", skinTint);
-            var cloth = Cloth(0); cloth.SetColor("_BaseColor", outfit.tint); var plain = Cloth(0);
+            var cloth = Cloth(0); cloth.SetColor("_BaseColor", topT); var plain = Cloth(0);
+            var clothB = Cloth(0); clothB.SetColor("_BaseColor", botT); var clothH = Cloth(0); clothH.SetColor("_BaseColor", hatT);
             var glass = new Material(lit); glass.SetColor("_BaseColor", new Color(0.08f, 0.12f, 0.16f)); glass.SetFloat("_Smoothness", 0.9f);
             if (ghost && ghostMat == null) ghostMat = new Material(Resources.Load<Material>("Mats/Ghost"));
 
-            var show = new HashSet<string>(ALWAYS); foreach (var p in outfit.parts) show.Add(p);
+            var show = new HashSet<string>(ALWAYS); foreach (var p in lk.Parts()) show.Add(p);
             var known = new HashSet<string>(KNOWN);
             var visible = new List<Renderer>();
             foreach (var r in model.GetComponentsInChildren<Renderer>(true))
@@ -105,7 +110,8 @@ namespace VK
                 if (r is SkinnedMeshRenderer smr) smr.updateWhenOffscreen = true;
                 if (!on) continue;
                 bool isSkin = key == "Body_010" || key.Contains("emotion");
-                var baseM = isSkin ? skin : (key.Contains("Hair") || key.Contains("Moustache") || key.Contains("Clown")) ? plain : cloth;
+                var baseM = isSkin ? skin : (key.Contains("Hair") || key.Contains("Moustache") || key.Contains("Clown") || key.Contains("Pacifier")) ? plain
+                    : (key.StartsWith("Pants") || key.StartsWith("Shorts") || key.StartsWith("Socks")) ? clothB : key.StartsWith("Hat") ? clothH : (key.StartsWith("Shoe") || key.StartsWith("Glasses") || key.StartsWith("Gloves") || key.StartsWith("Headphones")) ? plain : cloth;
                 var arr = new Material[Mathf.Max(1, r.sharedMaterials.Length)];
                 for (int i = 0; i < arr.Length; i++) arr[i] = ghost ? ghostMat : (key.StartsWith("Glasses") && i == arr.Length - 1 && arr.Length > 1) ? glass : baseM;
                 r.sharedMaterials = arr;
@@ -141,6 +147,7 @@ namespace VK
             var ch = new GameObject("taç yeri").transform; ch.SetParent(hb, false);
             ch.position = new Vector3(B["Head"].position.x, top - 0.02f, B["Head"].position.z);
             crown = BuildCrown(ch); crown.gameObject.SetActive(false);
+            if (!ghost && !fp) BuildAccessories(hb, ch.localPosition, sz, lk);
 
             if (fp) { MakeFirstPerson(visible); return; }
 
@@ -149,6 +156,14 @@ namespace VK
             if (ghost)
             {
                 model.transform.position += Vector3.down * (B["LeftToeBase"].position.y - transform.position.y - 0.02f);
+            }
+            else if (!stool)
+            {
+                float low0 = Mathf.Min(B["LeftToeBase"].position.y, B["RightToeBase"].position.y, B["LeftFoot"].position.y - 0.06f, B["RightFoot"].position.y - 0.06f);
+                model.transform.position += Vector3.down * (low0 - transform.position.y - 0.02f);
+                Vector3 hips0 = transform.InverseTransformPoint(B["Hips"].position);
+                model.transform.localPosition -= new Vector3(hips0.x, 0, hips0.z);
+                seatHeight = Mathf.Max(0.2f, hips0.y - 0.08f);
             }
             else
             {
@@ -187,6 +202,130 @@ namespace VK
                 sp.GetComponent<MeshRenderer>().sharedMaterial = gold;
             }
             return c;
+        }
+
+        // ---------------------------------------------------------------- kozmetik: maske, kafa aksesuarı, efekt, zafer pozu
+        public float cheer;            // 0..1 zafer pozu ağırlığı
+        public bool preview;           // vitrin/portre karakteri: efekt parçacığı üretmez
+        public float seatHeight;       // taburesiz (ayakta değil, gösterim) kalça yüksekliği
+        readonly List<GameObject> acc = new List<GameObject>();
+        GameObject AccPrim(PrimitiveType t, Transform parent, Material m, Vector3 pos, Vector3 scale, Vector3 rot = default)
+        {
+            var g = GameObject.CreatePrimitive(t); Destroy(g.GetComponent<Collider>());
+            g.transform.SetParent(parent, false); g.transform.localPosition = pos; g.transform.localScale = scale; g.transform.localEulerAngles = rot;
+            var mr = g.GetComponent<MeshRenderer>(); mr.sharedMaterial = m; mr.shadowCastingMode = ShadowCastingMode.Off; acc.Add(g); return g;
+        }
+        static Mesh coneMesh, torusMesh;
+        static Mesh ConeM()
+        {
+            if (coneMesh != null) return coneMesh;
+            var v = new List<Vector3>(); var tr = new List<int>(); int seg = 10;
+            for (int i = 0; i < seg; i++)
+            {
+                float a0 = i * Mathf.PI * 2 / seg, a1 = (i + 1) * Mathf.PI * 2 / seg; int k = v.Count;
+                v.Add(new Vector3(Mathf.Cos(a0) * 0.5f, 0, Mathf.Sin(a0) * 0.5f)); v.Add(new Vector3(0, 1, 0)); v.Add(new Vector3(Mathf.Cos(a1) * 0.5f, 0, Mathf.Sin(a1) * 0.5f));
+                tr.Add(k); tr.Add(k + 1); tr.Add(k + 2);
+            }
+            coneMesh = new Mesh(); coneMesh.SetVertices(v); coneMesh.SetTriangles(tr, 0); coneMesh.RecalculateNormals(); coneMesh.RecalculateBounds(); return coneMesh;
+        }
+        static Mesh TorusM()
+        {
+            if (torusMesh != null) return torusMesh;
+            int a = 28, b = 8; float R = 0.5f, r = 0.07f; var v = new List<Vector3>(); var tr = new List<int>();
+            for (int i = 0; i <= a; i++) for (int j = 0; j <= b; j++)
+                {
+                    float u = i / (float)a * Mathf.PI * 2, w = j / (float)b * Mathf.PI * 2;
+                    v.Add(new Vector3((R + r * Mathf.Cos(w)) * Mathf.Cos(u), r * Mathf.Sin(w), (R + r * Mathf.Cos(w)) * Mathf.Sin(u)));
+                }
+            for (int i = 0; i < a; i++) for (int j = 0; j < b; j++)
+                {
+                    int k = i * (b + 1) + j, n = (i + 1) * (b + 1) + j;
+                    tr.Add(k); tr.Add(k + 1); tr.Add(n); tr.Add(n); tr.Add(k + 1); tr.Add(n + 1);
+                }
+            torusMesh = new Mesh(); torusMesh.SetVertices(v); torusMesh.SetTriangles(tr, 0); torusMesh.RecalculateNormals(); torusMesh.RecalculateBounds(); return torusMesh;
+        }
+        GameObject AccMesh(Mesh mesh, Transform parent, Material m, Vector3 pos, Vector3 scale, Vector3 rot = default)
+        {
+            var g = new GameObject("aks"); g.transform.SetParent(parent, false); g.transform.localPosition = pos; g.transform.localScale = scale; g.transform.localEulerAngles = rot;
+            g.AddComponent<MeshFilter>().sharedMesh = mesh; var mr = g.AddComponent<MeshRenderer>(); mr.sharedMaterial = m; mr.shadowCastingMode = ShadowCastingMode.Off; acc.Add(g); return g;
+        }
+        void BuildAccessories(Transform hb, Vector3 topLocal, float sz, Look lk)
+        {
+            var lit = Resources.Load<Material>("Mats/Lit");
+            Material M(Color c, float sm = 0.35f, float em = 0) { var m = new Material(em > 0 ? Resources.Load<Material>("Mats/LitEmissive") : lit); m.SetColor("_BaseColor", c); m.SetFloat("_Smoothness", sm); if (em > 0) m.SetColor("_EmissionColor", c * em); return m; }
+            var mi = Catalog.Get(lk.mask);
+            if (mi != null && string.IsNullOrEmpty(lk.costume))
+            {
+                var mm = M(mi.tint, 0.6f); var hole = M(new Color(0.03f, 0.03f, 0.05f), 0.2f);
+                AccPrim(PrimitiveType.Cube, hb, mm, new Vector3(0, 0.108f, 0.118f) * sz, new Vector3(0.215f, 0.06f, 0.035f) * sz);
+                foreach (float x in new[] { -1f, 1f })
+                {
+                    AccPrim(PrimitiveType.Cube, hb, mm, new Vector3(x * 0.112f, 0.118f, 0.1f) * sz, new Vector3(0.04f, 0.07f, 0.06f) * sz, new Vector3(0, 0, x * 18));
+                    AccPrim(PrimitiveType.Sphere, hb, hole, new Vector3(x * 0.046f, 0.108f, 0.137f) * sz, new Vector3(0.042f, 0.03f, 0.01f) * sz);
+                }
+            }
+            var hi = Catalog.Get(lk.head);
+            if (hi != null)
+            {
+                var top = topLocal;
+                switch (hi.id)
+                {
+                    case "head_halo": AccMesh(TorusM(), hb, M(hi.tint, 0.8f, 1.6f), top + new Vector3(0, 0.12f, 0) * sz, Vector3.one * 0.26f * sz); break;
+                    case "head_horns":
+                        foreach (float x in new[] { -1f, 1f }) AccMesh(ConeM(), hb, M(hi.tint, 0.5f), top + new Vector3(x * 0.075f, -0.045f, 0.02f) * sz, new Vector3(0.05f, 0.11f, 0.05f) * sz, new Vector3(0, 0, -x * 22));
+                        break;
+                    case "head_cat":
+                        foreach (float x in new[] { -1f, 1f })
+                        {
+                            AccMesh(ConeM(), hb, M(hi.tint, 0.3f), top + new Vector3(x * 0.075f, -0.05f, 0) * sz, new Vector3(0.085f, 0.1f, 0.035f) * sz, new Vector3(0, 0, -x * 16));
+                            AccMesh(ConeM(), hb, M(new Color(1f, 0.7f, 0.78f), 0.3f), top + new Vector3(x * 0.075f, -0.042f, 0.012f) * sz, new Vector3(0.05f, 0.07f, 0.02f) * sz, new Vector3(0, 0, -x * 16));
+                        }
+                        break;
+                    case "head_bunny":
+                        foreach (float x in new[] { -1f, 1f }) AccPrim(PrimitiveType.Capsule, hb, M(hi.tint, 0.3f), top + new Vector3(x * 0.05f, 0.08f, -0.01f) * sz, new Vector3(0.045f, 0.1f, 0.022f) * sz, new Vector3(0, 0, -x * 12));
+                        break;
+                }
+            }
+        }
+
+        // zafer pozları: kolların mevcut yönünü hedefe doğru karıştırır
+        void Victory(float time, float k)
+        {
+            string kind = look != null && !string.IsNullOrEmpty(look.victory) ? look.victory : "vic_cheer";
+            Vector3 uL, fL; float s = Mathf.Sin(time * 7f), s2 = Mathf.Sin(time * 12f);
+            switch (kind)
+            {
+                case "vic_clap": uL = new Vector3(-0.2f, -0.35f, 1); fL = new Vector3(0.62f + s2 * 0.22f, 0.25f, 0.7f); break;
+                case "vic_flex": uL = new Vector3(-1, 0.08f, 0.1f); fL = new Vector3(-0.1f, 1, 0.2f + s * 0.06f); break;
+                case "vic_wave": uL = new Vector3(-0.45f, 0.95f, 0.15f); fL = new Vector3(-0.15f - s * 0.5f, 1, 0.15f); break;
+                default: uL = new Vector3(-0.42f, 1, 0.08f + s * 0.05f); fL = new Vector3(-0.28f, 1, 0.05f); break;
+            }
+            bool bothSides = kind != "vic_wave";
+            void Seg(string a, string b, Vector3 dirLocal)
+            {
+                if (!B.TryGetValue(a, out var ta) || !B.TryGetValue(b, out var tb)) return;
+                var cur = (tb.position - ta.position).normalized; var want = rootQ * dirLocal.normalized;
+                Aim(a, b, Vector3.Slerp(cur, want, k));
+            }
+            Seg("LeftArm", "LeftForeArm", uL); Seg("LeftForeArm", "LeftHand", fL);
+            if (bothSides) { Seg("RightArm", "RightForeArm", new Vector3(-uL.x, uL.y, uL.z)); Seg("RightForeArm", "RightHand", new Vector3(-fL.x, fL.y, fL.z)); }
+        }
+
+        // efekt: karakterin çevresinde küçük parıltılar (kozmetik, oyuna etkisi yok)
+        float fxAcc;
+        void Update()
+        {
+            if (preview || ghost || fp || look == null || string.IsNullOrEmpty(look.effect) || World.I == null || body == null || !body.activeInHierarchy) return;
+            var it = Catalog.Get(look.effect); if (it == null) return;
+            fxAcc += Time.deltaTime * (World.I.level >= 3 ? 2.5f : 5f);
+            while (fxAcc > 1)
+            {
+                fxAcc--;
+                float a = Random.value * 6.283f, r = 0.35f + Random.value * 0.3f;
+                var p = transform.position + new Vector3(Mathf.Cos(a) * r, 0.3f + Random.value * 1.2f, Mathf.Sin(a) * r);
+                var c = it.tint; if (it.id == "fx_bats") c = Random.value < 0.5f ? new Color(0.55f, 0.25f, 1f) : new Color(0.25f, 0.1f, 0.45f);
+                World.I.Emit(p, new Vector3((Random.value - 0.5f) * 0.1f, 0.25f + Random.value * 0.25f, (Random.value - 0.5f) * 0.1f), 1.4f + Random.value, 0.07f, 0.02f, c, 0, 0.9f);
+            }
         }
 
         void ComputeCurlAxes()
@@ -253,7 +392,13 @@ namespace VK
                 Bend("RightHandThumb1", 0.5f); Bend("RightHandThumb2", 0.6f);
                 return;
             }
-            if (!ghost)
+            if (!ghost && !stool)
+            {
+                Aim("LeftUpLeg", "LeftLeg", W(-0.07f, -1, 0.02f)); Aim("RightUpLeg", "RightLeg", W(0.07f, -1, 0.02f));
+                Aim("LeftLeg", "LeftFoot", W(-0.04f, -1, -0.03f)); Aim("RightLeg", "RightFoot", W(0.04f, -1, -0.03f));
+                Aim("LeftFoot", "LeftToeBase", W(-0.12f, -0.12f, 1)); Aim("RightFoot", "RightToeBase", W(0.12f, -0.12f, 1));
+            }
+            else if (!ghost)
             {
                 Aim("LeftUpLeg", "LeftLeg", W(-0.12f, -0.04f, 1)); Aim("RightUpLeg", "RightLeg", W(0.12f, -0.04f, 1));
                 Aim("LeftLeg", "LeftFoot", W(-0.05f, -1, 0.06f)); Aim("RightLeg", "RightFoot", W(0.05f, -1, 0.06f));
@@ -315,9 +460,11 @@ namespace VK
             Bend("RightHandIndex1", 0.35f * (1 - r)); Bend("RightHandIndex2", 0.4f * (1 - r));
             for (int i = 1; i < 4; i++) { Bend("RightHand" + FING[i] + "1", 0.35f + r * 1.15f); Bend("RightHand" + FING[i] + "2", 0.4f + r * 1.2f); }
             Bend("RightHandThumb1", r * 0.5f); Bend("RightHandThumb2", r * 0.6f);
+            if (cheer > 0.01f && !ghost) Victory(time, Mathf.Clamp01(cheer));
             // yüz: kızgın / mutlu / normal; konuşurken ağız açılıp kapanır
-            string fc = "usual";
-            if (c.angry > 0.45f) fc = "angry";
+            string fc = cheer > 0.5f ? "happy" : "usual";
+            if (cheer > 0.5f) { }
+            else if (c.angry > 0.45f) fc = "angry";
             else if (c.smile > 0.55f) fc = "happy";
             else if (c.open > 0.12f && Mathf.FloorToInt(time * 7) % 2 == 0) fc = "happy";
             SetFace(fc);

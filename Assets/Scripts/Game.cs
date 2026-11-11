@@ -29,6 +29,7 @@ namespace VK
             { "melek", new Role { n = "Aşk Meleği", ic = "melek", team = "k", c = Hex("#FF7AC8"), d = "İlk gece iki kişiyi âşık edersin. Biri ölürse diğeri de üzüntüden ölür. Âşıklar son ikiye kalırsa kazanır." } },
         };
         static readonly string[] DECK = { "vampir", "vampir", "kahin", "koruma", "cadi", "avci", "melek", "koylu", "koylu" };
+        static readonly string[] DECK7 = { "vampir", "vampir", "kahin", "koruma", "cadi", "koylu", "koylu" };
         static readonly string[] NIGHT_ORDER = { "melek", "koruma", "kahin", "vampir", "cadi" };
         static readonly string[] BOT_NAMES = { "Mira", "Deniz", "Ece", "Kaan", "Selin", "Arda", "Zeynep", "Emre" };
         static readonly Color[] SKT = { Color.white, Hex("#E6C2A8"), Color.white, Hex("#B88A6A"), Hex("#FFF0E6"), Hex("#D2A888"), Color.white, Hex("#A07558"), Hex("#F0D8C4") };
@@ -40,12 +41,12 @@ namespace VK
             public int i; public string n; public bool me; public string role; public bool alive = true; public Rig ch; public Vector3 seat; public float ang;
             public float lookYaw, headY, raise, sleep, slump, sleepTo, slumpTo, wave, talk, crownDrop; public int? pointAt;
             public GhostInfo ghost; public bool lover, claimed, reveal; public Dictionary<int, string> known = new Dictionary<int, string>();
-            public float[] sus, trust; public Expr expr; public Hud.Tag tag; public int oi; public Color tint; public float size;
+            public float[] sus, trust; public Expr expr; public Hud.Tag tag; public int oi; public Color tint; public float size; public Look look; public int score;
         }
         class Claim { public int by, target, day; public bool vamp; }
 
         // ---- durum
-        const int N = 9; const float R = 4.3f;
+        public static int Players = 9; static int N => Players; const float R = 4.3f;
         readonly List<Pl> P = new List<Pl>();
         Pl ME;
         string phase = "intro"; int day; int? mayor, wolfTarget, guardLast, guardT, poisonT; bool healTonight, healUsed, poisonUsed, locked, over, ghostCam, vampChatHint;
@@ -68,6 +69,12 @@ namespace VK
         async void Later(float sec, Action fn) { int tk = token; await Wait(sec); if (tk == token && !over && this != null) fn(); }
 
         // ---------------------------------------------------------------- başlangıç
+        // lobiden gelen oyuncular (isim + görünüm). Boşsa profil + rastgele botlar.
+        public class Seat { public string name; public Look look; }
+        public static List<Seat> Lineup;
+        // maç istatistikleri (profil ve görevler için)
+        int myVotes, myMsgs, seerFound; bool hunterHit, wasMayor;
+        public List<string> voteLog = new List<string>();
         public void Begin(World w, Hud h, string myName, bool auto, int seed)
         {
             W = w; ui = h; cam = w.cam; AUTO = auto; if (!string.IsNullOrEmpty(myName)) MY_NAME = myName.Length > 14 ? myName.Substring(0, 14) : myName;
@@ -76,22 +83,26 @@ namespace VK
             {
                 float a = Mathf.PI / 2 + i / (float)N * Mathf.PI * 2;
                 var seat = new Vector3(Mathf.Cos(a) * R, 0, Mathf.Sin(a) * R);
-                var p = new Pl { i = i, n = i == 0 ? MY_NAME : BOT_NAMES[i - 1], me = i == 0, seat = seat, ang = a, oi = i, tint = SKT[i % SKT.Length], size = 0.96f + ((i * 37) % 9) / 100f };
-                p.ch = Rig.Make(p.oi, p.tint, p.size);
+                var ln = Lineup != null && i < Lineup.Count ? Lineup[i] : null;
+                var look = ln?.look ?? (i == 0 ? (Store.P != null ? Store.P.look : new Look()) : Catalog.Random(new System.Random(seed + i * 7919)));
+                var nm = ln?.name ?? (i == 0 ? MY_NAME : BOT_NAMES[i - 1]);
+                var p = new Pl { i = i, n = nm, me = i == 0, seat = seat, ang = a, oi = i, tint = SKT[i % SKT.Length], size = 0.96f + ((i * 37) % 9) / 100f, look = look };
+                p.ch = Rig.Make(p.look, p.size);
                 p.ch.transform.position = seat; p.ch.transform.LookAt(new Vector3(0, 0, 0));
-                if (p.me) p.ch.gameObject.SetActive(false); else p.tag = ui.MakeTag(p.n);
+                if (p.me) p.ch.gameObject.SetActive(false); else { p.tag = ui.MakeTag(p.n); ui.TagFrame(p.tag, look.frame); }
                 P.Add(p);
             }
             ME = P[0];
             cam.transform.position = new Vector3(ME.seat.x * 1.04f, 1.45f, ME.seat.z * 1.04f);
             camRot = Quaternion.Euler(pitch * Mathf.Rad2Deg, Mathf.Atan2(-ME.seat.x, -ME.seat.z) * Mathf.Rad2Deg, 0);
-            fpArm = Rig.Make(0, P[0].tint, 1, false, true); fpArm.transform.localScale = Vector3.one * 0.8f; fpArm.gameObject.SetActive(false);
-            ui.onSend = SendChat; ui.onEmote = k => Emote(ME, k); ui.onBack = Exit; ui.onAgain = () => UnityEngine.SceneManagement.SceneManager.LoadScene(0);
+            fpArm = Rig.Make(ME.look, 1, false, true); fpArm.transform.localScale = Vector3.one * 0.8f; fpArm.gameObject.SetActive(false);
+            ui.onSend = SendChat; ui.onEmote = k => Emote(ME, k); ui.onBack = ToLobby; ui.onAgain = () => { Boot.Replay = true; UnityEngine.SceneManagement.SceneManager.LoadScene(0); }; ui.onLobby = ToLobby; ui.voteLog = () => voteLog;
             ui.onRoleChip = () => { if (ME.role != null) { var r = ROLES[ME.role]; ui.ShowCard(r.ic, r.n, r.team == "v" ? "VAMPİRLER" : "KÖY", r.c, r.d, "Kapat", null); } };
             Run();
         }
 
         void Exit() { Bridge.Send("{\"type\":\"exit\"}"); }
+        void ToLobby() { Boot.Replay = false; UnityEngine.SceneManagement.SceneManager.LoadScene(0); }
 
         // ---------------------------------------------------------------- konuşma, duygu, emoji
         void Say(Pl p, string text, string cls = "")
@@ -256,7 +267,7 @@ namespace VK
             if (!ME.alive) return;
             bool night = phase.StartsWith("night");
             if (night && !IsV(ME)) return;
-            Say(ME, t, night ? "wolf" : "");
+            Say(ME, t, night ? "wolf" : ""); myMsgs++;
             var low = TrLower(t);
             var named = P.FirstOrDefault(p => !p.me && p.alive && low.Contains(TrLower(p.n)));
             if (night)
@@ -288,7 +299,7 @@ namespace VK
             await Wait(1.3f);
             p.ch.body.SetActive(false);
             W.Burst(p.seat + Vector3.up * 0.9f, new Color(0.75f, 0.83f, 1f), 18, 0.5f, 0.2f, 1.2f);
-            var gh = Rig.Make(p.oi, p.tint, p.size, true);
+            var gh = Rig.Make(p.look, p.size, true);
             gh.transform.position = p.seat + Vector3.up * 0.1f; gh.transform.LookAt(new Vector3(0, 0.1f, 0));
             p.ghost = new GhostInfo { ch = gh, born = Now, a = p.ang + 0.15f, r = 7.4f + Rnd() * 1.4f, sp = (Rnd() < 0.5f ? -1 : 1) * (0.05f + Rnd() * 0.04f), ph = Rnd() * 6 };
             if (p.me) { gh.gameObject.SetActive(false); BecomeGhost(); }
@@ -334,6 +345,7 @@ namespace VK
             if (h.me && !AUTO) { ui.Eyes(false); t = (await Choose("Son okun!", "avci", "Avcı olarak ölüyorsun. Yanında götürmek istediğin kişiye dokun.", T_PROMPT, q => q.alive && !q.me, Hex("#E8955A"), "Vur"))?.FirstOrDefault(); }
             else t = (MaxSus(h, pool.Where(q => !(IsV(h) && IsV(q))).ToList()) ?? Pick(pool)).i;
             if (t == null) return null;
+            if (IsV(P[t.Value]) && !IsV(h)) h.score += 3; if (h.me && IsV(P[t.Value])) hunterHit = true;
             await ui.Banner("avci", h.me ? "Son okunu attın!" : h.n + " son okunu attı!", "Hedef: " + Who(P[t.Value]), 1.6f);
             Vector3 from = h.seat + Vector3.up * 1.2f, to = P[t.Value].seat + Vector3.up * 1.2f;
             for (int k = 0; k <= 12; k++) W.Burst(Vector3.Lerp(from, to, k / 12f), new Color(1, 0.85f, 0.63f), 2, 0.1f, 0.1f, 0.5f);
@@ -356,7 +368,7 @@ namespace VK
         void SetMayor(int i)
         {
             if (mayor != null) P[mayor.Value].ch.crown.gameObject.SetActive(false);
-            mayor = i; var p = P[i];
+            mayor = i; var p = P[i]; if (p.me) wasMayor = true;
             p.ch.crown.gameObject.SetActive(true); p.crownDrop = 1; Feel(p, "happy", 3.5f); Sfx.Play("fanfare"); if (!p.me) Focus(p.seat + Vector3.up * 1.3f, 2.6f, 44); if (p.tag != null) ui.PunchTag(p.tag);
             W.Burst(p.seat + Vector3.up * 2.1f, new Color(0.96f, 0.77f, 0.26f), 30, 0.8f, 0.12f, 1.3f, 0.6f);
         }
@@ -437,6 +449,9 @@ namespace VK
             await Timed(sec, () => voters.All(p => !p.alive || p.pointAt != null) && (!ME.alive || AUTO || Now - voteChangedAt > 6 / SPEED));
             selectable = null;
             var c = Tally(null, kind != "mayor");
+            if (ME.alive && ME.pointAt != null && kind != "mayor") myVotes++;
+            if (kind != "mayor") voteLog.Add("Gün " + day + ": " + string.Join(", ", c.OrderByDescending(kv => kv.Value).Select(kv => P[kv.Key].n + " " + kv.Value)));
+            if (c.Count > 0) await ui.VoteResults(kind == "mayor" ? "Muhtar oylaması" : "Gün " + day + " oylaması", c.OrderByDescending(kv => kv.Value).Select(kv => new Hud.VoteRow { name = Who(P[kv.Key]), votes = kv.Value, look = P[kv.Key].look }).ToList(), kind == "mayor" ? new Color(0.97f, 0.78f, 0.29f) : new Color(1f, 0.36f, 0.45f));
             var r = TopOf(c);
             return (c, r.best, r.list);
         }
@@ -444,7 +459,7 @@ namespace VK
         // ---------------------------------------------------------------- akış
         async Task Intro()
         {
-            var deck = Shuffle(DECK.ToList());
+            var deck = Shuffle((N == 7 ? DECK7 : DECK).ToList());
             for (int i = 0; i < N; i++) P[i].role = deck[i];
             // test/önizleme için: ?rol=koruma gibi bir adresle kendi rolünü seç
             var want0 = Bridge.Param("rol"); int wi = want0 == null ? -1 : deck.IndexOf(want0);
@@ -631,7 +646,7 @@ namespace VK
 
         async Task SeerReveal(Pl seer, int i)
         {
-            var q = P[i]; seer.known[i] = q.role;
+            var q = P[i]; seer.known[i] = q.role; if (IsV(q)) { seer.score += 2; if (seer.me) seerFound++; }
             var r = ROLES[q.role];
             ui.Seer(q.tag, q.n + ": " + r.n, 3.2f); Sfx.Play("magic");
             W.Burst(q.seat + Vector3.up * 1.9f, Hex("#B9A8FF"), 26, 0.5f, 0.14f, 1.4f);
@@ -716,6 +731,7 @@ namespace VK
             r.counts.TryGetValue(t, out int cnt);
             if (!P[t].me) Focus(P[t].seat + Vector3.up * 1.0f, 2.4f, 42);
             await ui.Banner("scale", "Köyün kararı: " + Who(P[t]), cnt + " oy", 2);
+            foreach (var p in P) { if (p.pointAt == t) p.score += IsV(P[t]) && !IsV(p) ? 3 : 0; if (IsV(p) && !IsV(P[t])) p.score += 1; }
             foreach (var p in P) p.pointAt = null; countMode = null;
             await KillMany(new List<(int, string)> { (t, "exec") });
         }
@@ -743,11 +759,22 @@ namespace VK
             var list = new List<Hud.EndEntry>();
             foreach (var p in P)
             {
+                bool win = w == "lovers" ? p.lover : (w == "vampir" ? IsV(p) : !IsV(p));
+                if (p.alive) p.score += 1; if (win) p.score += 2;
+            }
+            // MVP: kazanan takımda en çok katkı yapan
+            var mvp = P.Where(p => w == "lovers" ? p.lover : (w == "vampir" ? IsV(p) : !IsV(p))).OrderByDescending(p => p.score).ThenByDescending(p => p.alive).FirstOrDefault();
+            foreach (var p in P)
+            {
                 var r = ROLES[p.role];
                 bool win = w == "lovers" ? p.lover : (w == "vampir" ? IsV(p) : !IsV(p));
-                list.Add(new Hud.EndEntry { icon = r.ic, name = p.me ? p.n + " (sen)" : p.n, role = r.n, color = r.c, extra = (p.i == mayor ? " · muhtar" : "") + (p.lover ? " · âşık" : ""), alive = p.alive, win = win });
+                list.Add(new Hud.EndEntry { icon = r.ic, name = p.me ? p.n + " (sen)" : p.n, role = r.n, color = r.c, extra = (p.i == mayor ? " · muhtar" : "") + (p.lover ? " · âşık" : ""), alive = p.alive, win = win, look = p.look, mvp = p == mvp, me = p.me });
+                // kazananlar zafer pozuna geçer
+                if (win && p.alive && p.ch != null && p.ch.body.activeSelf) { var ch = p.ch; Tween.Run(ch, 0.6f, k => { if (ch) ch.cheer = k; }); }
             }
-            ui.ShowEnd(title, meWin ? "Kazandın · +120 XP · +50 Zu altın" : "Kaybettin · +30 XP", list);
+            var res = Store.Report(meWin, ME.alive, ME.role, ROLES[ME.role].n, mvp == ME, myVotes, myMsgs, wasMayor, seerFound, hunterHit);
+            var team = w == "koy" ? Hex("#F5B942") : w == "vampir" ? Hex("#FF4D6D") : Hex("#FF7AC8");
+            ui.ShowEnd(title, meWin ? "Tebrikler, kazandın!" : "Bu sefer olmadı", list, res, team, $"{day} gün · {myVotes} oy · {myMsgs} mesaj");
             Bridge.Send("{\"type\":\"end\",\"win\":" + (meWin ? "true" : "false") + ",\"winner\":\"" + w + "\"}");
         }
 

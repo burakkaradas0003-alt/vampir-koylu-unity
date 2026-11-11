@@ -18,12 +18,21 @@ namespace VK
             Screen.autorotateToLandscapeLeft = true; Screen.autorotateToLandscapeRight = true;
             Screen.orientation = ScreenOrientation.AutoRotation;
             bool low = SystemInfo.systemMemorySize < 3000 || Bridge.Param("lite") == "1";
+            Store.Load();
             var w = new GameObject("Dünya").AddComponent<World>(); w.Build(low);
-            var h = new GameObject("Arayüz").AddComponent<Hud>(); h.Build();
             new GameObject("Ses").AddComponent<Sfx>().Build(new Vector3(0, 0.5f, 0));
-            var g = new GameObject("Oyun").AddComponent<Game>();
-            g.Begin(w, h, Bridge.Param("me"), false, System.Environment.TickCount & 0x7fffffff);
+            Studio.Make();
+            void StartGame()
+            {
+                var h = new GameObject("Arayüz").AddComponent<Hud>(); h.Build();
+                var g = new GameObject("Oyun").AddComponent<Game>();
+                g.Begin(w, h, Store.P.name, false, System.Environment.TickCount & 0x7fffffff);
+            }
+            // "Tekrar oyna" aynı kadroyla doğrudan oyuna döner; ?oyun=1 lobiyi atlar (test)
+            if ((Replay && Game.Lineup != null) || Bridge.Param("oyun") == "1") { Replay = false; StartGame(); }
+            else Menu.Make(w).onStart = StartGame;
         }
+        public static bool Replay;
     }
 
     // Zuplay (Flutter) ile haberleşme. Ayrı uygulama olarak çalışırken "exit" uygulamayı kapatır.

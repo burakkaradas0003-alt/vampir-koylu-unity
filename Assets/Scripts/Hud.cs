@@ -1,6 +1,7 @@
 // Arayüz: kodla kurulan uGUI. Emojiler Twemoji görselleri (Resources/Emoji) olarak gösterilir.
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Threading.Tasks;
 using UnityEngine;
 using UnityEngine.EventSystems;
@@ -20,8 +21,9 @@ namespace VK
         Text actT, actD; Image actI;
         InputField input; Image cardIcon; Text cardName, cardTeam, cardDesc; Button cardBtn; Text cardBtnT;
         Text endTitle, endSub;
-        public Action<string> onSend; public Action<string> onEmote; public Action onBack, onRoleChip, onAgain;
-        public static readonly Color BG = new Color(0.07f, 0.08f, 0.17f, 0.86f);
+        public Action<string> onSend; public Action<string> onEmote; public Action onBack, onRoleChip, onAgain, onLobby; public Func<List<string>> voteLog;
+        public static readonly Color BG = new Color(0.075f, 0.078f, 0.11f, 0.8f);
+        Image phIcon; RectTransform phPill;
         public static readonly Color GOLD = new Color(1f, 0.8f, 0.3f);
         Image cardGlow;
 
@@ -30,9 +32,9 @@ namespace VK
         public void Build()
         {
             I = this;
-            var legacy = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
-            font = Resources.Load<Font>("Fonts/Body") ?? legacy; fontBold = Resources.Load<Font>("Fonts/BodyBold") ?? legacy; fontTitle = Resources.Load<Font>("Fonts/Title") ?? fontBold;
-            round = MakeRound(); grad = MakeGrad(); glow = MakeGlow();
+            UI.Init();
+            font = UI.Body; fontBold = UI.Bold; fontTitle = UI.Title;
+            round = UI.Round; grad = MakeGrad(); glow = MakeGlow();
             var cgo = new GameObject("Arayüz", typeof(RectTransform), typeof(Canvas), typeof(CanvasScaler), typeof(GraphicRaycaster));
             var cv = cgo.GetComponent<Canvas>(); cv.renderMode = RenderMode.ScreenSpaceOverlay; cv.sortingOrder = 10;
             var sc = cgo.GetComponent<CanvasScaler>(); sc.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize; sc.referenceResolution = new Vector2(844, 390); sc.matchWidthOrHeight = 0.6f;
@@ -60,15 +62,21 @@ namespace VK
             rcIcon = Img("ri", chip, null, new Vector2(0, 0.5f), new Vector2(22, 0), new Vector2(24, 24));
             rcName = Label("rn", chip, "", 14, FontStyle.Bold, TextAnchor.MiddleLeft, new Vector2(0, 0.5f), new Vector2(76, 0), new Vector2(80, 30));
             Btn(chip, () => onRoleChip?.Invoke());
-            phT = Label("ph", canvas, "VAMPİR KÖYLÜ", 25, FontStyle.Bold, TextAnchor.MiddleCenter, new Vector2(0.5f, 1), new Vector2(0, -24), new Vector2(520, 34)); phT.font = fontTitle; phT.GetComponent<Shadow>().effectDistance = new Vector2(0, -2);
-            phS = Label("phs", canvas, "", 13, FontStyle.Normal, TextAnchor.MiddleCenter, new Vector2(0.5f, 1), new Vector2(0, -44), new Vector2(560, 20));
+            phPill = Panel("evre", canvas, new Color(0.055f, 0.058f, 0.08f, 0.72f), new Vector2(0.5f, 1), new Vector2(0.5f, 1), new Vector2(0, -31), new Vector2(330, 46), true);
+            phPill.GetComponent<Image>().sprite = UI.Pill;
+            phIcon = Img("gündüz-gece", phPill, Emoji("sun"), new Vector2(0, 0.5f), new Vector2(26, 0), new Vector2(26, 26));
+            phT = Label("ph", phPill, "VAMPİR KÖYLÜ", 19, FontStyle.Bold, TextAnchor.MiddleCenter, new Vector2(0.5f, 1), new Vector2(10, -15), new Vector2(280, 26)); phT.font = fontTitle; phT.GetComponent<Shadow>().effectDistance = new Vector2(0, -1.5f);
+            phS = Label("phs", phPill, "", 11, FontStyle.Normal, TextAnchor.MiddleCenter, new Vector2(0.5f, 1), new Vector2(10, -34), new Vector2(290, 16)); phS.color = new Color(0.78f, 0.79f, 0.86f);
             var tm = Panel("süre", canvas, BG, new Vector2(1, 1), new Vector2(1, 1), new Vector2(-46, -30), new Vector2(70, 36), true);
             timer = Label("t", tm, "", 20, FontStyle.Bold, TextAnchor.MiddleCenter, new Vector2(0.5f, 0.5f), new Vector2(0, 1), new Vector2(70, 36)); timer.font = fontTitle; timer.color = GOLD;
             tm.gameObject.SetActive(false);
+            var hist = Panel("geçmiş", canvas, BG, new Vector2(1, 1), new Vector2(1, 1), new Vector2(-104, -30), new Vector2(36, 36), true);
+            Img("i", hist, Emoji("scroll"), new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(20, 20));
+            Btn(hist, ShowVoteLog);
 
             // sohbet günlüğü
-            logBox = Rect("log", canvas, new Vector2(0, 0), new Vector2(0, 0), new Vector2(12, 62), new Vector2(330, 200)); logBox.pivot = Vector2.zero;
-            var vl = logBox.gameObject.AddComponent<VerticalLayoutGroup>(); vl.childAlignment = TextAnchor.LowerLeft; vl.spacing = 4; vl.childControlHeight = true; vl.childControlWidth = false; vl.childForceExpandHeight = false; vl.childForceExpandWidth = false;
+            logBox = Rect("log", canvas, new Vector2(0, 0), new Vector2(0, 0), new Vector2(12, 58), new Vector2(310, 150)); logBox.pivot = Vector2.zero;
+            var vl = logBox.gameObject.AddComponent<VerticalLayoutGroup>(); vl.childAlignment = TextAnchor.LowerLeft; vl.spacing = 3; vl.childControlHeight = true; vl.childControlWidth = true; vl.childForceExpandHeight = false; vl.childForceExpandWidth = false;
             // yazma alanı
             var emoBtn = Panel("emo", canvas, BG, Vector2.zero, Vector2.zero, new Vector2(32, 28), new Vector2(40, 40), true);
             Img("e", emoBtn, Emoji("laugh"), new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(24, 24));
@@ -88,12 +96,12 @@ namespace VK
             emoRow.gameObject.SetActive(false);
 
             // eylem kartı
-            var act = Panel("eylem", canvas, BG, new Vector2(1, 0), new Vector2(1, 0), new Vector2(-150, 64), new Vector2(284, 112), true);
+            var act = Panel("eylem", canvas, BG, new Vector2(1, 0), new Vector2(1, 0), new Vector2(-136, 56), new Vector2(256, 96), true);
             actG = act.gameObject.AddComponent<CanvasGroup>();
             actI = Img("i", act, null, new Vector2(0, 1), new Vector2(28, -28), new Vector2(30, 30));
-            actT = Label("t", act, "", 17, FontStyle.Bold, TextAnchor.MiddleLeft, new Vector2(0, 1), new Vector2(160, -20), new Vector2(222, 24));
-            actD = Label("d", act, "", 12, FontStyle.Normal, TextAnchor.UpperLeft, new Vector2(0, 1), new Vector2(160, -52), new Vector2(222, 42)); actD.color = new Color(0.75f, 0.78f, 0.9f);
-            actBtns = Rect("düğmeler", act, new Vector2(0, 0), new Vector2(1, 0), new Vector2(0, 26), new Vector2(-20, 38));
+            actT = Label("t", act, "", 15, FontStyle.Bold, TextAnchor.MiddleLeft, new Vector2(0, 1), new Vector2(146, -18), new Vector2(206, 22));
+            actD = Label("d", act, "", 11, FontStyle.Normal, TextAnchor.UpperLeft, new Vector2(0, 1), new Vector2(146, -44), new Vector2(206, 32)); actD.color = new Color(0.75f, 0.78f, 0.9f);
+            actBtns = Rect("düğmeler", act, new Vector2(0, 0), new Vector2(1, 0), new Vector2(0, 22), new Vector2(-18, 32));
             var hl = actBtns.gameObject.AddComponent<HorizontalLayoutGroup>(); hl.spacing = 8; hl.childForceExpandWidth = true; hl.childControlWidth = true; hl.childControlHeight = true;
             act.gameObject.SetActive(false);
 
@@ -123,20 +131,8 @@ namespace VK
             cardBtn = cb.gameObject.AddComponent<Button>();
             card.gameObject.SetActive(false);
 
-            // bitiş ekranı
-            var end = Panel("bitiş", canvas, new Color(0.02f, 0.03f, 0.08f, 0.9f), Vector2.zero, Vector2.one, Vector2.zero, Vector2.zero);
-            endG = end.gameObject.AddComponent<CanvasGroup>();
-            endTitle = Label("t", end, "", 38, FontStyle.Bold, TextAnchor.MiddleCenter, new Vector2(0.5f, 1), new Vector2(0, -42), new Vector2(760, 50)); endTitle.font = fontTitle;
-            endSub = Label("s", end, "", 15, FontStyle.Normal, TextAnchor.MiddleCenter, new Vector2(0.5f, 1), new Vector2(0, -72), new Vector2(760, 22));
-            endGrid = Rect("ızgara", end, new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(0, 0), new Vector2(720, 200));
-            var gl = endGrid.gameObject.AddComponent<GridLayoutGroup>(); gl.cellSize = new Vector2(134, 92); gl.spacing = new Vector2(8, 8); gl.childAlignment = TextAnchor.MiddleCenter;
-            var again = Panel("tekrar", end, new Color(0.96f, 0.77f, 0.26f), new Vector2(0.5f, 0), new Vector2(0.5f, 0), new Vector2(-90, 36), new Vector2(160, 40), true);
-            Label("t", again, "Tekrar oyna", 15, FontStyle.Bold, TextAnchor.MiddleCenter, new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(160, 40)).color = new Color(0.1f, 0.08f, 0.04f);
-            Btn(again, () => onAgain?.Invoke());
-            var quit = Panel("çık", end, BG, new Vector2(0.5f, 0), new Vector2(0.5f, 0), new Vector2(90, 36), new Vector2(160, 40), true);
-            Label("t", quit, "Çık", 15, FontStyle.Bold, TextAnchor.MiddleCenter, new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(160, 40));
-            Btn(quit, () => onBack?.Invoke());
-            end.gameObject.SetActive(false);
+            // bitiş ekranı: BuildEnd (ShowEnd çağrılınca kurulur)
+            endG = null;
             Eyes(false);
         }
 
@@ -178,7 +174,11 @@ namespace VK
         RectTransform Panel(string n, Transform p, Color c, Vector2 aMin, Vector2 aMax, Vector2 pos, Vector2 size, bool rounded = false)
         {
             var r = Rect(n, p, aMin, aMax, pos, size); var im = r.gameObject.AddComponent<Image>(); im.color = c;
-            if (rounded) { im.sprite = round; im.type = Image.Type.Sliced; im.pixelsPerUnitMultiplier = 2.2f; var sh = r.gameObject.AddComponent<Shadow>(); sh.effectColor = new Color(0, 0, 0, 0.35f); sh.effectDistance = new Vector2(0, -2.5f); }
+            if (rounded)
+            {
+                im.sprite = round; im.type = Image.Type.Sliced; im.pixelsPerUnitMultiplier = 2.2f; var sh = r.gameObject.AddComponent<Shadow>(); sh.effectColor = new Color(0, 0, 0, 0.35f); sh.effectDistance = new Vector2(0, -2.5f);
+                if (c.a > 0.3f) { var o = UI.Img(r, UI.Outline, UI.Stroke, "kenar"); o.rectTransform.Fill(); }
+            }
             return r;
         }
         Image Img(string n, Transform p, Sprite s, Vector2 anchor, Vector2 pos, Vector2 size)
@@ -199,7 +199,14 @@ namespace VK
 
         // ---------------------------------------------------------------- oyunun kullandıkları
         float phaseEnd; public bool timerOn;
-        public void Phase(string t, string s, float seconds = 0) { phT.text = t; phS.text = s ?? ""; SetTimer(seconds); }
+        public void Phase(string t, string s, float seconds = 0)
+        {
+            bool changed = phT.text != t; phT.text = t; phS.text = s ?? ""; SetTimer(seconds);
+            bool night = t.StartsWith("GECE"); var ic = Emoji(t.StartsWith("MUHTAR") ? "crown" : night ? "moon" : t.StartsWith("GÜNDÜZ") || t.StartsWith("SABAH") ? "sun" : "village");
+            if (phIcon.sprite != ic) { phIcon.sprite = ic; phIcon.enabled = ic != null; Scale(phIcon.rectTransform, Vector3.zero, Vector3.one, 0.4f); }
+            phPill.GetComponent<Image>().color = night ? new Color(0.07f, 0.06f, 0.16f, 0.8f) : new Color(0.055f, 0.058f, 0.08f, 0.72f);
+            if (changed) Scale(phPill, new Vector3(0.92f, 0.92f, 1), Vector3.one, 0.3f);
+        }
         public void Sub(string s) { phS.text = s; }
         public string PhaseTitle => phT.text; public string PhaseSub => phS.text;
         public void SetTimer(float seconds) { timerOn = seconds > 0; timer.transform.parent.gameObject.SetActive(timerOn); phaseEnd = Time.time + seconds; }
@@ -215,7 +222,7 @@ namespace VK
             var ar = (RectTransform)actG.transform; bool compact = btns.Length == 0;
             if (compact)
             {
-                ar.anchorMin = ar.anchorMax = new Vector2(0.5f, 1); ar.anchoredPosition = new Vector2(0, -78); ar.sizeDelta = new Vector2(440, 40);
+                ar.anchorMin = ar.anchorMax = new Vector2(0.5f, 1); ar.anchoredPosition = new Vector2(0, -80); ar.sizeDelta = new Vector2(420, 34);
                 actI.rectTransform.anchorMin = actI.rectTransform.anchorMax = new Vector2(0, 0.5f); actI.rectTransform.anchoredPosition = new Vector2(22, 0); actI.rectTransform.sizeDelta = new Vector2(24, 24);
                 actT.gameObject.SetActive(false);
                 actD.rectTransform.anchorMin = actD.rectTransform.anchorMax = new Vector2(0, 0.5f); actD.rectTransform.anchoredPosition = new Vector2(230, 0); actD.rectTransform.sizeDelta = new Vector2(380, 36);
@@ -224,19 +231,19 @@ namespace VK
             }
             else
             {
-                ar.anchorMin = ar.anchorMax = new Vector2(1, 0); ar.anchoredPosition = new Vector2(-150, 64); ar.sizeDelta = new Vector2(284, 112);
-                actI.rectTransform.anchorMin = actI.rectTransform.anchorMax = new Vector2(0, 1); actI.rectTransform.anchoredPosition = new Vector2(28, -28); actI.rectTransform.sizeDelta = new Vector2(30, 30);
+                ar.anchorMin = ar.anchorMax = new Vector2(1, 0); ar.anchoredPosition = new Vector2(-136, 56); ar.sizeDelta = new Vector2(256, 96);
+                actI.rectTransform.anchorMin = actI.rectTransform.anchorMax = new Vector2(0, 1); actI.rectTransform.anchoredPosition = new Vector2(24, -24); actI.rectTransform.sizeDelta = new Vector2(26, 26);
                 actT.gameObject.SetActive(true);
-                actD.rectTransform.anchorMin = actD.rectTransform.anchorMax = new Vector2(0, 1); actD.rectTransform.anchoredPosition = new Vector2(160, -52); actD.rectTransform.sizeDelta = new Vector2(222, 42);
+                actD.rectTransform.anchorMin = actD.rectTransform.anchorMax = new Vector2(0, 1); actD.rectTransform.anchoredPosition = new Vector2(146, -44); actD.rectTransform.sizeDelta = new Vector2(206, 32);
                 actD.alignment = TextAnchor.UpperLeft;
             }
             foreach (Transform c in actBtns) Destroy(c.gameObject);
             foreach (var b in btns)
             {
-                Color col = b.style == "on" ? new Color(0.96f, 0.77f, 0.26f) : b.style == "r" ? new Color(0.85f, 0.25f, 0.3f) : b.style == "g" ? new Color(0.2f, 0.7f, 0.45f) : b.style == "p" ? new Color(0.55f, 0.4f, 0.9f) : new Color(1, 1, 1, 0.12f);
+                Color col = b.style == "on" ? UI.Gold : b.style == "r" ? new Color(0.82f, 0.27f, 0.32f) : b.style == "g" ? new Color(0.16f, 0.66f, 0.47f) : b.style == "p" ? UI.Purple : new Color(1, 1, 1, 0.1f);
                 if (b.dis) col.a *= 0.35f;
-                var r = Panel("b", actBtns, col, Vector2.zero, Vector2.zero, Vector2.zero, new Vector2(80, 34), true);
-                var t = Label("t", r, b.t, 13, FontStyle.Bold, TextAnchor.MiddleCenter, new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(140, 34));
+                var r = Panel("b", actBtns, col, Vector2.zero, Vector2.zero, Vector2.zero, new Vector2(80, 30), true); r.GetComponent<Image>().sprite = UI.Pill;
+                var t = Label("t", r, b.t, 12, FontStyle.Bold, TextAnchor.MiddleCenter, new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(140, 34));
                 t.color = b.style == "on" ? new Color(0.1f, 0.08f, 0.04f) : Color.white;
                 var bb = b; if (!b.dis && b.f != null) Btn(r, () => bb.f());
             }
@@ -259,12 +266,22 @@ namespace VK
 
         public void Log(string name, string text, string cls = "")
         {
-            var row = Panel("satır", logBox, new Color(0.05f, 0.06f, 0.13f, cls == "sys" ? 0.75f : 0.55f), Vector2.zero, Vector2.zero, Vector2.zero, new Vector2(320, 24), true);
+            // ince, yarı saydam satırlar; metin uzunluğuna göre genişler
+            var row = Rect("satır", logBox, Vector2.zero, Vector2.zero, Vector2.zero, new Vector2(300, 20));
+            var bgi = row.gameObject.AddComponent<Image>(); bgi.sprite = UI.Pill; bgi.type = Image.Type.Sliced; bgi.pixelsPerUnitMultiplier = 3.2f; bgi.raycastTarget = false;
+            bgi.color = cls == "sys" ? new Color(0.3f, 0.22f, 0.05f, 0.5f) : cls == "wolf" ? new Color(0.35f, 0.05f, 0.1f, 0.5f) : new Color(0.04f, 0.04f, 0.07f, 0.42f);
             var col = cls == "wolf" ? "#FF8FA3" : cls == "sys" ? "#F5C542" : "#B9A8FF";
-            var t = Label("t", row, (string.IsNullOrEmpty(name) ? "" : $"<color={col}><b>{Esc(name)}</b></color> ") + Esc(text), 12, FontStyle.Normal, TextAnchor.MiddleLeft, new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(306, 22));
+            var t = Label("t", row, (string.IsNullOrEmpty(name) ? "" : $"<color={col}><b>{Esc(name)}</b></color>  ") + Esc(text), 11, FontStyle.Normal, TextAnchor.MiddleLeft, new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(286, 18));
+            t.horizontalOverflow = HorizontalWrapMode.Overflow; t.verticalOverflow = VerticalWrapMode.Truncate;
             if (cls == "sys") t.color = new Color(1f, 0.92f, 0.7f);
-            var le = row.gameObject.AddComponent<LayoutElement>(); le.preferredWidth = 320; le.minHeight = 24;
-            while (logBox.childCount > 6) DestroyImmediate(logBox.GetChild(0).gameObject);
+            var hl = row.gameObject.AddComponent<HorizontalLayoutGroup>(); hl.padding = new RectOffset(10, 10, 1, 1); hl.childControlWidth = true; hl.childControlHeight = true; hl.childForceExpandWidth = false;
+            var tle = t.gameObject.AddComponent<LayoutElement>(); tle.preferredHeight = 18;
+            var le = row.gameObject.AddComponent<LayoutElement>(); le.preferredHeight = 20; le.minHeight = 20;
+            var fit = row.gameObject.AddComponent<ContentSizeFitter>(); fit.horizontalFit = ContentSizeFitter.FitMode.PreferredSize;
+            if (t.preferredWidth > 290) { t.horizontalOverflow = HorizontalWrapMode.Wrap; tle.preferredWidth = 290; tle.preferredHeight = 32; le.preferredHeight = 34; le.minHeight = 34; }
+            while (logBox.childCount > 5) DestroyImmediate(logBox.GetChild(0).gameObject);
+            for (int i = 0; i < logBox.childCount; i++) { var g = logBox.GetChild(i).GetComponent<CanvasGroup>() ?? logBox.GetChild(i).gameObject.AddComponent<CanvasGroup>(); g.alpha = Mathf.Lerp(0.55f, 1f, (i + 1f) / logBox.childCount); }
+            Scale(row, new Vector3(0.94f, 0.94f, 1), Vector3.one, 0.22f);
         }
         static string Esc(string s) => s.Replace("<", "(").Replace(">", ")");
 
@@ -283,7 +300,25 @@ namespace VK
             cardGlow.color = new Color(c.r, c.g, c.b, 0.45f);
             cardG.gameObject.SetActive(true); Fade(cardG, 0, 1, 0.25f);
             var front = (RectTransform)cardIcon.transform.parent;
-            Scale(front, new Vector3(0.02f, 1, 1), Vector3.one, 0.45f, 0.15f); Scale(cardIcon.rectTransform, Vector3.zero, Vector3.one, 0.4f, 0.45f); Sfx.Play("magic");
+            // kart arkası: iki kez dönerek karışır, sonra rol yüzü açılır
+            var back = front.Find("arka") as RectTransform;
+            if (back == null)
+            {
+                back = UI.Panel(front, "arka", new Color(0.2f, 0.12f, 0.42f, 1f), false); back.Fill();
+                UI.Img(back, UI.Glow, UI.A(UI.Lilac, 0.5f), "ışık").rectTransform.Fill(30, 30, 30, 30);
+                UI.Img(back, UI.Outline, UI.A(UI.Gold, 0.7f), "süs").rectTransform.Fill(10, 10, 10, 10);
+                UI.Icon(back, Emoji("crystal"), 70).rectTransform.At(new Vector2(0.5f, 0.5f), new Vector2(0, 14), new Vector2(70, 70));
+                UI.Txt(back, "Rolün belirleniyor", 13, UI.Lilac, UI.Bold, TextAnchor.MiddleCenter).rectTransform.At(new Vector2(0.5f, 0), new Vector2(0, 40), new Vector2(260, 20), new Vector2(0.5f, 0));
+            }
+            back.gameObject.SetActive(true); back.SetAsLastSibling(); cardIcon.enabled = false; Sfx.Play("whoosh");
+            bool flipped = false;
+            Tween.Run(front, 1.25f, k =>
+            {
+                if (!front) return;
+                float ang = k * Mathf.PI * 3; float sx = Mathf.Abs(Mathf.Cos(ang));
+                front.localScale = new Vector3(Mathf.Max(0.02f, sx), 1 + Mathf.Sin(k * Mathf.PI) * 0.06f, 1);
+                if (!flipped && k > 0.84f) { flipped = true; back.gameObject.SetActive(false); cardIcon.enabled = true; Scale(cardIcon.rectTransform, Vector3.zero, Vector3.one, 0.4f); Sfx.Play("magic"); }
+            }, x => x, 0, () => { if (front) front.localScale = Vector3.one; });
         }
         public void HideCard() { cardG.gameObject.SetActive(false); }
 
@@ -292,22 +327,130 @@ namespace VK
             input.interactable = enabled; ((Text)input.placeholder).text = placeholder;
         }
 
-        public class EndEntry { public string icon, name, role, extra; public Color color; public bool alive, win; }
-        public void ShowEnd(string title, string sub, List<EndEntry> list)
+        public class EndEntry { public string icon, name, role, extra; public Color color; public bool alive, win, mvp, me; public Look look; }
+        // sinematik sonuç ekranı: kazanan takım, MVP, ödüller, istatistikler
+        public void ShowEnd(string title, string sub, List<EndEntry> list, Store.MatchResult res, Color team, string stats)
         {
-            endTitle.text = title; endSub.text = sub;
-            foreach (Transform c in endGrid) Destroy(c.gameObject);
-            foreach (var e in list)
+            var end = UI.R("bitiş", canvas).Fill(); end.SetAsLastSibling();
+            endG = end.gameObject.AddComponent<CanvasGroup>(); Tween.Fade(endG, 0, 1, 0.5f);
+            var dim = UI.Img(end, UI.Grad, new Color(0.02f, 0.02f, 0.04f, 0.9f), "alt karartma"); dim.rectTransform.anchorMin = Vector2.zero; dim.rectTransform.anchorMax = new Vector2(1, 0.75f); dim.rectTransform.offsetMin = dim.rectTransform.offsetMax = Vector2.zero;
+            var dimT = UI.Img(end, UI.Grad, new Color(0.02f, 0.02f, 0.04f, 0.75f), "üst karartma"); dimT.rectTransform.anchorMin = new Vector2(0, 0.6f); dimT.rectTransform.anchorMax = Vector2.one; dimT.rectTransform.offsetMin = dimT.rectTransform.offsetMax = Vector2.zero; dimT.rectTransform.localScale = new Vector3(1, -1, 1);
+            var safe = UI.R("güvenli", end); safe.gameObject.AddComponent<SafeArea>();
+            // başlık
+            var glowT = UI.Img(safe, UI.Glow, UI.A(team, 0.35f), "ışık"); glowT.rectTransform.At(new Vector2(0.5f, 1), new Vector2(0, 10), new Vector2(560, 150), new Vector2(0.5f, 1));
+            var ribbon = UI.Badge(safe, res.win ? "ZAFER" : "YENİLGİ", res.win ? UI.A(UI.Good, 0.25f) : UI.A(UI.Bad, 0.22f), res.win ? UI.Good : UI.Bad, 11);
+            ribbon.At(new Vector2(0.5f, 1), new Vector2(0, -12), new Vector2(90, 20), new Vector2(0.5f, 1));
+            var tt = UI.Txt(safe, title, 34, team, UI.Title, TextAnchor.MiddleCenter).Shadowed(0.6f); tt.rectTransform.At(new Vector2(0.5f, 1), new Vector2(0, -34), new Vector2(700, 46), new Vector2(0.5f, 1));
+            Tween.Scale(tt.rectTransform, 0.6f, 1, 0.55f, 0.1f);
+            UI.Txt(safe, sub + "  ·  <color=#9A9CB0>" + stats + "</color>", 12, UI.Fg, null, TextAnchor.MiddleCenter).rectTransform.At(new Vector2(0.5f, 1), new Vector2(0, -80), new Vector2(700, 18), new Vector2(0.5f, 1));
+            // MVP kartı
+            var mvp = list.Find(e => e.mvp);
+            var mc = UI.Panel(safe, "mvp", UI.A(UI.Anthracite, 0.9f)).At(new Vector2(0, 0), new Vector2(18, 60), new Vector2(170, 196), new Vector2(0, 0));
+            Tween.Scale(mc, 0.7f, 1, 0.45f, 0.5f);
+            if (mvp != null)
             {
-                var r = Panel("k", endGrid, e.win ? new Color(0.35f, 0.28f, 0.08f, 0.9f) : new Color(1, 1, 1, 0.07f), Vector2.zero, Vector2.zero, Vector2.zero, new Vector2(134, 92), true);
-                Img("i", r, Emoji(e.icon), new Vector2(0.5f, 1), new Vector2(0, -20), new Vector2(26, 26));
-                Label("n", r, e.name, 13, FontStyle.Bold, TextAnchor.MiddleCenter, new Vector2(0.5f, 1), new Vector2(0, -44), new Vector2(130, 18));
-                var rl = Label("r", r, e.role + e.extra, 12, FontStyle.Normal, TextAnchor.MiddleCenter, new Vector2(0.5f, 1), new Vector2(0, -61), new Vector2(130, 16)); rl.color = e.color;
-                var st = Label("s", r, e.alive ? "Hayatta" : "Öldü", 11, FontStyle.Normal, TextAnchor.MiddleCenter, new Vector2(0.5f, 1), new Vector2(0, -77), new Vector2(130, 14)); st.color = new Color(0.6f, 0.64f, 0.78f);
-                if (!e.alive) r.GetComponent<Image>().color = new Color(1, 1, 1, 0.04f);
-                Scale(r, Vector3.zero, Vector3.one, 0.35f, 0.4f + endGrid.childCount * 0.07f);
+                UI.Img(mc, UI.Glow, UI.A(UI.Gold, 0.4f), "ışık").rectTransform.At(new Vector2(0.5f, 1), new Vector2(0, 0), new Vector2(170, 140), new Vector2(0.5f, 1));
+                UI.Badge(mc, "MVP", UI.Gold, new Color(0.16f, 0.11f, 0.02f), 11).At(new Vector2(0.5f, 1), new Vector2(0, -8), new Vector2(50, 20), new Vector2(0.5f, 1));
+                var av = UI.Avatar(mc, 86, Studio.I != null && mvp.look != null ? Studio.I.Portrait(mvp.look, 160) : null, mvp.look?.frame, out _); ((RectTransform)av.transform.parent.parent).At(new Vector2(0.5f, 1), new Vector2(0, -32), new Vector2(86, 86), new Vector2(0.5f, 1));
+                UI.Icon(mc, Emoji("crown"), 26).rectTransform.At(new Vector2(0.5f, 1), new Vector2(30, -26), new Vector2(26, 26), new Vector2(0.5f, 1));
+                UI.Txt(mc, mvp.name, 15, null, UI.Title, TextAnchor.MiddleCenter).rectTransform.At(new Vector2(0.5f, 0), new Vector2(0, 52), new Vector2(160, 22), new Vector2(0.5f, 0));
+                var rl = UI.R("rol", mc).At(new Vector2(0.5f, 0), new Vector2(0, 30), new Vector2(150, 18), new Vector2(0.5f, 0)); UI.HRow(rl, 4, TextAnchor.MiddleCenter);
+                UI.Icon(rl, Emoji(mvp.icon), 16).rectTransform.LE(16, 16); var rt0 = UI.Txt(rl, mvp.role, 11, mvp.color, UI.Bold, TextAnchor.MiddleCenter); rt0.rectTransform.LE(-1, 16);
+                UI.Txt(mc, "Maçın oyuncusu", 9, UI.Muted, null, TextAnchor.MiddleCenter).rectTransform.At(new Vector2(0.5f, 0), new Vector2(0, 12), new Vector2(150, 14), new Vector2(0.5f, 0));
             }
-            endG.gameObject.SetActive(true); Fade(endG, 0, 1, 0.4f); Scale(endTitle.rectTransform, Vector3.one * 0.6f, Vector3.one, 0.5f, 0.1f);
+            // takımlar
+            var mid = UI.Panel(safe, "takımlar", UI.A(UI.Ink, 0.78f)).At(new Vector2(0.5f, 0), new Vector2(-10, 60), new Vector2(392, 196), new Vector2(0.5f, 0));
+            Tween.Scale(mid, 0.8f, 1, 0.4f, 0.35f);
+            var grid = UI.R("ızgara", mid).Fill(10, 10, 10, 10);
+            var gl = grid.gameObject.AddComponent<GridLayoutGroup>(); gl.cellSize = new Vector2(120, 54); gl.spacing = new Vector2(6, 6); gl.constraint = GridLayoutGroup.Constraint.FixedColumnCount; gl.constraintCount = 3; gl.childAlignment = TextAnchor.UpperCenter;
+            int n = 0;
+            foreach (var e in list.OrderByDescending(x => x.win).ThenByDescending(x => x.alive))
+            {
+                var c = UI.Panel(grid, "oyuncu", e.win ? UI.A(team, 0.16f) : new Color(1, 1, 1, e.alive ? 0.05f : 0.025f), false, UI.RoundSmall);
+                if (e.me) UI.Img(c, UI.Outline, UI.Lilac, "sen").rectTransform.Fill(-1, -1, -1, -1);
+                var av = UI.Avatar(c, 34, Studio.I != null && e.look != null ? Studio.I.Portrait(e.look, 96) : null, e.look?.frame, out _); ((RectTransform)av.transform.parent.parent).At(new Vector2(0, 0.5f), new Vector2(6, 0), new Vector2(34, 34), new Vector2(0, 0.5f));
+                if (!e.alive) av.color = new Color(0.55f, 0.55f, 0.6f, 0.8f);
+                UI.Txt(c, e.name, 11, e.alive ? UI.Fg : UI.Muted, UI.Bold).rectTransform.At(new Vector2(0, 1), new Vector2(46, -6), new Vector2(72, 16), new Vector2(0, 1));
+                var rr = UI.R("rol", c).At(new Vector2(0, 0), new Vector2(46, 6), new Vector2(74, 16), new Vector2(0, 0)); UI.HRow(rr, 3, TextAnchor.MiddleLeft);
+                UI.Icon(rr, Emoji(e.icon), 13).rectTransform.LE(13, 13); UI.Txt(rr, e.role, 9, e.color, UI.Bold).rectTransform.LE(-1, 14);
+                if (!e.alive) UI.Icon(c, Emoji("skull"), 12).rectTransform.At(new Vector2(1, 1), new Vector2(-4, -4), new Vector2(12, 12));
+                Tween.Scale(c, 0.6f, 1, 0.35f, 0.5f + n++ * 0.06f);
+            }
+            // ödüller
+            var rw = UI.Panel(safe, "ödüller", UI.A(UI.Anthracite, 0.9f)).At(new Vector2(1, 0), new Vector2(-18, 60), new Vector2(200, 196), new Vector2(1, 0));
+            Tween.Scale(rw, 0.7f, 1, 0.45f, 0.65f);
+            UI.Txt(rw, "Ödüller", 13, null, UI.Bold).rectTransform.At(new Vector2(0, 1), new Vector2(14, -10), new Vector2(170, 18), new Vector2(0, 1));
+            var xpT = UI.Txt(rw, "+0 XP", 22, UI.Lilac, UI.Title); xpT.rectTransform.At(new Vector2(0, 1), new Vector2(14, -32), new Vector2(170, 30), new Vector2(0, 1)); Tween.Count(xpT, 0, res.xp, 1.1f, 0.9f, "+{0} XP");
+            var bar = UI.ProgressBar(rw, UI.Purple, 7); bar.r.At(new Vector2(0, 1), new Vector2(14, -68), new Vector2(172, 7), new Vector2(0, 1));
+            float tk = Store.P.xp / (float)Profile.XpFor(Store.P.level); Tween.Run(bar.r, 1.2f, k => bar.Set(tk * k), Tween.OutCubic, 1.0f);
+            UI.Txt(rw, "Seviye " + Store.P.level + (res.levelUps > 0 ? "  <color=#F7C74A>SEVİYE ATLADIN!</color>" : ""), 10, UI.Muted, UI.Bold).rectTransform.At(new Vector2(0, 1), new Vector2(14, -78), new Vector2(180, 16), new Vector2(0, 1));
+            var crow = UI.R("altın", rw).At(new Vector2(0, 1), new Vector2(14, -100), new Vector2(170, 26), new Vector2(0, 1)); UI.HRow(crow, 6, TextAnchor.MiddleLeft);
+            UI.Icon(crow, Emoji("coin"), 22).rectTransform.LE(22, 22); var cT = UI.Txt(crow, "+0", 18, UI.Gold, UI.Title); cT.rectTransform.LE(120, 26); Tween.Count(cT, 0, res.coins, 1f, 1.3f, "+{0} altın");
+            if (res.mvp) UI.Badge(rw, "MVP bonusu dahil", UI.A(UI.Gold, 0.18f), UI.Gold, 9).At(new Vector2(0, 1), new Vector2(14, -128), new Vector2(120, 18), new Vector2(0, 1));
+            if (res.ach.Count > 0)
+            {
+                var a = res.ach[0];
+                var ar = UI.Panel(rw, "başarım", UI.A(UI.Gold, 0.12f), false, UI.RoundSmall).At(new Vector2(0.5f, 0), new Vector2(0, 8), new Vector2(180, 36), new Vector2(0.5f, 0));
+                UI.Icon(ar, Emoji(a.icon), 20).rectTransform.At(new Vector2(0, 0.5f), new Vector2(8, 0), new Vector2(20, 20), new Vector2(0, 0.5f));
+                UI.Txt(ar, "<color=#F7C74A>Başarım:</color> " + a.name + (res.ach.Count > 1 ? $" +{res.ach.Count - 1}" : ""), 10, null, UI.Bold).rectTransform.At(new Vector2(0, 0.5f), new Vector2(34, 0), new Vector2(140, 30), new Vector2(0, 0.5f));
+                Tween.Scale(ar, 0.4f, 1, 0.45f, 2.2f); Invoke(nameof(AchSound), 2.2f);
+            }
+            // düğmeler
+            var brow = UI.R("düğmeler", safe).At(new Vector2(0.5f, 0), new Vector2(0, 12), new Vector2(360, 38), new Vector2(0.5f, 0)); UI.HRow(brow, 10, TextAnchor.MiddleCenter, null, true);
+            UI.Button(brow, "Lobiye dön", UI.Style.Secondary, () => (onLobby ?? onBack)?.Invoke(), Emoji("village"), 14).r.LE(-1, 38, 1);
+            UI.Button(brow, "Tekrar oyna", UI.Style.Primary, () => onAgain?.Invoke(), Emoji("rocket"), 14).r.LE(-1, 38, 1);
+            Tween.Fade(brow.gameObject.AddComponent<CanvasGroup>(), 0, 1, 0.4f, 1.6f);
+        }
+        void AchSound() { Sfx.Play("fanfare", 0.8f); }
+
+        // oylama sonucu: çubuklar dolarak sayılır
+        public class VoteRow { public string name; public int votes; public Look look; }
+        public async Task VoteResults(string title, List<VoteRow> rows, Color col)
+        {
+            if (rows.Count == 0) return;
+            var pan = UI.Panel(canvas, "oy sonucu", new Color(0.055f, 0.058f, 0.08f, 0.9f)).At(new Vector2(0.5f, 1), new Vector2(0, -60), new Vector2(300, 40 + Mathf.Min(5, rows.Count) * 28), new Vector2(0.5f, 1));
+            var cg = pan.gameObject.AddComponent<CanvasGroup>(); Tween.Fade(cg, 0, 1, 0.2f); Tween.Scale(pan, 0.85f, 1, 0.3f); Sfx.Play("whoosh", 0.6f);
+            UI.Txt(pan, title, 12, UI.Muted, UI.Bold, TextAnchor.MiddleCenter).rectTransform.At(new Vector2(0.5f, 1), new Vector2(0, -8), new Vector2(280, 18), new Vector2(0.5f, 1));
+            int max = rows.Max(x => x.votes);
+            for (int i = 0; i < Mathf.Min(5, rows.Count); i++)
+            {
+                var v = rows[i]; float y = -34 - i * 28; bool top = v.votes == max;
+                var av = UI.Avatar(pan, 22, Studio.I != null && v.look != null ? Studio.I.Portrait(v.look, 96) : null, v.look?.frame, out _); ((RectTransform)av.transform.parent.parent).At(new Vector2(0, 1), new Vector2(12, y), new Vector2(22, 22), new Vector2(0, 1));
+                UI.Txt(pan, v.name, 11, top ? UI.Fg : UI.Muted, UI.Bold).rectTransform.At(new Vector2(0, 1), new Vector2(40, y - 2), new Vector2(80, 18), new Vector2(0, 1));
+                var b = UI.ProgressBar(pan, top ? col : new Color(1, 1, 1, 0.3f), 10); b.r.At(new Vector2(0, 1), new Vector2(122, y - 6), new Vector2(130, 10), new Vector2(0, 1));
+                float target = v.votes / (float)Mathf.Max(1, max); var bb = b; Tween.Run(b.r, 0.6f, k => bb.Set(target * k), Tween.OutCubic, 0.15f + i * 0.12f);
+                var cnt = UI.Txt(pan, "0", 13, top ? col : UI.Muted, UI.Title, TextAnchor.MiddleRight); cnt.rectTransform.At(new Vector2(1, 1), new Vector2(-12, y - 1), new Vector2(30, 20), new Vector2(1, 1)); Tween.Count(cnt, 0, v.votes, 0.6f, 0.15f + i * 0.12f);
+            }
+            await Game.Wait(2.2f);
+            Tween.Fade(cg, 1, 0, 0.25f, 0, () => { if (pan) Destroy(pan.gameObject); });
+        }
+
+        // oylama geçmişi
+        RectTransform logPanel;
+        void ShowVoteLog()
+        {
+            if (logPanel != null) { Destroy(logPanel.gameObject); logPanel = null; return; }
+            var lines = voteLog?.Invoke() ?? new List<string>();
+            logPanel = UI.Panel(canvas, "oy geçmişi", new Color(0.055f, 0.058f, 0.08f, 0.94f)).At(new Vector2(1, 1), new Vector2(-12, -54), new Vector2(300, 46 + Mathf.Max(1, lines.Count) * 34), new Vector2(1, 1));
+            Tween.Scale(logPanel, 0.9f, 1, 0.25f);
+            UI.Txt(logPanel, "Oylama geçmişi", 13, null, UI.Bold).rectTransform.At(new Vector2(0, 1), new Vector2(14, -10), new Vector2(200, 18), new Vector2(0, 1));
+            UI.Txt(logPanel, "kapat", 10, UI.Muted, null, TextAnchor.MiddleRight).rectTransform.At(new Vector2(1, 1), new Vector2(-12, -10), new Vector2(60, 18), new Vector2(1, 1));
+            UI.Click(logPanel, () => { if (logPanel) Destroy(logPanel.gameObject); logPanel = null; });
+            if (lines.Count == 0) UI.Txt(logPanel, "Henüz gündüz oylaması yapılmadı.", 11, UI.Muted).rectTransform.At(new Vector2(0, 1), new Vector2(14, -36), new Vector2(270, 18), new Vector2(0, 1));
+            for (int i = 0; i < lines.Count; i++)
+            {
+                var t = UI.Txt(logPanel, lines[i], 11, UI.Fg); t.rectTransform.At(new Vector2(0, 1), new Vector2(14, -34 - i * 34), new Vector2(272, 32), new Vector2(0, 1));
+            }
+        }
+
+        // kozmetik çerçeve: ismin arkasında renkli hafif hap
+        public void TagFrame(Tag t, string frameId)
+        {
+            var it = Catalog.Get(frameId); if (it == null) return;
+            var bg = UI.Img(t.name.transform, UI.Pill, UI.A(it.tint, 0.28f), "çerçeve"); bg.rectTransform.At(new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(Mathf.Min(150, t.name.preferredWidth + 22), 22)); bg.transform.SetAsFirstSibling();
+            var o = UI.Img(bg.rectTransform, UI.OutlinePill, UI.A(it.tint, 0.8f), "kenar"); o.rectTransform.Fill();
+            // metin üstte kalsın: arka planı ayrı bir kardeşe taşı
+            bg.transform.SetParent(t.r, true); bg.transform.SetAsFirstSibling();
         }
 
         // ---------------------------------------------------------------- isim etiketleri
