@@ -37,10 +37,18 @@ namespace VK
                 float g = F(0.42f, 0.6f); Quad(new Vector3(x, 0.015f, z), F(0.22f, 0.38f), F(0.18f, 0.3f), F(0, 90), new Color(g, g * 0.98f, g * 0.95f));
             }
             for (int i = 0; i < 26; i++) { float z = F(2.0f, 4.2f), x = F(-0.8f, 0.8f); float g = F(0.45f, 0.6f); Quad(new Vector3(x, 0.018f, z), F(0.2f, 0.32f), F(0.16f, 0.26f), F(0, 90), new Color(g, g, g * 0.95f)); }
-            var m = new Mesh { indexFormat = IndexFormat.UInt32 }; m.SetVertices(v); m.SetColors(col); m.SetTriangles(tr, 0); m.RecalculateNormals(); m.RecalculateBounds();
-            var mat = new Material(matGrass); mat.enableInstancing = false; mat.SetFloat("_Wind", 0); mat.SetColor("_Tint", Color.white);
-            var go = MeshGO("set zemini", m, mat, parent, false); go.GetComponent<MeshRenderer>().receiveShadows = true;
-            go.transform.localPosition = Vector3.zero;
+            // standart (mat) URP malzemesiyle çizilir: renkler köşe renginden 3 tona ayrılır (çimen, koyu taş, açık taş)
+            var lm = Resources.Load<Material>("Mats/LitMatte") ?? Resources.Load<Material>("Mats/Lit");
+            var groups = new[] { new List<int>(), new List<int>(), new List<int>() };
+            for (int i = 0; i < tr.Count; i += 3) { var cc = col[tr[i]]; int gi = cc.g > cc.r + 0.06f ? 0 : (cc.r < 0.5f ? 1 : 2); groups[gi].Add(tr[i]); groups[gi].Add(tr[i + 1]); groups[gi].Add(tr[i + 2]); }
+            var tones = new[] { new Color(0.34f, 0.46f, 0.24f), new Color(0.46f, 0.45f, 0.43f), new Color(0.58f, 0.57f, 0.54f) };
+            for (int gi = 0; gi < 3; gi++)
+            {
+                if (groups[gi].Count == 0) continue;
+                var m = new Mesh { indexFormat = IndexFormat.UInt32 }; m.SetVertices(v); m.SetTriangles(groups[gi], 0); m.RecalculateNormals(); m.RecalculateBounds();
+                var mat = new Material(lm); mat.SetColor("_BaseColor", tones[gi]); mat.SetFloat("_Smoothness", 0.08f);
+                var go = MeshGO("set zemini " + gi, m, mat, parent, false); go.GetComponent<MeshRenderer>().receiveShadows = true; go.transform.localPosition = Vector3.zero;
+            }
         }
         bool LoadVillage()
         {

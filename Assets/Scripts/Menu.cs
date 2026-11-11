@@ -330,7 +330,7 @@ namespace VK
         {
             var s = UI.R("karakter", content); s.anchorMin = Vector2.zero; s.anchorMax = Vector2.one; s.offsetMin = new Vector2(-86, -10); s.offsetMax = new Vector2(0, 56);
             // sahne (tam ekranın solu): stüdyodaki giyinme setini gösterir
-            var raw = UI.R("sahne", s); raw.anchorMin = Vector2.zero; raw.anchorMax = Vector2.one; raw.offsetMin = raw.offsetMax = Vector2.zero;
+            var raw = UI.R("sahne", s); raw.anchorMin = Vector2.zero; raw.anchorMax = Vector2.one; raw.offsetMin = new Vector2(-40, -30); raw.offsetMax = new Vector2(80, 30); // ekran kenarlarına kadar taşar
             show = raw.gameObject.AddComponent<RawImage>(); show.raycastTarget = true; raw.gameObject.AddComponent<DragRotate>();
             raw.SetAsFirstSibling();
             // isim etiketi (sol üst)
