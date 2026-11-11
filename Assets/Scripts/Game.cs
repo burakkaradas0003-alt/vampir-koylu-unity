@@ -1001,7 +1001,7 @@ namespace VK
             Vector3 seatEye = new Vector3(ME.seat.x * 1.04f, 1.45f, ME.seat.z * 1.04f);
             Vector3 wantPos = ghostCam ? new Vector3(ME.seat.x * 1.3f, 2.5f, ME.seat.z * 1.3f) : seatEye;
             if (dbgK == -2) dbgK = int.TryParse(Bridge.Param("yakin") ?? "", out var dk) ? dk : -1;
-            if (dbgK >= 0 && dbgK < P.Length)
+            if (dbgK >= 0 && dbgK < P.Count)
             {   // test: kamerayı bir oyuncunun önüne yakından koy (işaret etmeyi incelemek için)
                 var qq = P[dbgK]; var inw = (-qq.seat).normalized; var sd = Vector3.Cross(Vector3.up, inw);
                 shotPos = qq.seat + inw * 1.9f + sd * 1.1f + Vector3.up * 1.35f; shotTarget = qq.seat + inw * 0.4f + Vector3.up * 1.05f; shotUntil = Now + 1; shotFov = 55;
