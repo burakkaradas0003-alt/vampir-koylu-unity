@@ -188,7 +188,7 @@ public class ZuImport : AssetPostprocessor
         mi.importLights = false;
         mi.materialImportMode = ModelImporterMaterialImportMode.None;
         mi.animationType = ModelImporterAnimationType.Generic;
-        if (assetPath.Contains("/Village/")) { mi.animationType = ModelImporterAnimationType.None; mi.importBlendShapes = false; mi.meshCompression = ModelImporterMeshCompression.Off; }
+        if (assetPath.Contains("/Village/") || assetPath.Contains("/Medieval/")) { mi.animationType = ModelImporterAnimationType.None; mi.importBlendShapes = false; mi.meshCompression = ModelImporterMeshCompression.Off; }
     }
 
     void OnPreprocessTexture()

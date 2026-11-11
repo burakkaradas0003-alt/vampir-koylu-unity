@@ -80,6 +80,76 @@ namespace VK
             g.transform.localPosition = new Vector3(pos.x, pos.y, pos.z); g.transform.localRotation = Quaternion.Euler(0, yaw, 0); g.transform.localScale = Vector3.one * scale;
             return g;
         }
+        // ---------------------------------------------------------------- ortaçağ ev paketi (Resources/Medieval/pack.fbx)
+        // yarı ahşap evler + değirmen; düz renkli malzemeler adlarına göre bizim ışıklı malzemelerimizle değişir,
+        // pencere camı ve fenerler gece sıcak turuncu parlar
+        GameObject medSrc; Dictionary<string, Material> medMats; float medUnit;
+        bool LoadMedieval()
+        {
+            medSrc = Resources.Load<GameObject>("Medieval/pack");
+            if (medSrc == null) return false;
+            var h = MedSrc("house2"); if (h == null) return false;
+            var r = h.GetComponentInChildren<MeshFilter>(); if (r == null || r.sharedMesh == null) return false;
+            // birim: house2 yüksekliği 8.2 m olsun (ölçüm Unity'de, dönüş/ölçek dahil)
+            float hy = MedBounds(h).size.y; if (hy < 1e-4f) return false;
+            medUnit = 8.2f / hy; medMats = new Dictionary<string, Material>();
+            return true;
+        }
+        Transform MedSrc(string n) { foreach (var t in medSrc.GetComponentsInChildren<Transform>(true)) if (t.name == n) return t; return null; }
+        static Bounds MedBounds(Transform src)
+        {
+            bool has = false; var bb = new Bounds();
+            foreach (var mf in src.GetComponentsInChildren<MeshFilter>(true))
+            {
+                if (mf.sharedMesh == null) continue; var b = mf.sharedMesh.bounds; var m = mf.transform.localToWorldMatrix;
+                for (int i = 0; i < 8; i++)
+                {
+                    var p = m.MultiplyPoint3x4(b.center + Vector3.Scale(b.extents, new Vector3((i & 1) == 0 ? -1 : 1, (i & 2) == 0 ? -1 : 1, (i & 4) == 0 ? -1 : 1)));
+                    if (!has) { bb = new Bounds(p, Vector3.zero); has = true; } else bb.Encapsulate(p);
+                }
+            }
+            return bb;
+        }
+        Material MedMat(Material orig)
+        {
+            string raw = orig != null ? orig.name : "", k = "";
+            foreach (char ch in raw.Replace(" (Instance)", "")) if (char.IsLetterOrDigit(ch)) k += ch;
+            if (medMats.TryGetValue(k, out var m)) return m;
+            Color c; bool glow = false; float sm = 0.08f;
+            switch (k)
+            {
+                case "Mat": c = new Color(0.36f, 0.35f, 0.34f); break;              // taş temel, baca
+                case "Mat1": c = new Color(0.16f, 0.15f, 0.14f); glow = true; sm = 0.5f; break; // pencere camı
+                case "Mat2": c = new Color(0.33f, 0.21f, 0.12f); break;             // ahşap, çatı
+                case "Mat5": c = new Color(0.3f, 0.42f, 0.22f); break;              // çimen
+                case "Mat6": c = new Color(0.74f, 0.71f, 0.65f); break;             // sıva
+                case "Mat7": c = new Color(0.9f, 0.55f, 0.18f); glow = true; break; // fener
+                default: c = orig != null && orig.HasProperty("_BaseColor") ? orig.GetColor("_BaseColor") : orig != null && orig.HasProperty("_Color") ? orig.color : new Color(0.7f, 0.68f, 0.64f); break;
+            }
+            m = new Material(Resources.Load<Material>(glow ? "Mats/LitEmissive" : "Mats/Lit")); m.SetColor("_BaseColor", c); m.SetFloat("_Smoothness", sm); m.SetFloat("_Metallic", 0);
+            if (glow) { m.EnableKeyword("_EMISSION"); m.SetColor("_EmissionColor", Color.black); windowMats.Add(m); }
+            medMats[k] = m; return m;
+        }
+        // bir parçayı yerleştir: taban ortası 'pos'a, kapısı (+Z) 'yaw' yönüne
+        GameObject PutMed(string name, Transform parent, Vector3 pos, float yaw, float scale = 1)
+        {
+            if (medSrc == null) return null; var src = MedSrc(name); if (src == null) return null;
+            var g = new GameObject(name); g.transform.SetParent(parent, false);
+            var inst = Instantiate(src.gameObject, g.transform, false); inst.name = "model";
+            inst.transform.localRotation = src.rotation; float s = medUnit * scale; inst.transform.localScale = src.lossyScale * s;
+            foreach (var r in inst.GetComponentsInChildren<MeshRenderer>(true))
+            {
+                var ms = r.sharedMaterials; for (int i = 0; i < ms.Length; i++) ms[i] = MedMat(ms[i]); r.sharedMaterials = ms;
+                r.shadowCastingMode = ShadowCastingMode.On; r.receiveShadows = true;
+            }
+            foreach (var c in inst.GetComponentsInChildren<Collider>(true)) Destroy(c);
+            // kaynağın dünya sınırlarından tabanı ve ortayı bul (kaynağın kendi konumu düşülür)
+            var b = MedBounds(src); var off = b.center - src.position; float bottom = b.min.y - src.position.y;
+            inst.transform.localPosition = -new Vector3(off.x, bottom, off.z) * s;
+            g.transform.localPosition = pos; g.transform.localRotation = Quaternion.Euler(0, yaw, 0);
+            return g;
+        }
+
         static float Yaw(Vector3 from, Vector3 to) { var d = to - from; return Mathf.Atan2(d.x, d.z) * Mathf.Rad2Deg; }
         Vector3 Ring(float angRad, float r) { float x = Mathf.Cos(angRad) * r, z = Mathf.Sin(angRad) * r; return new Vector3(x, GroundY(x, z), z); }
 
@@ -103,6 +173,8 @@ namespace VK
         {
             if (!LoadVillage()) return false;
             var center = Vector3.zero;
+            bool med = LoadMedieval();
+            string[] medHouses = { "house1", "house4", "house2", "house5", "house3", "house1", "house2", "house4" };
             // evler: kapıları meydana bakar
             string[] houses = { "House_01", "House_04", "House_02", "House_06", "Barn_03", "House_05", "House_03", "House_07" };
             for (int i = 0; i < houses.Length; i++)
@@ -110,7 +182,9 @@ namespace VK
                 bool big = houses[i] == "House_04" || houses[i] == "House_05" || houses[i] == "House_06" || houses[i] == "House_07";
                 float a = (i + 0.5f) / houses.Length * Mathf.PI * 2 + 0.2f, d = big ? 21.5f : 18.5f;
                 var p = Ring(a, d);
-                var h = Put(houses[i], root, p, Yaw(p, center), big ? 0.82f : 0.88f);
+                if (med) { big = medHouses[i] == "house1" || medHouses[i] == "house5"; d = big ? 21.5f : 19f; p = Ring(a, d); }
+                var h = med ? PutMed(medHouses[i], root, p, Yaw(p, center)) : null;
+                if (h == null) h = Put(houses[i], root, p, Yaw(p, center), big ? 0.82f : 0.88f);
                 if (h == null) continue;
                 // evin yanında küçük eşyalar
                 var side = Quaternion.Euler(0, Yaw(p, center), 0) * Vector3.right;
@@ -149,7 +223,7 @@ namespace VK
             for (int i = 0; i < 18; i++) { var p = Ring(VR(0, 6.283f), VR(15.5f, 26)); Put(new[] { "Bushes_01", "Bushes_02", "Bushes_03" }[i % 3], root, p, VR(0, 360), VR(1.1f, 1.8f)); }
             for (int i = 0; i < 10; i++) { var p = Ring(VR(0, 6.283f), VR(9, 27)); Put("Stone_0" + (1 + i % 6), root, p, VR(0, 360), VR(2.2f, 4f), i % 2 == 0); }
             // uzak çevre: değirmen, su kulesi, gözetleme kulesi, ahırlar, tarlalar, çitler
-            { var p = Ring(0.78f, 42); Put("Windmill", root, p, Yaw(p, center), 1.1f); }
+            { var p = Ring(0.78f, 42); if ((med ? PutMed("windmill", root, p, Yaw(p, center)) : null) == null) Put("Windmill", root, p, Yaw(p, center), 1.1f); }
             { var p = Ring(2.55f, 34); Put("Water_Tank", root, p, Yaw(p, center), 1f); }
             { var p = Ring(4.35f, 31); Put("Tower", root, p, Yaw(p, center), 1f); }
             { var p = Ring(1.95f, 31); Put("Barn_01", root, p, Yaw(p, center), 0.95f); }
