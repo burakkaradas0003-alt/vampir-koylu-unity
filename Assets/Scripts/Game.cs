@@ -359,15 +359,35 @@ namespace VK
             trap.SetActive(false); Sfx.Play("death", 0.7f, 0.6f); ch.limp = true;
             var hang0 = ch.transform.position; var rot0 = ch.transform.rotation; var axis = g.transform.right;
             W.Burst(stand, new Color(0.6f, 0.52f, 0.42f), 16, 0.6f, 0.2f, 1f);
-            for (float a = 0; a < 1; a += Time.deltaTime / Mathf.Max(0.01f, 2.6f / SPEED))
+            // ip kirişteki bir noktadan sallanır: ip, ilmek ve beden birlikte o noktanın etrafında döner
+            var pivot = new GameObject("ip ekseni"); pivot.transform.SetParent(g.transform, false); pivot.transform.localPosition = new Vector3(0, beamY, 0.05f);
+            rope.transform.SetParent(pivot.transform, true); loop.transform.SetParent(pivot.transform, true);
+            var pivotW = pivot.transform.position;
+            float t0 = Time.time;
+            for (float a = 0; a < 1; a += Time.deltaTime / Mathf.Max(0.01f, 1.2f / SPEED))
             {
-                float drop = Mathf.Min(1, a * 9) * 0.32f, sw = Mathf.Sin(a * 14f) * 8f * (1 - a);
-                ch.transform.rotation = Quaternion.AngleAxis(sw, axis) * rot0;
-                ch.transform.position = hang0 + Vector3.down * drop;
-                float l = len + drop; rope.transform.localPosition = new Vector3(0, beamY - l / 2, 0.05f); rope.transform.localScale = new Vector3(0.045f, l / 2, 0.045f); loop.transform.localPosition = new Vector3(0, beamY - l, 0.05f);
+                float drop = Mathf.Min(1, a * 9) * 0.32f;
+                float l = len + drop; rope.transform.localPosition = new Vector3(0, -l / 2, 0); rope.transform.localScale = new Vector3(0.045f, l / 2, 0.045f); loop.transform.localPosition = new Vector3(0, -l, 0);
+                float sw = Mathf.Sin((Time.time - t0) * 2.6f) * Mathf.Lerp(7f, 3.5f, a);
+                var q = Quaternion.AngleAxis(sw, axis); pivot.transform.localRotation = Quaternion.AngleAxis(sw, Vector3.right);
+                var down = hang0 + Vector3.down * drop;
+                ch.transform.position = pivotW + q * (down - pivotW); ch.transform.rotation = q * rot0;
                 await Awaitable.NextFrameAsync();
             }
+            // sonra darağacı kaldırılana kadar hafifçe sallanmaya devam eder
+            _ = KeepSwinging(g, pivot.transform, ch, pivotW, hang0 + Vector3.down * 0.32f, rot0, axis, t0);
             return g;
+        }
+
+        async Task KeepSwinging(GameObject g, Transform pivot, Rig ch, Vector3 pivotW, Vector3 rest, Quaternion rot0, Vector3 axis, float t0)
+        {
+            while (g != null && pivot != null && ch != null)
+            {
+                float t = Time.time - t0, sw = Mathf.Sin(t * 2.6f) * 3.5f + Mathf.Sin(t * 1.1f) * 0.8f;
+                var q = Quaternion.AngleAxis(sw, axis); pivot.localRotation = Quaternion.AngleAxis(sw, Vector3.right);
+                ch.transform.position = pivotW + q * (rest - pivotW); ch.transform.rotation = q * Quaternion.AngleAxis(Mathf.Sin(t * 0.7f) * 6f, Vector3.up) * rot0;
+                await Awaitable.NextFrameAsync();
+            }
         }
 
         async Task KillAnim(Pl p, string cause)
@@ -385,8 +405,13 @@ namespace VK
                 p.slumpTo = 1;
                 await Wait(1.3f);
             }
-            p.ch.body.SetActive(false);
-            if (gallows != null) { var gl = gallows; var tr = gl.transform; Tween.Run(gl, 0.6f, k => { if (tr) tr.localScale = new Vector3(1, Mathf.Max(0.01f, 1 - k), 1); }, Tween.OutCubic, 1.4f, () => { if (gl) Destroy(gl); }); Destroy(gl, 4f); }
+            if (gallows == null) p.ch.body.SetActive(false);
+            else
+            {   // asılan beden rol açıklaması boyunca ipte sallanır; darağacı kalkarken kaybolur
+                var gl = gallows; var tr = gl.transform; var body = p.ch.body;
+                Tween.Run(gl, 0.6f, k => { if (tr) tr.localScale = new Vector3(1, Mathf.Max(0.01f, 1 - k), 1); }, Tween.OutCubic, 4.6f, () => { if (body) body.SetActive(false); if (gl) Destroy(gl); });
+                Destroy(gl, 7f);
+            }
             W.Burst(p.seat + Vector3.up * 0.9f, new Color(0.75f, 0.83f, 1f), 18, 0.5f, 0.2f, 1.2f);
             var gh = Rig.Make(p.look, p.size, true);
             gh.transform.position = p.seat + Vector3.up * 0.1f; gh.transform.LookAt(new Vector3(0, 0.1f, 0));
