@@ -173,6 +173,8 @@ namespace VK
                 float seatH = Mathf.Max(0.2f, hips.y - 0.08f);
                 model.transform.localPosition -= new Vector3(0, 0, hips.z + 0.02f);
                 var lit2 = new Material(lit); lit2.SetColor("_BaseColor", new Color(0.42f, 0.29f, 0.18f));
+                if (!MakeChair(seatH))
+                {
                 var seat = GameObject.CreatePrimitive(PrimitiveType.Cylinder); Destroy(seat.GetComponent<Collider>());
                 seat.transform.SetParent(transform, false); seat.transform.localPosition = new Vector3(0, seatH - 0.035f, 0); seat.transform.localScale = new Vector3(0.5f, 0.035f, 0.5f);
                 seat.GetComponent<MeshRenderer>().sharedMaterial = lit2;
@@ -182,6 +184,7 @@ namespace VK
                     leg.transform.SetParent(transform, false); leg.transform.localPosition = new Vector3(Mathf.Cos(a) * 0.15f, (seatH - 0.06f) / 2, Mathf.Sin(a) * 0.15f);
                     leg.transform.localScale = new Vector3(0.06f, seatH - 0.06f, 0.06f); leg.transform.localEulerAngles = new Vector3(-Mathf.Sin(a) * 7, 0, Mathf.Cos(a) * 7);
                     leg.GetComponent<MeshRenderer>().sharedMaterial = lit2;
+                }
                 }
                 var hit = gameObject.AddComponent<BoxCollider>(); hit.center = new Vector3(0, 0.75f, 0.1f); hit.size = new Vector3(0.8f, 1.5f, 0.9f);
             }
@@ -326,6 +329,41 @@ namespace VK
                 var c = it.tint; if (it.id == "fx_bats") c = Random.value < 0.5f ? new Color(0.55f, 0.25f, 1f) : new Color(0.25f, 0.1f, 0.45f);
                 World.I.Emit(p, new Vector3((Random.value - 0.5f) * 0.1f, 0.25f + Random.value * 0.25f, (Random.value - 0.5f) * 0.1f), 1.4f + Random.value, 0.07f, 0.02f, c, 0, 0.9f);
             }
+        }
+
+        // kullanıcının rustik sandalyesi: oturma yüzeyi kalça yüksekliğine gelecek şekilde ölçeklenir, sırtlık arkada
+        static Mesh chairMesh; static Quaternion chairRot; static Vector3 chairScl; static Material chairMat; static bool chairTried;
+        bool MakeChair(float seatH)
+        {
+            if (!chairTried)
+            {
+                chairTried = true;
+                var src = Resources.Load<GameObject>("Chair/Chair");
+                if (src != null) foreach (var f in src.GetComponentsInChildren<MeshFilter>(true)) { chairMesh = f.sharedMesh; chairRot = f.transform.rotation; chairScl = f.transform.lossyScale; break; }
+                if (chairMesh != null)
+                {
+                    chairMat = new Material(Resources.Load<Material>("Mats/LitNormal"));
+                    chairMat.SetTexture("_BaseMap", Resources.Load<Texture2D>("Chair/chair_base")); chairMat.SetColor("_BaseColor", new Color(1.15f, 1.08f, 1f));
+                    chairMat.SetTexture("_BumpMap", Resources.Load<Texture2D>("Chair/chair_normal")); chairMat.SetFloat("_BumpScale", 1f); chairMat.SetFloat("_Smoothness", 0.22f);
+                    chairMat.SetColor("_EmissionColor", Color.black); chairMat.SetTexture("_OcclusionMap", null);
+                }
+            }
+            if (chairMesh == null) return false;
+            // modelin tabanı ve yüksekliği (dönmüş/ölçekli sınırlar)
+            var b = chairMesh.bounds; var tr = Matrix4x4.TRS(Vector3.zero, chairRot, chairScl);
+            Vector3 mn = Vector3.one * 1e9f, mx = Vector3.one * -1e9f;
+            for (int i = 0; i < 8; i++)
+            {
+                var c = b.center + Vector3.Scale(b.extents, new Vector3((i & 1) == 0 ? -1 : 1, (i & 2) == 0 ? -1 : 1, (i & 4) == 0 ? -1 : 1));
+                var p = tr.MultiplyPoint3x4(c); mn = Vector3.Min(mn, p); mx = Vector3.Max(mx, p);
+            }
+            float h = mx.y - mn.y; if (h < 1e-4f) return false;
+            float k = 2f * seatH / h; // oturak, toplam yüksekliğin yarısında
+            var g = new GameObject("sandalye"); g.transform.SetParent(transform, false); g.transform.localPosition = new Vector3(0, 0, -0.04f); g.transform.localScale = Vector3.one * k;
+            var m = new GameObject("model"); m.transform.SetParent(g.transform, false); m.transform.localRotation = chairRot; m.transform.localScale = chairScl;
+            m.transform.localPosition = -new Vector3((mn.x + mx.x) / 2, mn.y, (mn.z + mx.z) / 2);
+            m.AddComponent<MeshFilter>().sharedMesh = chairMesh; var r = m.AddComponent<MeshRenderer>(); r.sharedMaterial = chairMat;
+            return true;
         }
 
         void ComputeCurlAxes()
