@@ -550,7 +550,7 @@ namespace VK
             // düğmeler
             var brow = UI.R("düğmeler", safe).At(new Vector2(0.5f, 0), new Vector2(0, 12), new Vector2(360, 38), new Vector2(0.5f, 0)); UI.HRow(brow, 10, TextAnchor.MiddleCenter, null, true);
             UI.Button(brow, "Lobiye dön", UI.Style.Secondary, () => (onLobby ?? onBack)?.Invoke(), Emoji("village"), 14).r.LE(-1, 38, 1);
-            UI.Button(brow, "Tekrar oyna", UI.Style.Primary, () => onAgain?.Invoke(), Emoji("rocket"), 14).r.LE(-1, 38, 1);
+            UI.Button(brow, "Tekrar oyna", UI.Style.Primary, () => onAgain?.Invoke(), Emoji("torch"), 14).r.LE(-1, 38, 1);
             Tween.Fade(brow.gameObject.AddComponent<CanvasGroup>(), 0, 1, 0.4f, 1.6f);
         }
         void AchSound() { Sfx.Play("fanfare", 0.8f); }

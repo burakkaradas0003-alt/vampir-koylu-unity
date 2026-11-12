@@ -51,7 +51,7 @@ namespace VK
         void OnDestroy() { Store.Changed -= RefreshTop; }
 
         // ---------------------------------------------------------------- sol menü şeridi
-        static readonly (string id, string label, string icon)[] TABS = { ("lobi", "Lobi", "village"), ("karakter", "Karakter", "shirt"), ("magaza", "Mağaza", "chest"), ("gorev", "Görevler", "scroll"), ("profil", "Profil", "user") };
+        static readonly (string id, string label, string icon)[] TABS = { ("lobi", "Lobi", "village"), ("karakter", "Karakter", "tunic"), ("magaza", "Mağaza", "chest"), ("gorev", "Görevler", "scroll"), ("profil", "Profil", "hood") };
         void BuildRail()
         {
             rail = UI.Panel(root, "şerit", UI.A(UI.Ink, 0.82f)).At(new Vector2(0, 0.5f), new Vector2(10, 0), new Vector2(66, 360), new Vector2(0, 0.5f));
@@ -92,7 +92,7 @@ namespace VK
             titleLine = UI.Img(bar, UI.OrnLine, Color.white, "başlık süsü"); titleLine.rectTransform.At(new Vector2(0.5f, 0.5f), new Vector2(20, -21), new Vector2(240, 15)); titleLine.raycastTarget = false;
             // altın
             var gem = UI.Panel(bar, "elmas", UI.A(UI.Ink, 0.7f), false, UI.Pill).At(new Vector2(1, 0.5f), Vector2.zero, new Vector2(104, 34), new Vector2(1, 0.5f));
-            UI.Icon(gem, Hud.Emoji("gem"), 20).rectTransform.At(new Vector2(0, 0.5f), new Vector2(10, 0), new Vector2(20, 20), new Vector2(0, 0.5f));
+            UI.Icon(gem, Hud.Emoji("ruby"), 20).rectTransform.At(new Vector2(0, 0.5f), new Vector2(10, 0), new Vector2(20, 20), new Vector2(0, 0.5f));
             UI.Txt(gem, "0", 15, new Color(0.6f, 0.85f, 1f), UI.Title, TextAnchor.MiddleLeft).rectTransform.At(new Vector2(0, 0.5f), new Vector2(36, 1), new Vector2(40, 26), new Vector2(0, 0.5f));
             var gplus = UI.Img(gem, UI.Circle, UI.Purple, "artı"); gplus.rectTransform.At(new Vector2(1, 0.5f), new Vector2(-5, 0), new Vector2(24, 24), new Vector2(1, 0.5f));
             UI.Txt(gplus.rectTransform, "+", 16, null, UI.Bold, TextAnchor.MiddleCenter).rectTransform.Fill(0, 2, 0, 0);
@@ -185,7 +185,7 @@ namespace VK
             var mrow = UI.R("mod", pan).At(new Vector2(0, 1), new Vector2(12, -58), new Vector2(276, 26), new Vector2(0, 1)); UI.HRow(mrow, 6, TextAnchor.MiddleLeft, null, true);
             modeA = UI.Chip(mrow, "Klasik · 9", true, () => SetMode(9)); modeB = UI.Chip(mrow, "Hızlı · 7", false, () => SetMode(7));
             var map = UI.Panel(pan, "harita", new Color(1, 1, 1, 0.05f), false, UI.RoundSmall).At(new Vector2(0, 1), new Vector2(12, -90), new Vector2(276, 30), new Vector2(0, 1));
-            UI.Icon(map, Hud.Emoji("map"), 16).rectTransform.At(new Vector2(0, 0.5f), new Vector2(8, 0), new Vector2(16, 16), new Vector2(0, 0.5f));
+            UI.Icon(map, Hud.Emoji("oldmap"), 16).rectTransform.At(new Vector2(0, 0.5f), new Vector2(8, 0), new Vector2(16, 16), new Vector2(0, 0.5f));
             UI.Txt(map, "Harita: <b>Köy Meydanı</b>", 11).rectTransform.At(new Vector2(0, 0.5f), new Vector2(30, 0), new Vector2(150, 20), new Vector2(0, 0.5f));
             var soon = UI.Txt(map, "Sisli Orman · yakında", 10, UI.Muted, null, TextAnchor.MiddleRight); soon.rectTransform.At(new Vector2(1, 0.5f), new Vector2(-8, 0), new Vector2(120, 20), new Vector2(1, 0.5f));
             UI.Click(map, () => Toast("Yeni harita yakında geliyor"));
@@ -202,8 +202,8 @@ namespace VK
             var sc = UI.Scroll(pan, true, out lobbyList, 4); ((RectTransform)sc.transform).Fill(10, 52, 10, 158);
             // alt düğmeler
             var brow = UI.R("düğmeler", pan).At(new Vector2(0.5f, 0), new Vector2(0, 10), new Vector2(276, 36), new Vector2(0.5f, 0)); UI.HRow(brow, 8, TextAnchor.MiddleCenter, null, true);
-            var inv = UI.Button(brow, "Davet et", UI.Style.Secondary, Invite, Hud.Emoji("link"), 13); inv.r.LE(-1, 36, 1);
-            startBtn = UI.Button(brow, "Başlat", UI.Style.Primary, StartGame, Hud.Emoji("rocket"), 14, "whoosh"); startBtn.r.LE(-1, 36, 1.4f);
+            var inv = UI.Button(brow, "Davet et", UI.Style.Secondary, Invite, Hud.Emoji("letter"), 13); inv.r.LE(-1, 36, 1);
+            startBtn = UI.Button(brow, "Başlat", UI.Style.Primary, StartGame, Hud.Emoji("torch"), 14, "whoosh"); startBtn.r.LE(-1, 36, 1.4f);
             // ben (oda sahibi)
             AddSlot(new Slot { name = Store.P.name, look = Store.P.look.Clone(), host = true, me = true, ready = true }, false);
             return s;
@@ -343,15 +343,15 @@ namespace VK
             var pan = UI.Panel(s, "seçenekler", UI.A(UI.Ink, 0.9f)); pan.anchorMin = new Vector2(0.62f, 0); pan.anchorMax = Vector2.one; pan.offsetMin = new Vector2(4, 10); pan.offsetMax = new Vector2(-14, -60);
             // sekmeler ve düğmeler panelin genişliğine sığar (dar ekranda dışarı taşmaz)
             var tabs = UI.R("sekme", pan); tabs.anchorMin = new Vector2(0, 1); tabs.anchorMax = new Vector2(1, 1); tabs.pivot = new Vector2(0.5f, 1); tabs.offsetMin = new Vector2(10, -36); tabs.offsetMax = new Vector2(-10, -8); UI.HRow(tabs, 6, TextAnchor.MiddleCenter, null, true);
-            UI.Chip(tabs, "Görünüm", true, () => { }, Hud.Emoji("shirt"));
-            UI.Chip(tabs, "Mağaza", false, () => Show("magaza"), Hud.Emoji("shop"));
+            UI.Chip(tabs, "Görünüm", true, () => { }, Hud.Emoji("tunic"));
+            UI.Chip(tabs, "Mağaza", false, () => Show("magaza"), Hud.Emoji("pouch"));
             // alt sekmeler (Genel / Aksesuar / Efekt ...): bir anda tek bölüm gösterilir
             charTabs = UI.R("alt sekmeler", pan); charTabs.anchorMin = new Vector2(0, 1); charTabs.anchorMax = new Vector2(1, 1); charTabs.pivot = new Vector2(0.5f, 1); charTabs.offsetMin = new Vector2(10, -70); charTabs.offsetMax = new Vector2(-10, -42);
             UI.HRow(charTabs, 4, TextAnchor.MiddleCenter, null, true);
             var sc = UI.Scroll(pan, true, out charList, 6, UI.Pad(10, 10, 4, 8)); ((RectTransform)sc.transform).Fill(0, 76, 0, 74);
             selT = UI.Txt(pan, "", 10, UI.Muted, null, TextAnchor.MiddleCenter); selT.rectTransform.anchorMin = new Vector2(0, 0); selT.rectTransform.anchorMax = new Vector2(1, 0); selT.rectTransform.pivot = new Vector2(0.5f, 0); selT.rectTransform.offsetMin = new Vector2(8, 50); selT.rectTransform.offsetMax = new Vector2(-8, 72);
             var brow = UI.R("düğmeler", pan); brow.anchorMin = new Vector2(0, 0); brow.anchorMax = new Vector2(1, 0); brow.pivot = new Vector2(0.5f, 0); brow.offsetMin = new Vector2(8, 10); brow.offsetMax = new Vector2(-8, 44); UI.HRow(brow, 6, TextAnchor.MiddleCenter, null, true);
-            UI.Button(brow, "Rastgele", UI.Style.Secondary, RandomLook, Hud.Emoji("dizzy"), 12).r.LE(-1, 34, 1);
+            UI.Button(brow, "Rastgele", UI.Style.Secondary, RandomLook, Hud.Emoji("dice"), 12).r.LE(-1, 34, 1);
             UI.Button(brow, "Sıfırla", UI.Style.Ghost, () => { draft = Store.P.look.Clone(); RefreshCharacter(); Toast("Kayıtlı görünüme dönüldü"); }, null, 12).r.LE(-1, 34, 0.8f);
             saveBtn = UI.Button(brow, "Onayla", UI.Style.Primary, SaveLook, Hud.Emoji("check"), 12, null); saveBtn.r.LE(-1, 34, 1.1f);
             footT = selT;
@@ -383,7 +383,7 @@ namespace VK
             ("EFEKT", new[] { Cat.Effect, Cat.Victory }),
         };
         static readonly Dictionary<string, string> TAB_LABEL = new Dictionary<string, string> { { "GENEL", "Genel" }, { "BAŞ", "Baş" }, { "GÖVDE", "Gövde" }, { "EKSTRA", "Ekstra" }, { "AKSESUAR", "Aksesuar" }, { "EFEKT", "Efekt" } };
-        static readonly Dictionary<string, string> TAB_ICON = new Dictionary<string, string> { { "GENEL", "shirt" }, { "BAŞ", "crown" }, { "GÖVDE", "shirt" }, { "EKSTRA", "sparkles" }, { "AKSESUAR", "crown" }, { "EFEKT", "sparkles" } };
+        static readonly Dictionary<string, string> TAB_ICON = new Dictionary<string, string> { { "GENEL", "tunic" }, { "BAŞ", "crown" }, { "GÖVDE", "tunic" }, { "EKSTRA", "wisp" }, { "AKSESUAR", "crown" }, { "EFEKT", "wisp" } };
         static readonly (string title, Cat[] cats)[] SECTIONS =
         {
             ("GENEL", new[] { Cat.Hero, Cat.Costume }),
@@ -547,7 +547,7 @@ namespace VK
             featured = UI.R("içerik", featured).Fill();
             var pan = UI.Panel(s, "vitrin"); pan.anchorMin = Vector2.zero; pan.anchorMax = Vector2.one; pan.offsetMin = new Vector2(210, 0); pan.offsetMax = Vector2.zero;
             var tabs = UI.R("sekme", pan).At(new Vector2(0, 1), new Vector2(10, -8), new Vector2(200, 30), new Vector2(0, 1)); UI.HRow(tabs, 6, TextAnchor.MiddleLeft, null, true);
-            tabShop = UI.Chip(tabs, "Mağaza", true, () => { invTab = false; RefreshShop(); }, Hud.Emoji("shop"));
+            tabShop = UI.Chip(tabs, "Mağaza", true, () => { invTab = false; RefreshShop(); }, Hud.Emoji("pouch"));
             tabInv = UI.Chip(tabs, "Envanter", false, () => { invTab = true; RefreshShop(); }, Hud.Emoji("gift"));
             var fs = UI.Scroll(pan, false, out shopFilters, 6); var fr = (RectTransform)fs.transform; fr.anchorMin = new Vector2(0, 1); fr.anchorMax = new Vector2(1, 1); fr.pivot = new Vector2(0.5f, 1); fr.offsetMin = new Vector2(10, -72); fr.offsetMax = new Vector2(-10, -42);
             var gs = UI.Scroll(pan, true, out shopGrid, 8); ((RectTransform)gs.transform).Fill(10, 10, 10, 78);
@@ -645,7 +645,7 @@ namespace VK
             season = UI.R("içerik", season).Fill();
             var pan = UI.Panel(s, "liste"); pan.anchorMin = Vector2.zero; pan.anchorMax = Vector2.one; pan.offsetMin = Vector2.zero; pan.offsetMax = new Vector2(0, -120);
             var tabs = UI.R("sekme", pan).At(new Vector2(0, 1), new Vector2(10, -8), new Vector2(330, 28), new Vector2(0, 1)); UI.HRow(tabs, 6, TextAnchor.MiddleLeft, null, true);
-            qd = UI.Chip(tabs, "Günlük", true, () => { qTab = "gunluk"; RefreshQuests(); }, Hud.Emoji("calendar"));
+            qd = UI.Chip(tabs, "Günlük", true, () => { qTab = "gunluk"; RefreshQuests(); }, Hud.Emoji("sun"));
             qw = UI.Chip(tabs, "Haftalık", false, () => { qTab = "haftalik"; RefreshQuests(); }, Hud.Emoji("hourglass"));
             qa = UI.Chip(tabs, "Başarımlar", false, () => { qTab = "basarim"; RefreshQuests(); }, Hud.Emoji("trophy"));
             var sc = UI.Scroll(pan, true, out qList, 6); ((RectTransform)sc.transform).Fill(10, 8, 10, 44);
@@ -749,7 +749,7 @@ namespace VK
             var xb = UI.ProgressBar(profLeft, UI.Purple, 7); xb.r.At(new Vector2(0, 0), new Vector2(64, 36), new Vector2(150, 7), new Vector2(0, 0)); xb.Set(0);
             float target = p.xp / (float)Profile.XpFor(p.level); Tween.Run(xb.r, 0.9f, k => xb.Set(target * k), Tween.OutCubic, 0.2f);
             UI.Txt(profLeft, $"{p.xp} / {Profile.XpFor(p.level)} XP", 9, UI.Muted).rectTransform.At(new Vector2(0, 0), new Vector2(64, 18), new Vector2(150, 14), new Vector2(0, 0));
-            var edit = UI.Button(profLeft, "", UI.Style.Secondary, () => Show("karakter"), Hud.Emoji("palette"), 13); edit.r.At(new Vector2(1, 1), new Vector2(-8, -8), new Vector2(36, 32), new Vector2(1, 1));
+            var edit = UI.Button(profLeft, "", UI.Style.Secondary, () => Show("karakter"), Hud.Emoji("tunic"), 13); edit.r.At(new Vector2(1, 1), new Vector2(-8, -8), new Vector2(36, 32), new Vector2(1, 1));
             // sağ: istatistik kutuları
             int games = p.Stat("games"), wins = p.Stat("wins"), losses = p.Stat("losses");
             var grid = UI.R("istatistik", profRight); grid.anchorMin = new Vector2(0, 1); grid.anchorMax = Vector2.one; grid.pivot = new Vector2(0.5f, 1); grid.offsetMin = new Vector2(0, -132); grid.offsetMax = Vector2.zero;
@@ -763,10 +763,10 @@ namespace VK
                 UI.Txt(t, label, 10, UI.Muted, UI.Bold).rectTransform.At(new Vector2(0, 0), new Vector2(44, 7), new Vector2(110, 14), new Vector2(0, 0));
                 Tween.Scale(t, 0.85f, 1, 0.3f, n++ * 0.04f);
             }
-            Tile("gamepad", "Toplam maç", games.ToString(), UI.Fg);
+            Tile("swords", "Toplam maç", games.ToString(), UI.Fg);
             Tile("trophy", "Galibiyet", wins.ToString(), UI.Good);
-            Tile("broken", "Mağlubiyet", losses.ToString(), UI.Bad);
-            Tile("chart", "Kazanma oranı", games > 0 ? "%" + Mathf.RoundToInt(100f * wins / games) : "—", UI.Lilac);
+            Tile("skull", "Mağlubiyet", losses.ToString(), UI.Bad);
+            Tile("star", "Kazanma oranı", games > 0 ? "%" + Mathf.RoundToInt(100f * wins / games) : "—", UI.Lilac);
             Tile("medal", "MVP", p.Stat("mvp").ToString(), UI.Gold);
             Tile("shield", "Hayatta kalma", games > 0 ? "%" + Mathf.RoundToInt(100f * p.Stat("survived") / games) : "—", UI.Fg);
             // roller

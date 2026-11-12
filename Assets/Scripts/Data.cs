@@ -181,21 +181,21 @@ namespace VK
 
         public static readonly List<QuestDef> DAILY = new List<QuestDef>
         {
-            new QuestDef { id = "d_play", name = "3 maç oyna", icon = "gamepad", stat = "games", goal = 3, xp = 80, coins = 60 },
+            new QuestDef { id = "d_play", name = "3 maç oyna", icon = "swords", stat = "games", goal = 3, xp = 80, coins = 60 },
             new QuestDef { id = "d_win", name = "1 maç kazan", icon = "trophy", stat = "wins", goal = 1, xp = 100, coins = 80 },
             new QuestDef { id = "d_vote", name = "Gündüz 5 oy ver", icon = "vote", stat = "votes", goal = 5, xp = 60, coins = 40 },
             new QuestDef { id = "d_chat", name = "Sohbete 5 mesaj yaz", icon = "speaker", stat = "msgs", goal = 5, xp = 40, coins = 30 },
         };
         public static readonly List<QuestDef> WEEKLY = new List<QuestDef>
         {
-            new QuestDef { id = "w_play", name = "15 maç oyna", icon = "gamepad", stat = "games", goal = 15, xp = 400, coins = 300, weekly = true },
+            new QuestDef { id = "w_play", name = "15 maç oyna", icon = "swords", stat = "games", goal = 15, xp = 400, coins = 300, weekly = true },
             new QuestDef { id = "w_win", name = "6 maç kazan", icon = "trophy", stat = "wins", goal = 6, xp = 500, coins = 400, weekly = true },
             new QuestDef { id = "w_vamp", name = "Vampir olarak 2 kez kazan", icon = "vampir", stat = "wins_vampir", goal = 2, xp = 450, coins = 350, weekly = true },
             new QuestDef { id = "w_survive", name = "5 maçı hayatta bitir", icon = "shield", stat = "survived", goal = 5, xp = 350, coins = 250, weekly = true },
         };
         public static readonly List<AchDef> ACH = new List<AchDef>
         {
-            new AchDef { id = "a_first", name = "İlk Adım", desc = "İlk maçını oyna", icon = "rocket", stat = "games", goal = 1 },
+            new AchDef { id = "a_first", name = "İlk Adım", desc = "İlk maçını oyna", icon = "torch", stat = "games", goal = 1 },
             new AchDef { id = "a_win1", name = "İlk Zafer", desc = "Bir maç kazan", icon = "trophy", stat = "wins", goal = 1 },
             new AchDef { id = "a_win10", name = "Usta", desc = "10 maç kazan", icon = "medal", stat = "wins", goal = 10, reward = "t_legend" },
             new AchDef { id = "a_vamp", name = "Gecenin Efendisi", desc = "Vampir olarak 3 kez kazan", icon = "vampir", stat = "wins_vampir", goal = 3, reward = "t_sly" },
@@ -204,7 +204,7 @@ namespace VK
             new AchDef { id = "a_mayor", name = "Halkın Sesi", desc = "3 kez muhtar seçil", icon = "crown", stat = "mayor", goal = 3 },
             new AchDef { id = "a_survive", name = "Hayatta Kalan", desc = "10 maçı hayatta bitir", icon = "shield", stat = "survived", goal = 10 },
             new AchDef { id = "a_talk", name = "Köyün Sesi", desc = "100 mesaj yaz", icon = "speaker", stat = "msgs", goal = 100 },
-            new AchDef { id = "a_style", name = "Moda İkonu", desc = "10 kozmetik ürüne sahip ol", icon = "palette", stat = "owned", goal = 10, reward = "fr_gold" },
+            new AchDef { id = "a_style", name = "Moda İkonu", desc = "10 kozmetik ürüne sahip ol", icon = "tunic", stat = "owned", goal = 10, reward = "fr_gold" },
         };
 
         public static void Load()
