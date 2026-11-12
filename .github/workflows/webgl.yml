@@ -5,10 +5,10 @@
 name: WebGL
 on:
   push:
-    branches: [main]
+    branches: [main, onizleme]
   workflow_dispatch:
 concurrency:
-  group: webgl
+  group: webgl-${{ github.ref_name }}
   cancel-in-progress: true
 permissions:
   contents: write
@@ -62,8 +62,9 @@ jobs:
           build-target: WebGL
           log-name: WebGL-Build
           args: -quit -batchmode -nographics -executeMethod BuildSetup.BuildWebGL
-      - name: Web sürümünü webgl dalına yaz
+      - name: Web sürümünü webgl dalına yaz (onizleme dalı -> webgl-onizleme; oyunculara gitmez)
         run: |
+          OUT=webgl; [ "${{ github.ref_name }}" = "onizleme" ] && OUT=webgl-onizleme
           D=$(cd Builds/WebGL/Build && ls | grep -E '\.data' | head -1); F=$(cd Builds/WebGL/Build && ls | grep -E 'framework' | head -1); C=$(cd Builds/WebGL/Build && ls | grep -E '\.wasm' | head -1)
           sed -e "s#__DATA__#$D#" -e "s#__FW__#$F#" -e "s#__CODE__#$C#" web/index.html > Builds/WebGL/index.html
           cp web/loading-bg.png web/logo.png Builds/WebGL/
@@ -73,7 +74,8 @@ jobs:
           git init -q -b webgl
           git add -A
           git -c user.name="github-actions" -c user.email="github-actions@users.noreply.github.com" commit -qm "WebGL ${{ github.sha }}"
-          git push -f "https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git" webgl
+          git branch -m "$OUT"
+          git push -f "https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git" "$OUT"
       - uses: actions/upload-artifact@v4
         with:
           name: webgl
