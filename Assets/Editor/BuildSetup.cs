@@ -235,16 +235,16 @@ public class ZuImport : AssetPostprocessor
             var n = System.IO.Path.GetFileNameWithoutExtension(assetPath); // kenarlar: sol, alt, sağ, üst
             ti.spriteBorder = n == "ornate" ? new Vector4(72, 72, 72, 72) : n == "tile" || n == "tile_on" ? new Vector4(28, 28, 28, 28) : n == "btn_purple" || n == "btn_dark" || n == "pill_dark" ? new Vector4(44, 30, 44, 30) : n == "frame" ? new Vector4(72, 72, 72, 72) : n == "plaque" ? new Vector4(70, 0, 70, 0) : n.StartsWith("ribbon") ? new Vector4(26, 0, 26, 0) : n == "btn_gold" ? new Vector4(70, 0, 70, 0) : Vector4.zero;
         }
-        if (assetPath.Contains("/Resources/Cards/"))
+        if (assetPath.Contains("/Resources/Cards/") || assetPath.Contains("/Resources/Buttons/"))
         {
             // kullanıcının rol kartları: dosyaya dokunulmaz, yalnız içe aktarırken sıkıştırılır
             ti.textureType = TextureImporterType.Sprite; ti.spriteImportMode = SpriteImportMode.Single; ti.alphaIsTransparency = true; ti.mipmapEnabled = false;
-            ti.textureCompression = TextureImporterCompression.CompressedHQ; ti.maxTextureSize = 1024;
+            ti.textureCompression = TextureImporterCompression.CompressedHQ; ti.maxTextureSize = assetPath.Contains("/Buttons/") ? (assetPath.Contains("chatbar") ? 1024 : 256) : 1024;
         }
         if (assetPath.Contains("turf")) { ti.wrapMode = TextureWrapMode.Mirror; ti.isReadable = true; }
         if (assetPath.Contains("flames")) ti.wrapMode = TextureWrapMode.Clamp;
         if (assetPath.Contains("/Village/")) { ti.textureCompression = TextureImporterCompression.Uncompressed; ti.wrapMode = TextureWrapMode.Repeat; ti.filterMode = FilterMode.Bilinear; ti.mipmapEnabled = true; ti.sRGBTexture = true; }
-        if (!assetPath.Contains("/Resources/Cards/")) ti.maxTextureSize = 2048;
+        if (!assetPath.Contains("/Resources/Cards/") && !assetPath.Contains("/Resources/Buttons/")) ti.maxTextureSize = 2048;
     }
 }
 #endif
