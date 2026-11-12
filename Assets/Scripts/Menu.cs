@@ -62,7 +62,8 @@ namespace VK
                 var id = t.id;
                 var cell = UI.R(t.id, col); cell.LE(-1, 54);
                 var bg = UI.Img(cell, UI.Tile ?? UI.Round, Color.white, "vurgu"); bg.type = Image.Type.Sliced; bg.pixelsPerUnitMultiplier = 2.4f; bg.rectTransform.Fill(); bg.raycastTarget = true;
-                var ic = UI.Icon(cell, Hud.Emoji(t.icon), 26); ic.rectTransform.At(new Vector2(0.5f, 1), new Vector2(0, -6), new Vector2(26, 26), new Vector2(0.5f, 1));
+                var art = Resources.Load<Sprite>("Rail/" + t.id); // kullanıcının sekme görselleri (olduğu gibi)
+                var ic = UI.Icon(cell, art ?? Hud.Emoji(t.icon), art ? 36 : 26); if (art) ic.rectTransform.At(new Vector2(0.5f, 1), new Vector2(0, -1), new Vector2(36, 36), new Vector2(0.5f, 1)); else ic.rectTransform.At(new Vector2(0.5f, 1), new Vector2(0, -6), new Vector2(26, 26), new Vector2(0.5f, 1));
                 var lb = UI.Txt(cell, t.label, 10, UI.Muted, UI.Bold, TextAnchor.MiddleCenter); lb.rectTransform.At(new Vector2(0.5f, 0), new Vector2(0, 5), new Vector2(60, 14), new Vector2(0.5f, 0));
                 var dot = UI.Img(cell, UI.Circle, UI.Gold, "nokta"); dot.rectTransform.At(new Vector2(1, 1), new Vector2(-6, -6), new Vector2(8, 8)); dot.enabled = false; railDots[id] = dot;
                 UI.Click(cell, () => Show(id));
